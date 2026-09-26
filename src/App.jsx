@@ -58,7 +58,14 @@ function Crm() {
 
   const reload = useCallback(async () => {
     try {
-      setState(await db.load())
+      let st = await db.load()
+      // Démo publique : charge les exemples si le navigateur est vide
+      if (isLocal && import.meta.env.VITE_AUTOSEED && st.prospects.length === 0) {
+        const seed = buildSeed()
+        await db.bulkImport(seed.prospects, seed.actions)
+        st = await db.load()
+      }
+      setState(st)
       setError(null)
     } catch (e) {
       setError(e.message)
