@@ -32,6 +32,8 @@ create table if not exists public.actions (
 );
 create index if not exists actions_prospect_idx on public.actions (prospect_id);
 create index if not exists actions_date_idx on public.actions (date);
+create index if not exists actions_user_idx on public.actions (user_id);
+create index if not exists prospects_user_idx on public.prospects (user_id);
 
 create table if not exists public.settings (
   user_id uuid primary key default auth.uid() references auth.users on delete cascade,
@@ -45,11 +47,11 @@ alter table public.actions enable row level security;
 alter table public.settings enable row level security;
 
 drop policy if exists "own prospects" on public.prospects;
-create policy "own prospects" on public.prospects for all
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own prospects" on public.prospects for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "own actions" on public.actions;
-create policy "own actions" on public.actions for all
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own actions" on public.actions for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "own settings" on public.settings;
-create policy "own settings" on public.settings for all
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own settings" on public.settings for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
