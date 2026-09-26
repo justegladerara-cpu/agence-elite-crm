@@ -11,6 +11,7 @@ import Fiche from './pages/Fiche'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
+import Session from './pages/Session'
 
 const NAV = [
   { path: 'journee', label: 'Ma journée', short: 'Journée', ico: '☀' },
@@ -156,7 +157,7 @@ function Crm() {
   }
 
   const [page, arg] = route.split('/')
-  const current = page === 'prospect' ? 'prospects' : page
+  const current = page === 'prospect' ? 'prospects' : page === 'session' ? 'journee' : page
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
   else if (page === 'prospects') content = <Prospects />
@@ -164,6 +165,7 @@ function Crm() {
   else if (page === 'dashboard') content = <Dashboard />
   else if (page === 'clients') content = <Clients />
   else if (page === 'parametres') content = <Parametres />
+  else if (page === 'session') content = <Session />
   else content = <Journee />
 
   return (

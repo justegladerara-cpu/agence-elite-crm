@@ -304,6 +304,8 @@ export function computeStats(data, settings, periode, canal) {
       encaisse,
       depenses,
       benefice: encaisse - depenses,
+      cac: signes ? depenses / signes : null,
+      tempsH: acts.filter((x) => isProspection(x, L) || x.action === 'Audit réalisé').reduce((m, x) => m + num(x.duree), 0) / 60,
     }
   }
 

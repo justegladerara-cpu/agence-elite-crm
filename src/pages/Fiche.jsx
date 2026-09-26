@@ -141,6 +141,7 @@ export default function Fiche({ id }) {
               </div>
             </div>
           )}
+          <AuditCard p={p} />
           <div className="card">
             <h2 className="section">Fiche</h2>
             <div className="info-grid">
@@ -197,6 +198,43 @@ export default function Fiche({ id }) {
           <ActionForm prefill={{ edit: editAction }} onDone={() => setEditAction(null)} />
         </Modal>
       )}
+    </div>
+  )
+}
+
+const AUDIT = [
+  ['site', 'Site internet (rapide, mobile, réservation / contact)'],
+  ['google', 'Fiche Google (complète, photos, horaires)'],
+  ['avis', 'Avis Google (note, nombre, réponses)'],
+  ['instagram', 'Instagram (bio, lien, régularité)'],
+  ['pubs', 'Publicités (où atterrit la pub, offre claire)'],
+]
+function AuditCard({ p }) {
+  const { api } = useApp()
+  const audit = p.fiche?.audit || {}
+  const done = AUDIT.filter(([k]) => audit[k]).length
+  const set = (patch) => api.updateProspect(p.id, { fiche: { ...p.fiche, audit: { ...audit, ...patch } } })
+  return (
+    <div className="card">
+      <h2 className="section">
+        🔍 Checklist d'audit <span className="count">{done}/{AUDIT.length}</span>
+      </h2>
+      <div className="stack" style={{ gap: 8 }}>
+        {AUDIT.map(([k, label]) => (
+          <label key={k} className="row small" style={{ flexWrap: 'nowrap', cursor: 'pointer' }}>
+            <input type="checkbox" checked={!!audit[k]} onChange={(e) => set({ [k]: e.target.checked })} style={{ width: 18, height: 18 }} />
+            {label}
+          </label>
+        ))}
+        <textarea
+          className="input"
+          placeholder="Constats de l'audit (points faibles à montrer dans le Loom)…"
+          defaultValue={audit.notes || ''}
+          onBlur={(e) => e.target.value !== (audit.notes || '') && set({ notes: e.target.value })}
+          style={{ minHeight: 60 }}
+        />
+        <div className="tiny muted">Une fois l'audit fini, saisis l'action « Audit réalisé » avec sa note sur 100 et le temps passé.</div>
+      </div>
     </div>
   )
 }

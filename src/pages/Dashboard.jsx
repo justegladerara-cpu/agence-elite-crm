@@ -352,6 +352,8 @@ export default function Dashboard() {
               ['Propositions en attente', eur(st.propositionsEnAttente)],
               ['Reste à encaisser', eur(st.resteAEncaisser)],
               ['Dépenses de la période', eur(c.depenses)],
+              ["Coût d'acquisition / client", c.cac === null ? '—' : eur(c.cac)],
+              ['Heures de prospection', nb(c.tempsH, 1)],
               ['Valeur vie client moyenne', eur(st.vieMoy)],
               ['Taux de résiliation', pct(st.churn)],
             ].map(([k, v]) => (

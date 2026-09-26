@@ -70,6 +70,9 @@ export default function Journee() {
           {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
           {data.alertes.length > 1 ? 's' : ''}
         </div>
+        <button className="btn gold" style={{ marginTop: 14 }} onClick={() => go('/session')}>
+          ▶ Lancer une session d'appels
+        </button>
         <div className="grid grid-3" style={{ marginTop: 16, gap: 10 }}>
           {goals.map(([l, v, c]) => (
             <div className="goal-mini" key={l}>
