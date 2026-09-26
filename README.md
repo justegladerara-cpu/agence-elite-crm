@@ -21,7 +21,7 @@ Stack : React + Vite, Supabase (base de données + connexion), hébergé sur Net
 2. Menu **SQL Editor** → **New query** → colle tout le contenu de `supabase/schema.sql` → **Run**.
 3. Menu **Authentication** → **Users** → **Add user** → **Create new user** : ton e-mail et un mot de passe, coche **Auto Confirm User**.
 4. Menu **Authentication** → **Sign In / Providers** → désactive **Allow new users to sign up** (toi seul peux te connecter).
-5. Menu **Project Settings** → **API** (ou **Data API**) : garde ouverts **Project URL** et la clé **anon public**.
+5. Menu **Project Settings** → **API** (ou **Data API**) : garde ouverts **Project URL** et la clé **publishable** (`sb_publishable_…`, ou l'ancienne clé **anon public**). Jamais la clé secrète.
 
 ### 2. Netlify (hébergement)
 1. Crée un compte sur https://netlify.com avec ton compte GitHub.
@@ -29,7 +29,7 @@ Stack : React + Vite, Supabase (base de données + connexion), hébergé sur Net
 3. Les réglages de build sont lus dans `netlify.toml` (rien à changer).
 4. Avant **Deploy**, dans **Environment variables**, ajoute :
    - `VITE_SUPABASE_URL` = la Project URL de Supabase
-   - `VITE_SUPABASE_ANON_KEY` = la clé anon public
+   - `VITE_SUPABASE_ANON_KEY` = la clé publishable (ou anon public)
 5. **Deploy**. Ton CRM est en ligne à l'adresse donnée par Netlify (modifiable dans **Site configuration → Change site name**).
 
 Sur téléphone : ouvre l'adresse puis « Ajouter à l'écran d'accueil » pour l'avoir comme une appli.
