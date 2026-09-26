@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppCtx, Modal, useToast, go } from './ui'
 import { db, supabase, isLocal } from './lib/store'
 import { computeAll } from './lib/logic'
+import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
@@ -116,6 +117,17 @@ function Crm() {
     bulkImport: wrap(async (prospects, actions, replace) => {
       if (replace) await db.wipe()
       await db.bulkImport(prospects, actions)
+      await reload()
+    }),
+    loadSeed: wrap(async () => {
+      const { prospects, actions } = buildSeed()
+      await db.bulkImport(prospects, actions)
+      await reload()
+    }),
+    clearSeed: wrap(async () => {
+      const ex = state.prospects.filter(isExample)
+      for (const p of ex) await db.deleteProspect(p.id)
+      for (const a of state.actions.filter((a) => !a.prospect_id && (a.notes || '').includes(TAG))) await db.deleteAction(a.id)
       await reload()
     }),
     reload,

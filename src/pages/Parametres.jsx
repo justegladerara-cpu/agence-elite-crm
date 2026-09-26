@@ -3,6 +3,7 @@ import { useApp, Field, eur } from '../ui'
 import { supabase, isLocal } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { today } from '../lib/dates'
+import { isExample } from '../lib/seed'
 
 const NUM_GROUPS = [
   ['🎯 Objectifs du jour', 'objectifsJour', [['prospects', 'Nouveaux prospects / jour'], ['appels', 'Appels / jour'], ['dm', 'DM / jour']]],
@@ -247,6 +248,21 @@ export default function Parametres() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <h2 className="section">🧪 Données d'exemple</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          7 prospects fictifs marqués « (EXEMPLE) » pour voir le CRM rempli. Supprime-les avant de commencer pour de vrai.
+        </p>
+        <div className="row">
+          <button className="btn" disabled={!!busy || prospects.some(isExample)} onClick={async () => { setBusy('seed'); try { await api.loadSeed(); toast('Exemples chargés ✓') } catch { /* toast */ } setBusy('') }}>
+            Charger les exemples
+          </button>
+          <button className="btn danger" disabled={!!busy || !prospects.some(isExample)} onClick={async () => { if (!window.confirm('Supprimer tous les prospects « (EXEMPLE) » et leur historique ?')) return; setBusy('seed'); try { await api.clearSeed(); toast('Exemples supprimés ✓') } catch { /* toast */ } setBusy('') }}>
+            Supprimer les exemples
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>

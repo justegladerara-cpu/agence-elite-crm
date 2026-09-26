@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Bar, Empty, go, eur, nb } from '../ui'
 import { todayCounts, computeStats } from '../lib/logic'
+import { isExample } from '../lib/seed'
 import { today, fmtDate, addDays, diffDays, weekday } from '../lib/dates'
 
 function ProspectRow({ p, children, overdue }) {
@@ -28,7 +29,7 @@ function ProspectRow({ p, children, overdue }) {
 }
 
 export default function Journee() {
-  const { data, settings } = useApp()
+  const { data, settings, prospects, api, toast } = useApp()
   const t = today()
   const counts = todayCounts(data)
   const obj = settings.objectifsJour
@@ -47,6 +48,22 @@ export default function Journee() {
 
   return (
     <div className="stack">
+      {prospects.length === 0 && (
+        <div className="banner row">
+          <span style={{ flex: 1 }}>Ton CRM est vide. Charge des exemples pour voir tout rempli, tu pourras les supprimer ensuite.</span>
+          <button className="btn sm" onClick={() => api.loadSeed().then(() => toast('Exemples chargés ✓'), () => {})}>
+            Charger les exemples
+          </button>
+        </div>
+      )}
+      {prospects.some(isExample) && (
+        <div className="banner row">
+          <span style={{ flex: 1 }}>Des prospects d'exemple sont chargés.</span>
+          <button className="btn sm" onClick={() => go('/parametres')}>
+            Les supprimer
+          </button>
+        </div>
+      )}
       <div className="hero">
         <h1>{hello} Juste ☀</h1>
         <div className="sub">
