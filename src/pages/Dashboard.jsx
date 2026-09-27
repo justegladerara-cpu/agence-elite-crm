@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useApp, Kpi, Bar, eur, pct, nb } from '../ui'
+import { useApp, Kpi, eur, pct, nb } from '../ui'
 import { Icon, withIcon } from '../icons'
+import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
 const C_ENC = '#b8862b'
 
-function MonthChart({ series }) {
+function MonthChart({ series, objectif = 0 }) {
   const [hover, setHover] = useState(null)
-  const W = 640
-  const H = 220
+  const [box, W] = useWidth(640)
+  const H = W < 500 ? 200 : 230
   const pad = { l: 48, r: 8, t: 12, b: 26 }
-  const max = Math.max(1, ...series.flatMap((m) => [m.caSigne, m.encaisse]))
+  const max = Math.max(1, objectif, ...series.flatMap((m) => [m.caSigne, m.encaisse]))
   const step = niceStep(max)
   const top = Math.ceil(max / step) * step
   const iw = W - pad.l - pad.r
@@ -35,7 +36,7 @@ function MonthChart({ series }) {
     )
   }
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative' }} ref={box}>
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="CA signé et encaissé par mois">
         {ticks.map((v) => (
           <g key={v}>
@@ -59,6 +60,7 @@ function MonthChart({ series }) {
           )
         })}
         <line x1={pad.l} x2={W - pad.r} y1={pad.t + ih} y2={pad.t + ih} stroke="#c9ced9" />
+        {objectif > 0 && <line x1={pad.l} x2={W - pad.r} y1={y(objectif)} y2={y(objectif)} stroke="#c8423f" strokeWidth="1.5" strokeDasharray="5 4" />}
       </svg>
       {hover !== null && (
         <div
@@ -82,6 +84,7 @@ function MonthChart({ series }) {
             <b>{eur(series[hover].encaisse)}</b>
           </div>
           <div className="muted">Bénéfice : {eur(series[hover].benefice)}</div>
+          {objectif > 0 && <div className="muted">Objectif : {eur(objectif)} ({Math.round((series[hover].caSigne / objectif) * 100)} %)</div>}
         </div>
       )}
     </div>
@@ -289,7 +292,6 @@ export default function Dashboard() {
   const pv = st.prev
   const d = (k) => (pv ? Math.round((c[k] - pv[k]) * 100) / 100 : null)
   const best = series.reduce((b, m) => (m.caSigne > (b?.caSigne ?? -1) ? m : b), null)
-  const funnelMax = Math.max(1, st.funnel[0]?.n || 0)
   const titre = mois === 'Tous' ? "Tout l'historique" : periode.semaine ? `${mois} (${fmtDate(periode.debut)} → ${fmtDate(periode.fin)})` : fmtMonth(periode.key)
   const vs = periode.prevLabel
   const act = activitySeries(data, periode, canal)
@@ -352,49 +354,20 @@ export default function Dashboard() {
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
-          {goals.map(([l, v, cible, fmt]) => {
-            const proj = dayN ? (v / dayN) * daysIn : 0
-            const ok = proj >= cible
-            return (
-              <div className="goal" key={l}>
-                <div className="bold small">{l}</div>
-                <div>
-                  <Bar value={v} max={cible} tone={v >= cible ? 'green' : ''} />
-                  <div className="tiny muted" style={{ marginTop: 3 }}>
-                    Projection fin de mois : {fmt(Math.round(proj))}
-                  </div>
-                </div>
-                <div className="right small nowrap">
-                  <b>{fmt(v)}</b> / {fmt(cible)}
-                  <div className={`tiny ${ok ? 'green' : 'red'}`}>{ok ? '✔ En avance' : '✖ En retard'}</div>
-                </div>
-              </div>
-            )
-          })}
+          <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir de ton process</h2>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
+          <Funnel steps={st.process} />
+          {st.perdus > 0 && <div className="tiny muted" style={{ marginTop: 4 }}>{st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période.</div>}
         </div>
 
         <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir du pipeline</h2>
-          <div className="tiny muted" style={{ marginBottom: 8 }}>
-            Prospects ajoutés sur la période, étape la plus haute atteinte
+          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
+          <div className="gauges">
+            {goals.map(([l, v, cible, fmt]) => (
+              <Gauge key={l} label={l} value={v} cible={cible} proj={dayN ? (v / dayN) * daysIn : 0} fmt={fmt} />
+            ))}
           </div>
-          {st.funnel.map((f, i) => (
-            <div className="funnel-row" key={f.nom}>
-              <div className="small bold">{f.nom}</div>
-              <div>
-                <div className={`funnel-bar ${f.nom === 'Gagné' ? 'win' : ''}`} style={{ width: `${Math.max(6, (f.n / funnelMax) * 100)}%` }}>
-                  {f.n}
-                </div>
-              </div>
-              <div className="tiny muted right">{i > 0 ? pct(st.funnel[i - 1].n ? f.n / st.funnel[i - 1].n : 0) : ''}</div>
-            </div>
-          ))}
-          <div className="funnel-row">
-            <div className="small bold muted">Perdus</div>
-            <div className="small muted">{st.perdus}</div>
-            <div />
-          </div>
+          <div className="tiny muted" style={{ marginTop: 10 }}>Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.</div>
         </div>
       </div>
 
@@ -412,10 +385,14 @@ export default function Dashboard() {
               <i style={{ background: C_ENC }} />
               Encaissé
             </span>
+            <span>
+              <i style={{ background: 'none', borderTop: '2px dashed #c8423f', borderRadius: 0, height: 0, width: 14 }} />
+              Objectif mensuel
+            </span>
             {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
           </div>
         </div>
-        <MonthChart series={series} />
+        <MonthChart series={series} objectif={Number(om.ca) || 0} />
         <details style={{ marginTop: 10 }}>
           <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
             Voir le tableau mois par mois
@@ -450,6 +427,49 @@ export default function Dashboard() {
             </table>
           </div>
         </details>
+      </div>
+
+      <div className="grid grid-3" style={{ alignItems: 'start' }}>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="radio" size={16} /></span> D'où viennent tes prospects</h2>
+          <Donut items={st.repCanal} total="prospects" />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="tag" size={16} /></span> Secteurs prospectés</h2>
+          <Donut items={st.repSecteur} total="prospects" />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> CA signé par offre</h2>
+          <Donut items={st.repOffre} fmt={eur} total="CA signé" />
+        </div>
+      </div>
+
+      <h2 className="dash-title">Ce qui marche</h2>
+      <div className="grid grid-2" style={{ alignItems: 'start' }}>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
+          <HBars rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="eye" size={16} /></span> Taux de réponse par signal repéré</h2>
+          <HBars rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Secteurs qui signent le plus</h2>
+          <HBars rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="ban" size={16} /></span> Objections et motifs de perte</h2>
+          <HBars rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Meilleurs créneaux d'appel</h2>
+          <HBars rows={st.creneaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Meilleurs jours d'appel</h2>
+          <HBars rows={st.jours.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+        </div>
       </div>
 
       <div className="card">
@@ -547,9 +567,11 @@ export default function Dashboard() {
 
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="bolt" size={16} /></span> Vitesse et production</h2>
-          <table className="t">
+          <div className="tiny muted" style={{ marginBottom: 8 }}>Nombre de jours moyen pour passer d'une étape à la suivante</div>
+          <HBars rows={st.vitesse.filter((r) => r.v !== null).map((r) => ({ label: r.label.replace('Jours ', ''), value: Math.round(r.v * 10) / 10 }))} fmt={(v) => `${nb(v, 1)} j`} color={COULEURS[6]} best={false} empty="Pas encore assez d'historique." />
+          <table className="t" style={{ marginTop: 12 }}>
             <tbody>
-              {[...st.vitesse, ...st.autres].map((r) => (
+              {st.autres.map((r) => (
                 <tr key={r.label}>
                   <td>{r.label}</td>
                   <td className="num bold">{r.v === null ? '—' : r.pct ? pct(r.v) : nb(r.v, 1)}</td>
@@ -560,71 +582,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <RateTable
-            title="⏰ Meilleurs créneaux d'appel"
-            rows={st.creneaux}
-            cols={[
-              ['Créneau', (r) => r.label],
-              ['Appels', (r) => r.n, 1],
-              ['Réponses', (r) => r.r, 1],
-              ['Taux', (r) => pct(r.taux), 1],
-            ]}
-          />
-        </div>
-        <div className="card">
-          <RateTable
-            title="📅 Meilleurs jours d'appel"
-            rows={st.jours}
-            cols={[
-              ['Jour', (r) => r.label],
-              ['Appels', (r) => r.n, 1],
-              ['Réponses', (r) => r.r, 1],
-              ['Taux', (r) => pct(r.taux), 1],
-            ]}
-          />
-        </div>
-        <div className="card">
-          <RateTable
-            title="✉ Accroches et modèles (test A/B)"
-            rows={st.modeles}
-            cols={[
-              ['Modèle', (r) => r.label],
-              ['Envois', (r) => r.n, 1],
-              ['Réponses', (r) => r.r, 1],
-              ['Taux', (r) => pct(r.taux), 1],
-            ]}
-          />
-        </div>
-        <div className="card">
-          <RateTable
-            title="🚫 Objections et motifs de perte"
-            rows={st.objections}
-            cols={[
-              ['Objection', (r) => r.label],
-              ['Nombre', (r) => r.n, 1],
-              ['Part', (r) => pct(r.part), 1],
-            ]}
-          />
-        </div>
-      </div>
-
-      <div className="card">
-        <RateTable
-          title="🏷 Secteurs qui signent le plus"
-          rows={st.secteurs}
-          cols={[
-            ['Secteur', (r) => r.label],
-            ['Prospects', (r) => r.prospects, 1],
-            ['Clients', (r) => r.clients, 1],
-            ['Taux', (r) => pct(r.taux), 1],
-            ['CA signé', (r) => eur(r.ca), 1],
-            ['Cycle moyen (j)', (r) => (r.cycle === null ? '—' : nb(r.cycle, 1)), 1],
-          ]}
-        />
-        {st.secteurs.length === 0 && <div className="empty">Pas encore de données.</div>}
-      </div>
     </div>
   )
 }

@@ -353,6 +353,30 @@ export function computeStats(data, settings, periode, canal) {
     n: cohort.filter((p) => p.niveau >= i + 1).length,
   }))
   const perdus = cohort.filter((p) => p.etape === 'Perdu').length
+  // Entonnoir du process Instagram : de l'ajout à la signature
+  const repondu = (p) => p.niveau >= 3 || (p.acts || []).some((a) => isReponse(a, L))
+  const process = [
+    ['Ajoutés', () => true],
+    ['Contactés', (p) => p.niveau >= 2],
+    ['Ont répondu', repondu],
+    ['Qualifiés', (p) => p.niveau >= 3],
+    ['Loom / audit', (p) => p.niveau >= 4],
+    ['Appel / RDV', (p) => p.niveau >= 5],
+    ['Proposition', (p) => p.niveau >= 6],
+    ['Signés', (p) => p.niveau >= 7],
+  ].map(([label, f]) => ({ label, n: cohort.filter(f).length }))
+  // Répartitions (camemberts)
+  const compter = (arr, f) => {
+    const m = {}
+    arr.forEach((x) => {
+      const k = f(x) || 'Non renseigné'
+      m[k] = (m[k] || 0) + 1
+    })
+    return Object.entries(m).map(([label, value]) => ({ label, value }))
+  }
+  const repCanal = compter(cohort, (p) => p.canal)
+  const repSecteur = compter(cohort, (p) => p.fiche?.secteur)
+  const repSignal = compter(cohort.filter((p) => p.fiche?.signal), (p) => p.fiche.signal)
 
   // Par canal
   const acts = sorted.filter((x) => inP(x.date, periode.debut, periode.fin))
@@ -439,6 +463,22 @@ export function computeStats(data, settings, periode, canal) {
     .filter((x) => x.prospects || x.clients)
     .sort((a, b) => b.ca - a.ca || b.clients - a.clients)
 
+  // CA signé par offre sur la période
+  const caOffre = {}
+  acts.filter((x) => VENTES.includes(x.action) && canalOk(byId[x.prospect_id]?.canal || '')).forEach((x) => {
+    const p = byId[x.prospect_id]
+    const k = p?.fiche?.offre || 'Sans offre'
+    caOffre[k] = (caOffre[k] || 0) + montantRetenu(x, p, L)
+  })
+  const repOffre = Object.entries(caOffre).map(([label, value]) => ({ label, value }))
+  // Taux de réponse et de signature par signal repéré
+  const signaux = [...new Set(list.map((p) => p.fiche?.signal).filter(Boolean))].map((sg) => {
+    const ps = cohort.filter((p) => p.fiche?.signal === sg)
+    const r = ps.filter(repondu).length
+    const sgn = ps.filter((p) => p.niveau >= 7).length
+    return { label: sg, n: ps.length, r, taux: ps.length ? r / ps.length : 0, signes: sgn }
+  }).filter((x) => x.n)
+
   // Vitesse
   const avg = (arr) => (arr.length ? arr.reduce((m, x) => m + x, 0) / arr.length : null)
   const inCohort = list.filter((p) => inP(p.dateAjout, periode.debut, periode.fin))
@@ -476,6 +516,10 @@ export function computeStats(data, settings, periode, canal) {
     mrr,
     funnel,
     perdus,
+    process,
+    repCanal,
+    repSecteur,
+    repSignal,
     parCanal,
     pipelinePondere,
     propositionsEnAttente,
@@ -490,6 +534,8 @@ export function computeStats(data, settings, periode, canal) {
     modeles,
     objections,
     secteurs,
+    repOffre,
+    signaux,
     vitesse,
     autres,
   }
