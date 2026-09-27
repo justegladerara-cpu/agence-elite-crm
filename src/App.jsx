@@ -3,6 +3,7 @@ import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll } from './lib/logic'
+import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
 import Journee from './pages/Journee'
@@ -203,6 +204,9 @@ function Crm() {
   if (!state) return <div className="login" />
 
   setDevise(state.settings.devise)
+  setBrand(state.settings.apparence)
+  const brand = state.settings.apparence || {}
+  const avecNom = brand.afficherNom !== false
   const syncTxt = !sync.online
     ? `Hors ligne${sync.pending ? ` · ${sync.pending} modification${sync.pending > 1 ? 's' : ''} en attente` : ''}`
     : sync.syncing || sync.pending
@@ -236,12 +240,14 @@ function Crm() {
     <AppCtx.Provider value={ctx}>
       <div className="app">
         <aside className="sidebar">
-          <div className="brand">
+          <div className={`brand ${avecNom ? '' : 'no-name'}`}>
             <Logo size={36} />
-            <div>
-              <div className="brand-name">AGENCE ELITE</div>
-              <div className="brand-sub">CRM de pilotage</div>
-            </div>
+            {avecNom && (
+              <div style={{ minWidth: 0 }}>
+                <div className="brand-name">{brand.nom}</div>
+                {brand.sousTitre && <div className="brand-sub">{brand.sousTitre}</div>}
+              </div>
+            )}
           </div>
           {NAV.map((n) => (
             <button key={n.path} className={`nav-item ${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
@@ -254,9 +260,9 @@ function Crm() {
         <main className="main">
           <header className="mobile-top">
             <Logo size={32} />
-            <div>
-              <div className="brand-name">AGENCE ELITE</div>
-              <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || 'CRM de pilotage'}</div>
+            <div style={{ minWidth: 0 }}>
+              {avecNom && <div className="brand-name">{brand.nom}</div>}
+              <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || brand.sousTitre}</div>
             </div>
             <button className={`icon-btn mobile-settings ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
               <Icon n="settings" size={18} />

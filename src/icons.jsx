@@ -1,3 +1,4 @@
+import { getBrand } from './lib/theme'
 // Icônes au trait (style Lucide), en SVG pour un rendu net et homogène
 const P = {
   sun: 'M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
@@ -74,8 +75,18 @@ export function withIcon(s) {
   )
 }
 
-// Logo officiel Agence Elite (fichiers dans public/)
+// Logo : celui choisi dans Paramètres, sinon le logo officiel Agence Elite (fichiers dans public/)
 export function Logo({ size = 40, full = false, dark = true }) {
-  if (full) return <img src="/logo-full.png" alt="Agence Elite" className="logo-full" />
-  return <img src={dark ? '/logo-mark-light.png' : '/logo-mark.png'} alt="Agence Elite" className="logo" style={{ width: size * 1.45, height: 'auto' }} />
+  const b = getBrand()
+  if (full) return <img src={b.logo || '/logo-full.png'} alt={b.nom} className="logo-full" />
+  if (b.logo) {
+    // Sur fond sombre sans version claire : le logo est posé sur une pastille blanche
+    const chip = dark && !b.logoSombre
+    return (
+      <span className={`logo-perso ${chip ? 'chip' : ''}`} style={{ height: size + (chip ? 6 : 0) }}>
+        <img src={dark ? b.logoSombre || b.logo : b.logo} alt={b.nom} />
+      </span>
+    )
+  }
+  return <img src={dark ? '/logo-mark-light.png' : '/logo-mark.png'} alt={b.nom} className="logo" style={{ width: size * 1.45, height: 'auto' }} />
 }

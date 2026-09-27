@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp, Field, eur, lbl, DEVISES } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
@@ -6,6 +6,7 @@ import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { SOURCES } from '../lib/journee'
 import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
+import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
 const NUM_GROUPS = [
   ['🎯 Objectifs du mois', 'objectifsMois', [['appels', 'Appels / mois'], ['dm', 'DM / mois'], ['rdv', 'RDV / mois'], ['clients', 'Clients signés / mois'], ['ca', 'CA signé / mois (€)']]],
@@ -121,6 +122,117 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
   )
 }
 
+// Image choisie depuis l'appareil (logo, cachet), gardée dans les paramètres
+function ImagePick({ label, value, fallback, onChange, max = 600, dark, hint }) {
+  const ref = useRef()
+  const { toast } = useApp()
+  const pick = async (e) => {
+    const f = e.target.files[0]
+    e.target.value = ''
+    if (!f) return
+    try {
+      onChange(await lireImage(f, max))
+    } catch (err) {
+      toast(err.message, true)
+    }
+  }
+  return (
+    <div className="img-pick">
+      <div className="tiny muted bold" style={{ marginBottom: 6 }}>{label}</div>
+      <div className={`img-prev ${dark ? 'dark' : ''}`}>
+        {value || fallback ? <img src={value || fallback} alt="" /> : <span className="tiny muted">Aucune image</span>}
+      </div>
+      <div className="row" style={{ marginTop: 8, gap: 6 }}>
+        <button type="button" className="btn sm" onClick={() => ref.current.click()}>
+          <Icon n="upload" size={14} /> {value ? 'Changer' : 'Choisir'}
+        </button>
+        {value && (
+          <button type="button" className="btn sm ghost danger" onClick={() => onChange('')}>
+            Retirer
+          </button>
+        )}
+      </div>
+      {hint && <div className="tiny muted" style={{ marginTop: 6 }}>{hint}</div>}
+      <input ref={ref} type="file" accept="image/*" hidden onChange={pick} />
+    </div>
+  )
+}
+
+function ApparenceCard({ s, change }) {
+  const a = { ...APPARENCE_DEFAUT, ...(s.apparence || {}) }
+  const set = (patch) => change({ ...s, apparence: { ...a, ...patch } })
+  const c = couleursDe(a)
+  return (
+    <div className="card">
+      <h2 className="section"><span className="sec-ic"><Icon n="sparkles" size={16} /></span> Identité et apparence</h2>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Ton logo, ton nom et tes couleurs : affichés sur l'écran de connexion, dans le menu, sur Ma journée et sur tes factures.
+      </p>
+      <div className="grid grid-2" style={{ alignItems: 'start' }}>
+        <ImagePick
+          label="Logo"
+          value={a.logo}
+          fallback="/logo-full.png"
+          onChange={(logo) => set({ logo })}
+          hint={a.logo ? 'Ton logo est utilisé partout (factures comprises).' : 'Logo Agence Elite par défaut. Un PNG sur fond transparent donne le meilleur rendu.'}
+        />
+        <ImagePick
+          label="Logo pour fond sombre (menu), facultatif"
+          value={a.logoSombre}
+          fallback={a.logo ? '' : '/logo-mark-light.png'}
+          dark
+          onChange={(logoSombre) => set({ logoSombre })}
+          hint="Une version claire (blanche) de ton logo. Sans elle, ton logo s'affiche sur une pastille blanche dans le menu."
+        />
+      </div>
+      <div className="form-grid" style={{ marginTop: 14 }}>
+        <Field label="Nom affiché">
+          <input className="input" value={a.nom} onChange={(e) => set({ nom: e.target.value })} />
+        </Field>
+        <Field label="Sous-titre">
+          <input className="input" value={a.sousTitre} onChange={(e) => set({ sousTitre: e.target.value })} />
+        </Field>
+        <Field label="Ton prénom (Bonjour …)">
+          <input className="input" value={a.prenom} onChange={(e) => set({ prenom: e.target.value })} />
+        </Field>
+      </div>
+      <Field label="Phrase de l'écran de connexion" style={{ marginTop: 12 }}>
+        <input className="input" value={a.accroche} onChange={(e) => set({ accroche: e.target.value })} />
+      </Field>
+      <label className="row small" style={{ marginTop: 10 }}>
+        <input type="checkbox" checked={a.afficherNom !== false} onChange={(e) => set({ afficherNom: e.target.checked })} /> Afficher le nom à côté du logo dans le
+        menu (décoche si ton logo contient déjà le nom)
+      </label>
+
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM</div>
+      <div className="theme-list">
+        {THEMES.map((t) => {
+          const tc = t.id === 'perso' ? { principal: a.principal, accent: a.accent } : t
+          return (
+            <button key={t.id} type="button" className={`theme-opt ${a.theme === t.id ? 'on' : ''}`} onClick={() => set({ theme: t.id, ...(t.id === 'perso' ? c : {}) })}>
+              <span className="theme-sw" style={{ background: tc.principal }}>
+                <i style={{ background: tc.accent }} />
+              </span>
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+      {a.theme === 'perso' && (
+        <div className="row" style={{ marginTop: 12, gap: 18 }}>
+          <label className="row small">
+            <input type="color" value={a.principal} onChange={(e) => set({ principal: e.target.value })} /> Couleur principale (menu, fonds)
+          </label>
+          <label className="row small">
+            <input type="color" value={a.accent} onChange={(e) => set({ accent: e.target.value })} /> Couleur d'accent (boutons, barres)
+          </label>
+        </div>
+      )}
+      <div className="tiny muted" style={{ marginTop: 8 }}>Aperçu immédiat sur tout le CRM. Clique sur « Enregistrer » pour garder ton choix.</div>
+    </div>
+  )
+}
+
 // [clé, libellé, zone de texte, type]
 const FACT_FIELDS = [
   ['nom', 'Nom de l’entreprise'],
@@ -169,9 +281,48 @@ export default function Parametres() {
   const [imp, setImp] = useState(null)
   const [convertir, setConvertir] = useState(true)
   const fileRef = useRef()
+  // Aperçu des couleurs pendant le réglage ; on revient aux couleurs enregistrées en quittant
+  const saved = useRef(settings.apparence)
+  saved.current = settings.apparence
+  useEffect(() => applyTheme(s.apparence), [s.apparence])
+  useEffect(() => () => applyTheme(saved.current), [])
   const change = (next) => {
     setS(next)
     setDirty(true)
+  }
+
+  const setFact = (patch) => change({ ...s, facturation: { ...s.facturation, ...patch } })
+  // Exemple de facture avec les réglages en cours (même non enregistrés)
+  const apercu = async () => {
+    setBusy('apercu')
+    const w = window.open('', '_blank')
+    try {
+      const { pdfBlob } = await import('../lib/invoicePdf')
+      const fact = normalize(s).facturation
+      const exemple = {
+        type: 'facture',
+        numero: `${fact.prefixeFacture}${new Date().getFullYear()}000000`,
+        data: {
+          date: today(),
+          echeance: today(),
+          conditions: fact.conditions,
+          client: { nom: 'Client exemple', adresse: 'Adresse du client' },
+          lignes: [{ designation: 'Prestation exemple', description: 'Description de la prestation', qte: 1, pu: (s.devise || 'EUR') === 'EUR' ? 500 : 100000 }],
+          remise: 0,
+          tva: fact.tva,
+          notes: fact.notes,
+        },
+      }
+      const blob = await pdfBlob(exemple, { fact, code: s.devise || 'EUR', statut: 'En attente', paye: 0, logo: s.apparence?.logo || '/logo-full.png' })
+      const url = URL.createObjectURL(blob)
+      if (w) w.location.href = url
+      else window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (e) {
+      w?.close()
+      toast(`Aperçu impossible : ${e.message}`, true)
+    }
+    setBusy('')
   }
 
   const save = async () => {
@@ -267,6 +418,8 @@ export default function Parametres() {
         </div>
       </div>
 
+      <ApparenceCard s={s} change={change} />
+
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> Devise</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
@@ -316,6 +469,31 @@ export default function Parametres() {
               <textarea rows={3} value={s.facturation?.[k] ?? ''} onChange={(e) => change({ ...s, facturation: { ...s.facturation, [k]: e.target.value } })} />
             </Field>
           ))}
+        </div>
+        <div className="grid grid-2" style={{ marginTop: 14, alignItems: 'start' }}>
+          <div className="stack" style={{ gap: 12 }}>
+            <label className="row small">
+              <input type="color" value={s.facturation?.couleur || '#e60000'} onChange={(e) => setFact({ couleur: e.target.value })} /> Couleur des factures (bandeau,
+              total, statut)
+            </label>
+            <label className="row small">
+              <input type="checkbox" checked={s.facturation?.afficherLogo !== false} onChange={(e) => setFact({ afficherLogo: e.target.checked })} /> Mettre mon logo
+              en haut des factures (sinon, le nom de l'entreprise)
+            </label>
+            <Field label="Nom du signataire (facultatif)">
+              <input className="input" value={s.facturation?.signataire || ''} onChange={(e) => setFact({ signataire: e.target.value })} />
+            </Field>
+            <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} disabled={busy === 'apercu'} onClick={apercu}>
+              <Icon n="eye" size={14} /> {busy === 'apercu' ? 'Préparation…' : "Voir un exemple de facture"}
+            </button>
+          </div>
+          <ImagePick
+            label="Cachet / signature (facultatif)"
+            value={s.facturation?.signature || ''}
+            max={500}
+            onChange={(signature) => setFact({ signature })}
+            hint="Photo ou scan de ton cachet ou de ta signature, ajouté au bas des factures et devis."
+          />
         </div>
       </div>
 
@@ -461,7 +639,7 @@ export default function Parametres() {
           )}
           <button
             className="btn ghost sm"
-            onClick={() => window.confirm('Remettre les paramètres par défaut du fichier Excel ?') && change(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)))}
+            onClick={() => window.confirm('Remettre les paramètres par défaut du fichier Excel ? (ton logo, tes couleurs et ton cachet sont gardés)') && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
           >
             Paramètres par défaut
           </button>

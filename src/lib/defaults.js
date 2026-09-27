@@ -1,6 +1,9 @@
 // Paramètres par défaut, repris de l'onglet « Paramètres » du fichier Excel.
+import { APPARENCE_DEFAUT } from './theme'
 export const DEFAULT_SETTINGS = {
   devise: 'EUR',
+  // Identité et couleurs du CRM (logo, nom, thème)
+  apparence: APPARENCE_DEFAUT,
   // Facturation : coordonnées et mentions reprises sur les factures et devis
   facturation: {
     nom: 'AGENCE ELITE',
@@ -18,6 +21,10 @@ export const DEFAULT_SETTINGS = {
     tva: 0,
     paiement: 'Banque / Mobile Money : à compléter\nTitulaire : AGENCE ELITE',
     notes: 'Merci de votre confiance. Le règlement est payable à réception de la présente facture.',
+    couleur: '#e60000',
+    afficherLogo: true,
+    signature: '',
+    signataire: '',
     cgv: 'La présente facture est soumise aux Conditions Générales de Vente d’Agence Elite disponibles sur www.agence-elite.fr/cgv. Toute validation de commande implique l’acceptation desdites conditions.',
   },
   objectifsJour: { prospects: 10, appels: 100, dm: 100 },

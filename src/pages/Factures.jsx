@@ -243,7 +243,7 @@ export function DocEditor({ id, query }) {
     try {
       const { pdfBlob, pdfNom } = await import('../lib/invoicePdf')
       const blob = await pdfBlob(existing, pdfOpts())
-      await fn(blob, pdfNom(existing))
+      await fn(blob, pdfNom(existing, fact))
     } catch (e) {
       if (e?.name !== 'AbortError') toast(`PDF impossible : ${e.message}`, true)
     }

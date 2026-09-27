@@ -61,7 +61,7 @@ export default function Journee() {
         </div>
       )}
       <div className="hero">
-        <h1>{hello} Juste</h1>
+        <h1>{[hello, settings.apparence?.prenom].filter(Boolean).join(' ')}</h1>
         <div className="sub">
           {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
           {data.alertes.length > 1 ? 's' : ''}

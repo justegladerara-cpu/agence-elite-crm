@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/store'
 import { Logo } from '../icons'
+import { getBrand } from '../lib/theme'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -33,8 +34,8 @@ export default function Login() {
     <div className="login">
       <form className="card stack" onSubmit={submit}>
         <Logo full />
-        <div className="login-sub">CRM de pilotage</div>
-        <p className="login-tag">Chaque appel compte. Pilote ta prospection, du premier message à la signature.</p>
+        {getBrand().sousTitre && <div className="login-sub">{getBrand().sousTitre}</div>}
+        {getBrand().accroche && <p className="login-tag">{getBrand().accroche}</p>}
         <div className="field">
           <label>E-mail</label>
           <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

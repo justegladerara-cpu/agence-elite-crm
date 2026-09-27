@@ -36,6 +36,7 @@ export function mergeSettings(s) {
   const m = { ...DEFAULT_SETTINGS, ...(s || {}) }
   m.alertes = { ...DEFAULT_SETTINGS.alertes, ...(m.alertes || {}) }
   m.facturation = { ...DEFAULT_SETTINGS.facturation, ...(m.facturation || {}) }
+  m.apparence = { ...DEFAULT_SETTINGS.apparence, ...(m.apparence || {}) }
   // Objectifs quotidiens : créés à partir des anciens objectifs du jour s'ils n'existent pas encore
   if (!s?.objectifsQuotidiens && s?.objectifsJour) {
     const oj = s.objectifsJour

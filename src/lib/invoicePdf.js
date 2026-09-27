@@ -1,6 +1,7 @@
 // PDF des factures et devis (modèle « Pro » d'Agence Elite), généré dans le navigateur.
 import { jsPDF } from 'jspdf'
 import { totals, montantEnLettres, TYPES, num } from './invoice'
+import { getBrand, hexToRgb } from './theme'
 
 const fmtDate = (iso) => {
   if (!iso) return '—'
@@ -8,7 +9,6 @@ const fmtDate = (iso) => {
   return new Date(y, m - 1, d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const RED = [230, 0, 0]
 const BLACK = [17, 17, 17]
 const GREY = [110, 110, 110]
 const LIGHT = [243, 243, 243]
@@ -20,15 +20,21 @@ const clean = (s) => String(s ?? '').replace(/[  ]/g, ' ')
 const nd = (v) => clean(num(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 }))
 const n0 = nd
 
-let logoCache = null
-async function loadLogo() {
-  if (logoCache) return logoCache
+// Images (logo, cachet) : chargées une fois par adresse
+const imgCache = {}
+async function loadImg(src) {
+  if (!src) return null
+  if (imgCache[src]) return imgCache[src]
   try {
-    const blob = await (await fetch(`${import.meta.env.BASE_URL}logo-full.png`)).blob()
-    const url = await new Promise((ok) => {
-      const r = new FileReader()
-      r.onload = () => ok(r.result)
-      r.readAsDataURL(blob)
+    const url = src.startsWith('data:') ? src : await new Promise((ok, ko) => {
+      fetch(src)
+        .then((r) => r.blob())
+        .then((blob) => {
+          const r = new FileReader()
+          r.onload = () => ok(r.result)
+          r.onerror = ko
+          r.readAsDataURL(blob)
+        }, ko)
     })
     const img = await new Promise((ok, ko) => {
       const i = new Image()
@@ -36,15 +42,16 @@ async function loadLogo() {
       i.onerror = ko
       i.src = url
     })
-    logoCache = { url, ratio: img.height / img.width }
+    imgCache[src] = { url, ratio: img.height / img.width }
+    return imgCache[src]
   } catch {
-    logoCache = null
+    return null
   }
-  return logoCache
 }
 
-export async function buildPdf(doc, { fact, code, statut, paye = 0 }) {
+export async function buildPdf(doc, { fact, code, statut, paye = 0, logo: logoSrc }) {
   const d = doc.data || {}
+  const RED = hexToRgb(fact.couleur, [230, 0, 0])
   const t = totals(d)
   const cur = code === 'EUR' ? '€' : code
   const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
@@ -65,19 +72,17 @@ export async function buildPdf(doc, { fact, code, statut, paye = 0 }) {
   }
 
   // En-tête : logo + type et numéro
-  const logo = await loadLogo()
-  if (logo) {
-    const lw = 40
-    pdf.addImage(logo.url, 'PNG', M, y, lw, lw * logo.ratio)
-  } else {
-    text('AGENCE ', M, y + 10, { bold: true, size: 20 })
-    text('ELITE', M + 33, y + 10, { bold: true, size: 20, color: RED })
-  }
+  const logo = fact.afficherLogo === false ? null : await loadImg(logoSrc ?? (getBrand().logo || `${import.meta.env.BASE_URL}logo-full.png`))
+  // Logo tenu dans un cadre de 40 × 30 mm
+  const lw = logo ? Math.min(40, 30 / logo.ratio) : 0
+  const lh = logo ? lw * logo.ratio : 0
+  if (logo) pdf.addImage(logo.url, 'PNG', M, y, lw, lh)
+  else lines(fact.nom || '', 100, 18).slice(0, 2).forEach((s, i) => text(s, M, y + 9 + i * 8, { bold: true, size: 18, color: i ? RED : BLACK }))
   text(TYPES[doc.type].titre, R, y + 5, { size: 11, color: GREY, align: 'right' })
   text(`# ${doc.numero}`, R, y + 11, { size: 11, color: GREY, align: 'right' })
   text(doc.type === 'facture' ? 'Solde dû' : 'Montant', R, y + 20, { size: 8.5, color: GREY, align: 'right' })
   text(`${n0(Math.max(0, t.total - paye))} ${cur}`, R, y + 26, { size: 13, bold: true, align: 'right' })
-  y += logo ? Math.max(40 * logo.ratio, 30) + 4 : 34
+  y += logo ? Math.max(lh, 30) + 4 : 34
   pdf.setFillColor(...RED)
   pdf.rect(M, y, R - M, 1.6, 'F')
   y += 8
@@ -217,13 +222,17 @@ export async function buildPdf(doc, { fact, code, statut, paye = 0 }) {
     y += 7
   }
 
-  // Signature + slogan
-  if (y > 262) {
+  // Signature / cachet + slogan
+  const sig = await loadImg(fact.signature)
+  const sw = sig ? Math.min(45, 24 / sig.ratio) : 0
+  const sh = sig ? sw * sig.ratio : 0
+  if (y + sh > 262) {
     pdf.addPage()
     y = 20
   }
-  text(fact.nom || 'AGENCE ELITE', M + 3, y)
-  text('Signature / Cachet', M + 3, y + 5, { size: 8.5 })
+  text(fact.nom || '', M + 3, y)
+  text(fact.signataire ? `Signature / Cachet — ${fact.signataire}` : 'Signature / Cachet', M + 3, y + 5, { size: 8.5 })
+  if (sig) pdf.addImage(sig.url, 'PNG', M + 3, y + 7, sw, sh)
   if (fact.slogan) text(fact.slogan, R - 3, y, { size: 8.5, color: GREY, align: 'right' })
 
   // Mentions (CGV) en bas de chaque page
@@ -241,4 +250,5 @@ export async function pdfBlob(doc, opts) {
   return pdf.output('blob')
 }
 
-export const pdfNom = (doc) => `${doc.type === 'facture' ? 'Facture' : 'Devis'}_Agence_Elite_${doc.numero}.pdf`
+const slug = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')
+export const pdfNom = (doc, fact = {}) => `${doc.type === 'facture' ? 'Facture' : 'Devis'}_${slug(fact.nom) || 'Agence_Elite'}_${doc.numero}.pdf`
