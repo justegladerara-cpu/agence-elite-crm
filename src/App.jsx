@@ -20,7 +20,7 @@ const NAV = [
   { path: 'prospects', label: 'Prospects', short: 'Prospects', ico: 'users' },
   { path: 'saisie', label: 'Saisir une action', short: 'Saisir', ico: 'plus', cta: true },
   { path: 'clients', label: 'Clients', short: 'Clients', ico: 'handshake' },
-  { path: 'factures', label: 'Factures & devis', short: 'Factures', ico: 'file' },
+  { path: 'factures', label: 'Factures & finances', short: 'Factures', ico: 'file' },
   { path: 'dashboard', label: 'Tableau de bord', short: 'Stats', ico: 'chart' },
   { path: 'parametres', label: 'Paramètres', short: 'Réglages', ico: 'settings' },
 ]
@@ -155,6 +155,8 @@ function Crm() {
       await db.deleteDoc(id)
       setState((s) => ({ ...s, documents: s.documents.filter((x) => x.id !== id) }))
     }),
+    uploadRecu: wrap((dataUrl, ext, type) => db.uploadRecu(dataUrl, ext, type)),
+    recuUrl: (path) => db.recuUrl(path),
     saveSettings: wrap(async (settings) => {
       await db.saveSettings(settings)
       setState((s) => ({ ...s, settings }))

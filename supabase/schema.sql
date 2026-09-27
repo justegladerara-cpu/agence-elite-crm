@@ -72,3 +72,27 @@ alter table public.documents enable row level security;
 drop policy if exists "own documents" on public.documents;
 create policy "own documents" on public.documents for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+-- Paiements (mode, référence) et dépenses (catégorie, fournisseur, photo du reçu)
+alter table public.actions add column if not exists mode text;
+alter table public.actions add column if not exists reference text;
+alter table public.actions add column if not exists categorie text;
+alter table public.actions add column if not exists fournisseur text;
+alter table public.actions add column if not exists recu text;
+
+-- Photos des reçus : stockage privé, un dossier par utilisateur
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('recus', 'recus', false, 5242880, array['image/jpeg','image/png','image/webp','image/heic','application/pdf'])
+on conflict (id) do nothing;
+drop policy if exists "own recus select" on storage.objects;
+create policy "own recus select" on storage.objects for select to authenticated
+  using (bucket_id = 'recus' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists "own recus insert" on storage.objects;
+create policy "own recus insert" on storage.objects for insert to authenticated
+  with check (bucket_id = 'recus' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists "own recus update" on storage.objects;
+create policy "own recus update" on storage.objects for update to authenticated
+  using (bucket_id = 'recus' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists "own recus delete" on storage.objects;
+create policy "own recus delete" on storage.objects for delete to authenticated
+  using (bucket_id = 'recus' and (storage.foldername(name))[1] = (select auth.uid())::text);

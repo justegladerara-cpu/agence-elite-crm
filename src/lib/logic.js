@@ -209,6 +209,7 @@ export function computeAll(prospects, actions, settings) {
       const derniereIntervention = interventions.map((a) => a.date).sort().pop() || ''
       const joursSansVente = derniereVente ? diffDays(t, derniereVente) : null
       const encaisse = sumOf('Paiement reçu')
+      const depenses = sumOf('Dépense')
       const reste = Math.max(0, total - encaisse)
       const resil = p.acts.filter((a) => a.action === 'Résiliation').map((a) => a.date).sort().pop() || ''
       const statut = resil ? 'Résilié' : 'Actif'
@@ -260,7 +261,8 @@ export function computeAll(prospects, actions, settings) {
         joursRenouv,
         anciennete: p.dateSignature ? Math.floor(diffDays(t, p.dateSignature) / 30.44) : null,
         valeurVie: total + p.abonnement * s.clients.dureeVieMois,
-        marge: total - cout,
+        depenses,
+        marge: total - cout - depenses,
         onboarding,
         avisDemande,
         satisfaction: sat ? num(sat.note) : null,

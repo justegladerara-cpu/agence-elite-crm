@@ -148,6 +148,8 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Publicité agence', montant: 0 },
     { nom: 'Autre', montant: 0 },
   ],
+  categoriesDepenses: ['Transport', 'Impression', 'Matériel', 'Publicité', 'Abonnements / logiciels', 'Téléphone / internet', 'Sous-traitance', 'Repas', 'Autre'],
+  modesPaiement: ['Espèces', 'Mobile Money', 'Virement', 'Chèque', 'Carte'],
   script: [
     { titre: 'Accroche', texte: "« Bonjour [prénom], [ton prénom] d'Agence Elite. J'ai vu votre publicité sur Instagram, je vous appelle 30 secondes, c'est possible ? »" },
     { titre: 'Question 1', texte: "« Aujourd'hui, la plupart de vos clients vous trouvent comment : Instagram, Google, bouche-à-oreille ? »" },
@@ -208,5 +210,6 @@ export const ACTION_COLS = {
 export const LIST_CAPACITY = {
   canaux: 5, etapes: 8, actions: 28, resultats: 12, offres: 10, secteurs: 15,
   objections: 12, modeles: 9, sources: 11, zones: 8, depensesFixes: 7,
+  categoriesDepenses: 20, modesPaiement: 10,
 }
 export const MAX_PROSPECTS = 500

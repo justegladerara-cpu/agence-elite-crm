@@ -56,7 +56,7 @@ export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prosp
     return list.sort((a, b) => (b.derniereAction || '').localeCompare(a.derniereAction || '')).slice(0, 8)
   }, [q, data])
   const exact = data.list.some((p) => p.name.toLowerCase() === q.trim().toLowerCase())
-  const items = [...matches.map((p) => ({ p })), ...(q.trim() && !exact ? [{ nouveau: q.trim() }] : [])]
+  const items = [...matches.map((p) => ({ p })), ...(onNew && q.trim() && !exact ? [{ nouveau: q.trim() }] : [])]
 
   if (selected)
     return (

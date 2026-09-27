@@ -24,6 +24,8 @@ const LIST_DEFS = [
   ['sources', 'Sources', null],
   ['zones', 'Zones', null],
   ['depensesFixes', 'Dépenses fixes / mois', [['nom', 'Poste'], ['montant', 'Montant (€)', 'num']]],
+  ['categoriesDepenses', 'Catégories de dépenses', null],
+  ['modesPaiement', 'Modes de paiement', null],
   ['actions', 'Actions', [['nom', 'Action'], ['rang', 'Étape atteinte (n°)', 'num'], ['prospection', 'Prospection ?', 'bool']]],
   ['resultats', 'Résultats', [['nom', 'Résultat'], ['rang', 'Étape atteinte (n°)', 'num'], ['reponse', 'Compte comme réponse ?', 'bool']]],
   ['etapes', 'Probabilités par étape', [['nom', 'Étape', 'ro'], ['proba', 'Probabilité (0 à 1)', 'num']]],

@@ -1,8 +1,11 @@
-import { useApp, Kpi, Bar, Empty, go, eur, nb } from '../ui'
+import { useState } from 'react'
+import { useApp, Kpi, Bar, Empty, Modal, go, eur, nb } from '../ui'
+import { PaiementForm } from './Finances'
 import { fmtDate } from '../lib/dates'
 
 export default function Clients() {
   const { data, openAction } = useApp()
+  const [pay, setPay] = useState(null)
   const cl = [...data.clients].sort((a, b) => (a.statut === b.statut ? (b.prospect.dateSignature || '').localeCompare(a.prospect.dateSignature || '') : a.statut === 'Actif' ? -1 : 1))
   const actifs = cl.filter((c) => c.statut === 'Actif')
   const mrr = actifs.reduce((m, c) => m + c.abonnement, 0)
@@ -47,6 +50,7 @@ export default function Clients() {
                     ['Reste', eur(c.reste)],
                     ['Abonnement', c.abonnement ? `${eur(c.abonnement)}/mois` : '—'],
                     ...(c.nbInterventions ? [] : [['Renouvellement', c.renouvellement ? fmtDate(c.renouvellement) : '—']]),
+                    ...(c.depenses ? [['Dépenses liées', eur(c.depenses)]] : []),
                     ['Marge', eur(c.marge)],
                   ].map(([k, v]) => (
                     <div key={k}>
@@ -68,7 +72,7 @@ export default function Clients() {
                 <button className="btn sm gold" onClick={() => openAction({ prospect_id: c.id, action: 'Intervention', canal: 'Appel' })}>
                   + Intervention
                 </button>
-                <button className="btn sm" onClick={() => openAction({ prospect_id: c.id, action: 'Paiement reçu', montant: c.reste ? String(c.reste) : '' })}>
+                <button className="btn sm" onClick={() => setPay({ prospect_id: c.id, montant: c.reste ? String(c.reste) : '' })}>
                   + Paiement
                 </button>
                 <button className="btn sm" onClick={() => go(`/facture/new?type=facture&p=${c.id}`)}>
@@ -82,6 +86,11 @@ export default function Clients() {
           ))}
         </div>
       </div>
+      {pay && (
+        <Modal title="Paiement reçu" onClose={() => setPay(null)}>
+          <PaiementForm prefill={pay} onDone={() => setPay(null)} />
+        </Modal>
+      )}
     </div>
   )
 }

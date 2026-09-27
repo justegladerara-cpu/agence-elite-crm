@@ -1,16 +1,22 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, go, eur, nb, deviseCode } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode } from '../ui'
 import { ProspectPicker } from './Saisie'
+import { PaiementsTab, DepensesTab, PaiementForm } from './Finances'
 import { TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
-import { today, fmtDate, addDays } from '../lib/dates'
+import { fmtDate, addDays } from '../lib/dates'
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(String(v).replace(',', '.'))) ? 0 : Number(String(v).replace(',', '.')))
 
 // ---------- Liste ----------
+let dernierOnglet = 'facture'
 export default function Factures() {
   const { documents, actions, data } = useApp()
-  const [type, setType] = useState('facture')
+  const [type, setTypeState] = useState(dernierOnglet)
+  const setType = (t) => {
+    dernierOnglet = t
+    setTypeState(t)
+  }
   const [q, setQ] = useState('')
   const docs = useMemo(
     () =>
@@ -37,8 +43,8 @@ export default function Factures() {
     <div className="stack">
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div>
-          <h1>Factures et devis</h1>
-          <div className="sub">Crée, télécharge et partage tes factures en PDF avec ton logo. Les paiements se reportent dans le suivi client.</div>
+          <h1>Factures et finances</h1>
+          <div className="sub">Factures et devis en PDF avec ton logo, paiements reçus et dépenses : tout ton argent au même endroit.</div>
         </div>
         <div className="row">
           <button className="btn" onClick={() => go('/facture/new?type=devis')}>
@@ -56,9 +62,19 @@ export default function Factures() {
             {t === 'facture' ? 'Factures' : 'Devis'} ({documents.filter((d) => d.type === t).length})
           </button>
         ))}
+        <button className={type === 'paiements' ? 'on' : ''} onClick={() => setType('paiements')}>
+          Paiements reçus
+        </button>
+        <button className={type === 'depenses' ? 'on' : ''} onClick={() => setType('depenses')}>
+          Dépenses
+        </button>
       </div>
 
-      {type === 'facture' ? (
+      {type === 'paiements' ? (
+        <PaiementsTab />
+      ) : type === 'depenses' ? (
+        <DepensesTab />
+      ) : type === 'facture' ? (
         <div className="grid grid-4">
           <Kpi label="Total facturé" value={eur(factTotal)} navy />
           <Kpi label="Encaissé" value={eur(encaisse)} navy />
@@ -74,29 +90,31 @@ export default function Factures() {
         </div>
       )}
 
-      <div className="card">
-        <input className="input" placeholder="Rechercher : numéro, client, objet…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} />
-        <div className="list">
-          {docs.length === 0 && <Empty>{type === 'facture' ? 'Aucune facture pour le moment.' : 'Aucun devis pour le moment.'}</Empty>}
-          {docs.map((d) => (
-            <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
-              <div className="li-main">
-                <div className="li-title">
-                  {d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}
+      {(type === 'facture' || type === 'devis') && (
+        <div className="card">
+          <input className="input" placeholder="Rechercher : numéro, client, objet…" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 10 }} />
+          <div className="list">
+            {docs.length === 0 && <Empty>{type === 'facture' ? 'Aucune facture pour le moment.' : 'Aucun devis pour le moment.'}</Empty>}
+            {docs.map((d) => (
+              <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
+                <div className="li-main">
+                  <div className="li-title">
+                    {d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}
+                  </div>
+                  <div className="li-sub">
+                    {d.numero} · {fmtDate(d.data?.date)}
+                    {d.data?.objet ? ` · ${d.data.objet}` : ''}
+                  </div>
                 </div>
-                <div className="li-sub">
-                  {d.numero} · {fmtDate(d.data?.date)}
-                  {d.data?.objet ? ` · ${d.data.objet}` : ''}
+                <div className="li-side" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  <b>{eur(d.total)}</b>
+                  <span className={`badge ${STATUT_TONE[d.statut] || 'b-gold'}`}>{d.statut}</span>
                 </div>
               </div>
-              <div className="li-side" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                <b>{eur(d.total)}</b>
-                <span className={`badge ${STATUT_TONE[d.statut] || 'b-gold'}`}>{d.statut}</span>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -135,6 +153,7 @@ export function DocEditor({ id, query }) {
   const [suivi, setSuivi] = useState(!existing)
   const [busy, setBusy] = useState('')
   const [dirty, setDirty] = useState(!existing)
+  const [payModal, setPayModal] = useState(null)
   if (id && id !== 'new' && !existing)
     return (
       <div className="card">
@@ -250,16 +269,7 @@ export function DocEditor({ id, query }) {
     })
   const preview = () => withPdf(async (blob) => window.open(URL.createObjectURL(blob), '_blank'))
 
-  const addPaiement = async () => {
-    if (!doc.prospect_id) return toast('Associe un client pour suivre le paiement', true)
-    const reste = Math.max(0, t.total - paye)
-    const v = window.prompt('Montant reçu', String(reste))
-    if (v === null) return
-    const m = num(v)
-    if (!m) return toast('Montant invalide', true)
-    await api.addActions([{ prospect_id: doc.prospect_id, date: today(), canal: 'Autre', action: 'Paiement reçu', montant: m, facture: doc.numero }])
-    toast('Paiement enregistré ✓')
-  }
+  const addPaiement = () => setPayModal({ prospect_id: doc.prospect_id, facture: doc.numero, montant: String(Math.max(0, t.total - paye)) })
   const setDevisStatut = async (s) => {
     await api.saveDoc({ ...existing, data: { ...existing.data, statut: s } })
     setDoc((x) => ({ ...x, data: { ...x.data, statut: s } }))
@@ -573,6 +583,11 @@ export function DocEditor({ id, query }) {
           )}
         </div>
       </div>
+      {payModal && (
+        <Modal title="Paiement reçu" onClose={() => setPayModal(null)}>
+          <PaiementForm prefill={payModal} onDone={() => setPayModal(null)} />
+        </Modal>
+      )}
     </div>
   )
 }

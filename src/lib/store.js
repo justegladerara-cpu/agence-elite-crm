@@ -10,6 +10,7 @@ export const isLocal = !supabase
 const ACTION_FIELDS = [
   'prospect_id', 'date', 'time', 'canal', 'action', 'resultat', 'montant', 'duree', 'prochaine_action',
   'date_relance', 'heure_rappel', 'objection', 'modele', 'note', 'facture', 'remise', 'notes',
+  'mode', 'reference', 'categorie', 'fournisseur', 'recu',
 ]
 const NUMERIC = ['montant', 'duree', 'note', 'remise']
 
@@ -35,6 +36,25 @@ export function mergeSettings(s) {
   if (manquantes.length) m.actions = [...m.actions, ...manquantes]
   return m
 }
+
+// Photos de reçus en attente d'envoi (mode démo ou hors ligne) : chemin → image en data URL
+const RECUS = 'aecrm-recus'
+const readRecus = () => {
+  try {
+    return JSON.parse(localStorage.getItem(RECUS)) || {}
+  } catch {
+    return {}
+  }
+}
+const writeRecus = (m) => {
+  try {
+    localStorage.setItem(RECUS, JSON.stringify(m))
+  } catch {
+    throw new Error("Plus assez de place sur l'appareil pour garder la photo hors ligne.")
+  }
+}
+const dataUrlToBlob = async (u) => (await fetch(u)).blob()
+const signedUrls = {}
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()))
 const nowIso = () => new Date().toISOString()
@@ -63,6 +83,14 @@ const local = {
     db.documents = [...db.documents.filter((x) => x.id !== row.id), row]
     writeLocal(db)
     return row
+  },
+  async uploadRecu(dataUrl, ext) {
+    const path = `demo/${uid()}.${ext}`
+    writeRecus({ ...readRecus(), [path]: dataUrl })
+    return path
+  },
+  async recuUrl(path) {
+    return readRecus()[path] || null
   },
   async deleteDoc(id) {
     const db = readLocal()
@@ -257,6 +285,14 @@ async function sendRemote(op) {
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
   if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
   if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
+  if (op.t === 'upload') {
+    const m = readRecus()
+    if (m[op.path]) {
+      check(await supabase.storage.from('recus').upload(op.path, await dataUrlToBlob(m[op.path]), { upsert: true, contentType: op.type }))
+      delete m[op.path]
+      writeRecus(m)
+    }
+  }
 }
 
 let flushing = null
@@ -360,6 +396,26 @@ const offline = {
   },
   async deleteDoc(id) {
     await queued({ t: 'deleteDoc', id })
+  },
+  // Photo du reçu : gardée sur l'appareil puis envoyée dans le stockage privé
+  async uploadRecu(dataUrl, ext, type) {
+    const { data } = await supabase.auth.getSession()
+    const user = data?.session?.user?.id
+    if (!user) throw new Error('Reconnecte-toi pour ajouter une photo.')
+    const path = `${user}/${uid()}.${ext}`
+    writeRecus({ ...readRecus(), [path]: dataUrl })
+    await queued({ t: 'upload', path, type })
+    return path
+  },
+  async recuUrl(path) {
+    const pending = readRecus()[path]
+    if (pending) return pending
+    const c = signedUrls[path]
+    if (c && c.exp > Date.now()) return c.url
+    const { data, error } = await supabase.storage.from('recus').createSignedUrl(path, 3600)
+    if (error) throw new Error(error.message)
+    signedUrls[path] = { url: data.signedUrl, exp: Date.now() + 3000 * 1000 }
+    return data.signedUrl
   },
   // Import et remise à zéro : uniquement en ligne
   async bulkImport(prospects, actions) {
