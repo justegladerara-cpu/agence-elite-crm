@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Icon } from '../icons'
 import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
-import { ProcessCard, ScriptsCard, QualifCard } from './Insta'
+import { ProcessCard, ScriptsCard, QualifCard, RelanceBoutons } from './Insta'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
-import { siteLink, instaLink } from '../lib/logic'
+import { siteLink, instaLink, doublonInsta } from '../lib/logic'
 import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
 
 export default function Fiche({ id }) {
@@ -39,6 +39,8 @@ export default function Fiche({ id }) {
     if (!n) return toast('Nom manquant', true)
     if (n.toLowerCase() !== p.name.toLowerCase() && data.list.some((x) => x.name.toLowerCase() === n.toLowerCase()))
       return toast('Un autre prospect porte déjà ce nom', true)
+    const d = doublonInsta(data.list, fiche.instagram, p.id)
+    if (d) return toast(`Ce compte Instagram est déjà celui de « ${d.name} »`, true)
     await api.updateProspect(p.id, { name: n, fiche })
     setEditing(false)
     toast('Fiche enregistrée ✓')
@@ -110,6 +112,7 @@ export default function Fiche({ id }) {
           <button className="btn gold sm" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
             + Saisir une action
           </button>
+          {!client && p.tentatives > 0 && <RelanceBoutons p={p} />}
           <button className="btn sm" onClick={() => go(`/facture/new?type=devis&p=${p.id}`)}>
             + Devis
           </button>

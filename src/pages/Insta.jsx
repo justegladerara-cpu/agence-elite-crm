@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { useApp, Modal, Field, go } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
-import { instaLink, handleInsta } from '../lib/logic'
-import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT } from '../lib/insta'
+import { instaLink, handleInsta, doublonInsta } from '../lib/logic'
+import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../lib/insta'
 
 const nomDepuisCompte = (v) =>
   handleInsta(v)
@@ -39,10 +39,12 @@ export function QuickInsta({ onClose }) {
   const [modele, setModele] = useState(() => lirePref('aecrm-modele', settings.modeles[0] || ''))
   const [busy, setBusy] = useState(false)
   const name = (nom.trim() || nomDepuisCompte(compte)).trim()
+  const doublon = doublonInsta(data.list, compte)
 
   const save = async (envoye) => {
     if (!compte.trim() && !nom.trim()) return toast('Indique le compte Instagram', true)
     if (!name) return toast("Indique le nom de l'entreprise", true)
+    if (doublon) return toast(`Ce compte est déjà dans tes prospects : ${doublon.name}`, true)
     if (data.list.some((p) => p.name.toLowerCase() === name.toLowerCase())) return toast('Ce prospect existe déjà', true)
     setBusy(true)
     try {
@@ -81,6 +83,14 @@ export function QuickInsta({ onClose }) {
             onChange={(e) => setCompte(e.target.value)}
             onBlur={() => handleInsta(compte) && setCompte(`@${handleInsta(compte)}`)}
           />
+          {doublon && (
+            <div className="doublon">
+              <Icon n="alert" size={14} /> Déjà dans tes prospects : <b>{doublon.name}</b> ({doublon.etape}).{' '}
+              <button type="button" className="toggle-link" onClick={() => { onClose(); go(`/prospect/${doublon.id}`) }}>
+                Ouvrir sa fiche
+              </button>
+            </div>
+          )}
           {handleInsta(compte) ? (
             <a className="insta-check" href={instaLink(compte)} target="_blank" rel="noreferrer">
               <Icon n="instagram" size={14} /> Vérifier le compte @{handleInsta(compte)} ↗
@@ -168,7 +178,22 @@ export function ProcessCard({ p }) {
     }
     setBusy(false)
   }
+  // Étape déjà faite : on propose de l'annuler (supprime l'action qu'elle a enregistrée)
+  const annuler = async (e) => {
+    const a = actionEtape(e, p, settings)
+    if (!a) return toast(`« ${e.label} » vient d'une action saisie à la main : modifie-la dans l'onglet Historique.`, true)
+    if (!window.confirm(`Annuler « ${e.label} » ? L'action du ${fmtDate(a.date)} sera supprimée de l'historique.`)) return
+    setBusy(true)
+    try {
+      await api.deleteAction(a.id)
+      toast(`« ${e.label} » annulé`)
+    } catch {
+      // erreur déjà affichée
+    }
+    setBusy(false)
+  }
   const cliquer = async (e) => {
+    if (e.ok) return annuler(e)
     let extra = {}
     if (e.id === 'script') extra.modele = lirePref('aecrm-modele', settings.modeles[0] || '')
     if (e.id === 'loom') {
@@ -201,8 +226,9 @@ export function ProcessCard({ p }) {
           </div>
         </div>
       )}
+      <div className="tiny muted" style={{ marginTop: 8 }}>Clique sur une étape faite (✓) pour l'annuler.</div>
       {p.prochaineAction && (
-        <div className="tiny muted" style={{ marginTop: 10 }}>
+        <div className="tiny muted" style={{ marginTop: 6 }}>
           Prochaine action : <b>{p.prochaineAction}</b>
           {p.relance ? ` · le ${fmtDate(p.relance)}` : ''}
         </div>
@@ -214,10 +240,11 @@ export function ProcessCard({ p }) {
 function SignOrStep({ e, i, courante, busy, onClick, p }) {
   const { openAction } = useApp()
   const cls = e.ok ? 'done' : i === courante ? 'current' : ''
-  const act = e.id === 'signe' ? () => openAction({ prospect_id: p.id, action: 'Signature', canal: p.canal }) : onClick
+  const act = e.id === 'signe' && !e.ok ? () => openAction({ prospect_id: p.id, action: 'Signature', canal: p.canal }) : onClick
   return (
-    <button type="button" className={`step ${cls}`} disabled={busy} onClick={act} title={e.ok ? 'Déjà fait (clique pour l’enregistrer à nouveau)' : 'Enregistrer cette étape'}>
+    <button type="button" className={`step ${cls}`} disabled={busy} onClick={act} title={e.ok ? 'Fait : clique pour annuler' : 'Enregistrer cette étape'}>
       <span className="step-dot">{e.ok ? '✓' : i + 1}</span>
+      {e.ok && <span className="step-x" aria-hidden="true">✕</span>}
       <span className="step-l">{e.label}</span>
     </button>
   )
@@ -227,7 +254,7 @@ function SignOrStep({ e, i, courante, busy, onClick, p }) {
 export function ScriptsCard({ p }) {
   const { settings, toast } = useApp()
   const [ouvert, setOuvert] = useState(null)
-  const scripts = settings.scriptsDM || []
+  const scripts = [...(settings.scriptsDM || []), ...(settings.messagesRelance || [])]
   if (!scripts.length) return null
   return (
     <div className="card">
@@ -299,5 +326,42 @@ export function QualifCard({ p }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// Relance en 1 clic : copier le message de relance adapté, puis noter « Relancé »
+export function RelanceBoutons({ p, compact }) {
+  const { api, settings, toast } = useApp()
+  const [busy, setBusy] = useState(false)
+  if (p.etape === 'Gagné' || p.etape === 'Perdu') return null
+  const n = numeroRelance(p)
+  const copierMsg = async (e) => {
+    e.stopPropagation()
+    const txt = messageRelance(p, settings)
+    if (!txt) return toast('Ajoute tes messages de relance dans Paramètres > Scripts', true)
+    toast((await copier(txt)) ? `Message de relance ${Math.min(n, (settings.messagesRelance || []).length)} copié ✓` : 'Copie impossible', false)
+  }
+  const relance = async (e) => {
+    e.stopPropagation()
+    setBusy(true)
+    try {
+      const { row, prochaine, stop } = ligneRelance(p, settings)
+      await api.addActions([row])
+      toast(stop ? `Relance notée ✓ C'était la dernière : ${settings.relance?.stop} tentatives sans réponse` : `Relance notée ✓ Prochaine le ${fmtDate(prochaine)}`)
+    } catch {
+      // erreur déjà affichée
+    }
+    setBusy(false)
+  }
+  return (
+    <>
+      <button type="button" className="btn sm" title={`Copier le message de relance ${n}`} onClick={copierMsg}>
+        <Icon n="copy" size={14} />
+        {compact ? '' : ' Message'}
+      </button>
+      <button type="button" className="btn sm primary" disabled={busy} title="Noter la relance et programmer la suivante" onClick={relance}>
+        ✓ Relancé
+      </button>
+    </>
   )
 }

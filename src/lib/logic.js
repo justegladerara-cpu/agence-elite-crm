@@ -60,6 +60,11 @@ export function handleInsta(v) {
   t = t.replace(/^@+/, '')
   return /^[A-Za-z0-9._]{1,30}$/.test(t) ? t.toLowerCase() : ''
 }
+// Prospect déjà enregistré avec le même compte Instagram (quel que soit son nom)
+export function doublonInsta(list, v, exceptId) {
+  const h = handleInsta(v)
+  return h ? list.find((p) => p.id !== exceptId && handleInsta(p.fiche?.instagram) === h) : null
+}
 export function instaLink(v) {
   if (!v) return ''
   const h = handleInsta(v)

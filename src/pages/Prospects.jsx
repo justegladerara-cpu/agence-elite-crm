@@ -5,6 +5,7 @@ import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate, today, nowTime } from '../lib/dates'
+import { doublonInsta } from '../lib/logic'
 
 function readPref(k, d) {
   try {
@@ -30,6 +31,8 @@ export function NewProspect({ onClose }) {
     const n = name.trim()
     if (!n) return toast("Nom de l'entreprise manquant", true)
     if (data.list.some((p) => p.name.toLowerCase() === n.toLowerCase())) return toast('Ce prospect existe déjà', true)
+    const d = doublonInsta(data.list, fiche.instagram)
+    if (d) return toast(`Ce compte Instagram est déjà celui de « ${d.name} »`, true)
     setBusy(true)
     try {
       const p = await api.addProspect(n, fiche)

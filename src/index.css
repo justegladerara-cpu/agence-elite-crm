@@ -733,3 +733,82 @@ table.zt tr.click:hover td { background: rgba(var(--gold-rgb), 0.07); }
 /* Lien de vérification du compte Instagram (ajout express) */
 .insta-check { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; font-weight: 600; color: var(--gold-ink); }
 .insta-check:hover { text-decoration: underline; }
+
+/* Étape faite : croix d'annulation au survol */
+.step { position: relative; }
+.step-x { display: none; margin-left: 2px; font-size: 11px; color: var(--red); font-weight: 700; }
+.step.done:hover .step-x { display: inline; }
+.step.done:hover { border-color: var(--red); }
+
+.doublon { margin-top: 6px; font-size: 12.5px; color: var(--red); background: var(--red-soft); border-radius: 8px; padding: 6px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.doublon .toggle-link { font-size: 12.5px; padding: 0; }
+
+/* Recherche globale */
+.nav-search {
+  display: flex; align-items: center; gap: 8px; border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05); color: var(--on-dark-2);
+  border-radius: 8px; padding: 7px 10px; margin: 0 0 8px; font-size: 12.5px; text-align: left;
+}
+.nav-search:hover { background: rgba(255, 255, 255, 0.09); color: #fff; }
+.nav-search kbd { margin-left: auto; font: inherit; font-size: 10.5px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 5px; padding: 1px 5px; }
+.mobile-gear { margin-left: 0; }
+.search-bg { align-items: flex-start; padding-top: 10vh; }
+.search-box { width: 100%; max-width: 620px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow-lg); overflow: hidden; border: 1px solid var(--line); }
+.search-in { display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.search-in input { flex: 1; border: 0; outline: none; font-size: 15px; background: none; padding: 6px 0; min-width: 0; }
+.search-res { max-height: 60vh; overflow-y: auto; padding-bottom: 6px; }
+.search-res .empty { margin: 12px; }
+.search-grp { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold-3); padding: 10px 16px 4px; }
+.search-item { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: none; padding: 8px 16px; text-align: left; color: var(--muted); }
+.search-item.on { background: var(--gold-soft); }
+.si-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.si-t { font-weight: 600; color: var(--navy-ink); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.si-s { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) { .search-bg { padding: 0; } .search-box { border-radius: 0; min-height: 100vh; border: 0; } .search-res { max-height: none; } }
+
+/* Calendrier de la semaine */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; align-items: start; }
+.cal-day { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px; min-height: 160px; display: flex; flex-direction: column; gap: 6px; }
+.cal-day.today { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(var(--gold-rgb), 0.25); }
+.cal-day.past { background: #fbfaf7; }
+.cal-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; font-size: 12px; color: var(--muted); padding: 0 2px 4px; border-bottom: 1px solid var(--line-2); flex-wrap: wrap; }
+.cal-head b { color: var(--navy); font-size: 15px; }
+.cal-day.today .cal-head b { color: var(--gold-3); }
+.cal-vol { font-size: 10.5px; font-weight: 600; color: var(--green); }
+.cal-empty { color: var(--line); text-align: center; padding: 10px 0; }
+.cal-item { text-align: left; border: 0; border-left: 3px solid var(--blue); background: var(--blue-soft); border-radius: 6px; padding: 5px 7px; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cal-item:hover { filter: brightness(0.97); }
+.ci-t { font-size: 12px; font-weight: 600; color: var(--navy-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-s { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cal-item.retard { border-color: var(--red); background: var(--red-soft); }
+.cal-item.rdv { border-color: var(--gold); background: var(--gold-soft); }
+.cal-item.facture { border-color: var(--orange); background: var(--orange-soft); }
+.cal-item.client { border-color: #6c46bb; background: #f0eafb; }
+.cal-item.fait { border-color: var(--green); background: var(--green-soft); }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cal-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; background: var(--blue); }
+.cal-dot.retard { background: var(--red); } .cal-dot.rdv { background: var(--gold); } .cal-dot.facture { background: var(--orange); }
+.cal-dot.client { background: #6c46bb; } .cal-dot.fait { background: var(--green); }
+@media (max-width: 1100px) {
+  .cal { grid-template-columns: minmax(0, 1fr); }
+  .cal-day { min-height: 0; }
+  .cal-day.past .cal-empty { display: none; }
+  .ci-t { white-space: normal; }
+}
+
+/* Bilan du lundi */
+.bilan-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 12px; }
+.bilan-grid .k { font-size: 10.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.bilan-grid .v { font-size: 17px; font-weight: 700; color: var(--navy); margin-top: 2px; }
+.bilan-grid .bd { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.bilan-grid .bd.up { color: var(--green); } .bilan-grid .bd.down { color: var(--red); }
+.conseils { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.conseil { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; background: #fbfaf7; border: 1px solid var(--line-2); border-radius: 10px; padding: 9px 10px; }
+@media (max-width: 640px) { .bilan-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 640px) {
+  .list-item.with-relance { flex-wrap: wrap; }
+  .list-item.with-relance .li-main { flex-basis: 100%; }
+  .list-item.with-relance .li-side { width: 100%; justify-content: flex-end; }
+  .list-item.with-relance .li-side .row .icon-btn:not(:first-child) { display: inline-grid; }
+}

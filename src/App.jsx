@@ -17,6 +17,9 @@ import Session from './pages/Session'
 import Factures, { DocEditor } from './pages/Factures'
 import { Paiements, Depenses } from './pages/Finances'
 import Scripts from './pages/Scripts'
+import Recherche from './pages/Recherche'
+import Calendrier from './pages/Calendrier'
+import { syncRappels } from './lib/rappels'
 
 // Menu groupé (façon Zoho) : le tableau de bord d'abord
 const NAV = [
@@ -24,6 +27,7 @@ const NAV = [
     items: [
       { path: 'dashboard', label: 'Tableau de bord', ico: 'chart' },
       { path: 'journee', label: 'Ma journée', ico: 'sun' },
+      { path: 'calendrier', label: 'Calendrier', ico: 'calendar' },
     ],
   },
   {
@@ -93,6 +97,18 @@ function Crm() {
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
+  const [recherche, setRecherche] = useState(false)
+  // Ctrl + K (ou Cmd + K) : recherche globale
+  useEffect(() => {
+    const k = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setRecherche(true)
+      }
+    }
+    window.addEventListener('keydown', k)
+    return () => window.removeEventListener('keydown', k)
+  }, [])
   // Menu « Plus » du téléphone : se referme dès qu'on change de page
   const [plusSur, setPlusSur] = useState(null)
   const plus = plusSur === route
@@ -143,6 +159,13 @@ function Crm() {
   }, [])
 
   const data = useMemo(() => (state ? computeAll(state.prospects, state.actions, state.settings) : null), [state])
+
+  // Rappels sur le téléphone : la liste à venir est envoyée au service quelques secondes après chaque changement
+  useEffect(() => {
+    if (!data || !state.settings.rappels?.actif) return
+    const t = setTimeout(() => syncRappels(data, state.settings, state.documents || [], state.actions).catch(() => {}), 3000)
+    return () => clearTimeout(t)
+  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const wrap = (fn) => async (...args) => {
     try {
@@ -277,6 +300,7 @@ function Crm() {
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
+  else if (page === 'calendrier') content = <Calendrier />
   else if (page === 'factures' || page === 'devis') content = <Factures key={page} type={page === 'devis' ? 'devis' : 'facture'} />
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
@@ -302,6 +326,9 @@ function Crm() {
               </div>
             )}
           </div>
+          <button className="nav-search" onClick={() => setRecherche(true)}>
+            <Icon n="search" size={15} /> Rechercher… <kbd>Ctrl K</kbd>
+          </button>
           <button className="nav-new" onClick={() => go('/saisie')}>
             <Icon n="plus" size={17} /> Saisir une action
           </button>
@@ -323,7 +350,10 @@ function Crm() {
               {avecNom && <div className="brand-name">{brand.nom}</div>}
               <div className="brand-sub">{PAGES[current] || brand.sousTitre}</div>
             </div>
-            <button className={`icon-btn mobile-settings ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
+            <button className="icon-btn mobile-settings" title="Rechercher" onClick={() => setRecherche(true)}>
+              <Icon n="search" size={18} />
+            </button>
+            <button className={`icon-btn mobile-settings mobile-gear ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
               <Icon n="settings" size={18} />
             </button>
           </header>
@@ -354,9 +384,9 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" onClick={(e) => e.stopPropagation()}>
-              {NAV.slice(1).map((g) => (
-                <div key={g.titre} className="sheet-group">
-                  <div className="nav-title">{g.titre}</div>
+              {NAV.map((g) => ({ ...g, items: g.items.filter((n) => !BOTTOM.some((b) => b.path === n.path)) })).filter((g) => g.items.length).map((g) => (
+                <div key={g.titre || 'pilotage'} className="sheet-group">
+                  <div className="nav-title">{g.titre || 'Pilotage'}</div>
                   <div className="sheet-grid">
                     {g.items.map((n) => (
                       <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
@@ -384,6 +414,7 @@ function Crm() {
           <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
         </Modal>
       )}
+      {recherche && <Recherche onClose={() => setRecherche(false)} />}
       {toastNode}
     </AppCtx.Provider>
   )

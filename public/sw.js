@@ -63,3 +63,35 @@ self.addEventListener('fetch', (e) => {
     }),
   )
 })
+
+// Rappels : notification reçue du service d'envoi (même appli fermée)
+self.addEventListener('push', (e) => {
+  let d = {}
+  try {
+    d = e.data ? e.data.json() : {}
+  } catch {
+    d = { body: e.data ? e.data.text() : '' }
+  }
+  e.waitUntil(
+    self.registration.showNotification(d.title || 'Agence Elite CRM', {
+      body: d.body || '',
+      icon: '/icon-192.png',
+      badge: '/favicon-64.png',
+      tag: d.tag,
+      data: { url: d.url || '/' },
+    }),
+  )
+})
+
+// Clic sur la notification : ouvre le CRM à la bonne page
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+  const url = new URL(e.notification.data?.url || '/', self.location.origin).href
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const w = list.find((c) => c.url.startsWith(self.location.origin))
+      if (w) return w.focus().then(() => w.navigate(url))
+      return self.clients.openWindow(url)
+    }),
+  )
+})

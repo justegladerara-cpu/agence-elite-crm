@@ -4,8 +4,41 @@ import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode } from '../ui
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
-import { fmtDate, addDays } from '../lib/dates'
+import { fmtDate, addDays, today, nowTime } from '../lib/dates'
+import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
 
+
+// Bouton « Relancer » d'une facture impayée (liste des factures, Ma journée)
+export function RelanceFactureBtn({ doc, label }) {
+  const { actions, data, settings, api, toast } = useApp()
+  const go_ = async (e) => {
+    e.stopPropagation()
+    const texte = remplirDoc(settings.messageImpaye, doc, { actions, byId: data.byId, eur })
+    const r = await ouvrirWhatsApp(texte, telClient(doc, data.byId), settings.clients.indicatifWhatsApp)
+    if (doc.prospect_id)
+      await api.addActions([{ prospect_id: doc.prospect_id, date: today(), time: nowTime(), action: 'Note', canal: 'WhatsApp', notes: `Relance de paiement ${doc.numero}` }]).catch(() => {})
+    toast(r === 'wa' ? 'Message de relance prêt dans WhatsApp ✓' : 'Message copié ✓ (ajoute le téléphone sur la fiche pour ouvrir WhatsApp)')
+  }
+  return (
+    <button type="button" className="btn sm" title="Relancer le paiement sur WhatsApp" onClick={go_}>
+      <Icon n="bell" size={14} />
+      {label ? ` ${label}` : ''}
+    </button>
+  )
+}
+
+// Factures à relancer : en retard ou partiellement payées
+export function facturesImpayees(documents, actions) {
+  return documents
+    .filter((d) => d.type === 'facture')
+    .map((d) => {
+      const t = totals(d.data || {}).total
+      const paye = paiementsDe(d, actions).reduce((m, a) => m + num(a.montant), 0)
+      return { ...d, total: t, reste: Math.max(0, t - paye), statut: statutDe(d, actions) }
+    })
+    .filter((d) => d.reste > 0 && (d.statut === 'En retard' || d.statut === 'Partiellement payée'))
+    .sort((a, b) => (a.data?.echeance || '').localeCompare(b.data?.echeance || ''))
+}
 
 // ---------- Liste ----------
 export default function Factures({ type = 'facture' }) {
@@ -82,6 +115,7 @@ export default function Factures({ type = 'facture' }) {
                   <th>Statut</th>
                   <th className="num">Montant</th>
                   {type === 'facture' && <th className="num hide-m">Reste dû</th>}
+                  {type === 'facture' && <th className="hide-m" />}
                 </tr>
               </thead>
               <tbody>
@@ -96,6 +130,9 @@ export default function Factures({ type = 'facture' }) {
                     </td>
                     <td className="num bold">{eur(d.total)}</td>
                     {type === 'facture' && <td className="num hide-m">{d.statut === 'Annulée' ? '—' : eur(Math.max(0, d.total - d.paye))}</td>}
+                    {type === 'facture' && (
+                      <td className="hide-m">{(d.statut === 'En retard' || d.statut === 'Partiellement payée') && <RelanceFactureBtn doc={d} label="Relancer" />}</td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -225,7 +262,8 @@ export function DocEditor({ id, query }) {
     setBusy('')
   }
 
-  const pdfOpts = () => ({ fact, code, statut, paye })
+  const datePaiement = saved ? paiementsDe(existing, actions).map((a) => a.date).sort().pop() : ''
+  const pdfOpts = () => ({ fact, code, statut, paye, datePaiement })
   const withPdf = async (fn) => {
     if (dirty) return toast("Enregistre d'abord le document", true)
     setBusy('pdf')
@@ -250,7 +288,7 @@ export function DocEditor({ id, query }) {
     withPdf(async (blob, name) => {
       const file = new File([blob], name, { type: 'application/pdf' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: name, text: `${TYPES[doc.type].label} ${doc.numero} — ${fact.nom}` })
+        await navigator.share({ files: [file], title: name, text: remplirDoc(settings.messageEnvoi, existing, { actions, byId: data.byId, eur }) })
       } else {
         const a = document.createElement('a')
         a.href = URL.createObjectURL(blob)
@@ -259,6 +297,29 @@ export function DocEditor({ id, query }) {
         toast('Partage non disponible ici : PDF téléchargé')
       }
     })
+  // Envoi sur WhatsApp : sur téléphone, le PDF part avec le message ; sur ordinateur, PDF téléchargé + WhatsApp ouvert avec le message
+  const envoyerWa = () =>
+    withPdf(async (blob, name) => {
+      const texte = remplirDoc(settings.messageEnvoi, existing, { actions, byId: data.byId, eur })
+      const file = new File([blob], name, { type: 'application/pdf' })
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({ files: [file], text: texte })
+        return
+      }
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = name
+      a.click()
+      const r = await ouvrirWhatsApp(texte, telClient(existing, data.byId), settings.clients.indicatifWhatsApp)
+      toast(r === 'wa' ? 'PDF téléchargé : joins-le dans la conversation WhatsApp ouverte' : 'PDF téléchargé et message copié (pas de numéro sur la fiche)')
+    })
+  const relancerPaiement = async () => {
+    const texte = remplirDoc(settings.messageImpaye, existing, { actions, byId: data.byId, eur })
+    const r = await ouvrirWhatsApp(texte, telClient(existing, data.byId), settings.clients.indicatifWhatsApp)
+    if (existing.prospect_id)
+      await api.addActions([{ prospect_id: existing.prospect_id, date: today(), time: nowTime(), action: 'Note', canal: 'WhatsApp', notes: `Relance de paiement ${existing.numero}` }]).catch(() => {})
+    toast(r === 'wa' ? 'Message de relance prêt dans WhatsApp ✓' : 'Message copié ✓ (ajoute le téléphone sur la fiche pour ouvrir WhatsApp)')
+  }
   const preview = () => withPdf(async (blob) => window.open(URL.createObjectURL(blob), '_blank'))
 
   const addPaiement = () => setPayModal({ prospect_id: doc.prospect_id, facture: doc.numero, montant: String(Math.max(0, t.total - paye)) })
@@ -323,9 +384,17 @@ export function DocEditor({ id, query }) {
           <button className="btn primary" disabled={!!busy} onClick={download}>
             <Icon n="download" size={16} /> Télécharger le PDF
           </button>
-          <button className="btn" disabled={!!busy} onClick={share}>
-            <Icon n="share" size={16} /> Partager (WhatsApp, e-mail…)
+          <button className="btn" disabled={!!busy} onClick={envoyerWa}>
+            <Icon n="message" size={16} /> Envoyer sur WhatsApp
           </button>
+          <button className="btn" disabled={!!busy} onClick={share}>
+            <Icon n="share" size={16} /> Partager…
+          </button>
+          {isFact && !d.annulee && saved && statut !== 'Payée' && t.total - paye > 0 && (
+            <button className={`btn ${statut === 'En retard' ? 'danger' : ''}`} disabled={!!busy} onClick={relancerPaiement}>
+              <Icon n="bell" size={16} /> Relancer le paiement
+            </button>
+          )}
           <button className="btn" disabled={!!busy} onClick={preview}>
             <Icon n="eye" size={16} /> Aperçu
           </button>

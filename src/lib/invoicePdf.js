@@ -49,7 +49,39 @@ async function loadImg(src) {
   }
 }
 
-export async function buildPdf(doc, { fact, code, statut, paye = 0, logo: logoSrc }) {
+// Cachet « PAYÉ » incliné, posé sur les totaux d'une facture entièrement réglée
+function cachetPaye(pdf, cx, cy, date) {
+  const VERT = [29, 138, 97]
+  const a = (14 * Math.PI) / 180
+  const c = Math.cos(a)
+  const sn = Math.sin(a)
+  // Point (dx, dy) du repère du cachet → page (rotation dans le sens inverse des aiguilles d'une montre)
+  const P = (dx, dy) => [cx + dx * c + dy * sn, cy - dx * sn + dy * c]
+  const cadre = (w, h) => {
+    const pts = [P(-w, -h), P(w, -h), P(w, h), P(-w, h), P(-w, -h)]
+    for (let i = 0; i < 4; i++) pdf.line(...pts[i], ...pts[i + 1])
+  }
+  pdf.saveGraphicsState()
+  pdf.setGState(new pdf.GState({ opacity: 0.85 }))
+  pdf.setDrawColor(...VERT)
+  pdf.setLineWidth(1)
+  cadre(29, 11)
+  pdf.setLineWidth(0.35)
+  cadre(26.5, 8.5)
+  pdf.setTextColor(...VERT)
+  const ecrire = (txt, size, dy, bold) => {
+    pdf.setFont('helvetica', bold ? 'bold' : 'normal')
+    pdf.setFontSize(size)
+    const w = pdf.getTextWidth(txt)
+    pdf.text(txt, ...P(-w / 2, dy), { angle: 14 })
+  }
+  ecrire('PAYÉ', 24, date ? 2 : 3.5, true)
+  if (date) ecrire(`le ${fmtDate(date)}`, 8.5, 6.8)
+  pdf.restoreGraphicsState()
+  pdf.setLineWidth(0.2)
+}
+
+export async function buildPdf(doc, { fact, code, statut, paye = 0, datePaiement, logo: logoSrc }) {
   const d = doc.data || {}
   const RED = hexToRgb(fact.couleur, [230, 0, 0])
   const t = totals(d)
@@ -173,6 +205,7 @@ export async function buildPdf(doc, { fact, code, statut, paye = 0, logo: logoSr
   const due = doc.type === 'facture' ? Math.max(0, t.total - paye) : t.total
   text(doc.type === 'facture' ? 'TOTAL À PAYER' : 'TOTAL DU DEVIS', M + 3, y + 5, { bold: true, size: 14, color: RED })
   text(`${n0(due)} ${cur}`, R - 3, y + 5, { bold: true, size: 14, color: RED, align: 'right' })
+  if (doc.type === 'facture' && statut === 'Payée') cachetPaye(pdf, W / 2, y - 12, datePaiement)
   y += 12
 
   // Statut + référence

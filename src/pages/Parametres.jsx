@@ -6,6 +6,8 @@ import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { SOURCES } from '../lib/journee'
 import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
+import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desactiverRappels, testerRappels } from '../lib/rappels'
+import { totals, nouveauDoc } from '../lib/invoice'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
 const NUM_GROUPS = [
@@ -22,7 +24,8 @@ const SECTIONS = [
   ['objectifs', 'Objectifs', 'Objectifs du mois et du jour, relances, alertes et score.', 'target'],
   ['listes', 'Listes', 'Canaux, secteurs, sources, actions et étapes.', 'tag'],
   ['scripts', 'Scripts', "Messages Instagram, script d'appel et accroches.", 'message'],
-  ['excel', 'Excel', 'Export, import et données d’exemple.', 'folder'],
+  ['rappels', 'Rappels', 'Notifications sur ton téléphone à l’heure des relances.', 'bell'],
+  ['excel', 'Import / Export', 'Excel, Zoho Invoice et données d’exemple.', 'folder'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
 
@@ -284,6 +287,210 @@ function normalize(s) {
   return out
 }
 
+// Import Zoho Invoice : factures ou devis exportés en CSV / Excel
+function ZohoCard() {
+  const { api, data, documents, settings, toast } = useApp()
+  const [imp, setImp] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [creer, setCreer] = useState(true)
+  const ref = useRef()
+  const nomsConnus = new Map(data.list.map((p) => [p.name.toLowerCase(), p.id]))
+  const choisir = async (e) => {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const { lireZoho } = await import('../lib/zoho')
+      const r = lireZoho(new Uint8Array(await file.arrayBuffer()))
+      const existants = new Set(documents.filter((d) => d.type === r.type).map((d) => d.numero))
+      const nouveaux = r.docs.filter((d) => !existants.has(d.numero))
+      setImp({ ...r, file: file.name, nouveaux, dejaLa: r.docs.length - nouveaux.length })
+    } catch (err) {
+      toast(err.message, true)
+    }
+  }
+  const clientsNouveaux = imp ? [...new Set(imp.nouveaux.map((d) => d.client).filter((c) => c && !nomsConnus.has(c.toLowerCase())))] : []
+  const importer = async () => {
+    setBusy(true)
+    let n = 0
+    try {
+      const { zohoPaye, zohoAnnulee, zohoDevisStatut } = await import('../lib/zoho')
+      const ids = new Map(nomsConnus)
+      for (const z of imp.nouveaux) {
+        let pid = z.client ? ids.get(z.client.toLowerCase()) : null
+        if (!pid && z.client && creer) {
+          const np = await api.addProspect(z.client, { source: 'Zoho Invoice' })
+          pid = np.id
+          ids.set(z.client.toLowerCase(), pid)
+        }
+        const base = nouveauDoc(imp.type, settings.facturation, {})
+        const dd = {
+          ...base,
+          date: z.date || base.date,
+          echeance: imp.type === 'facture' ? z.echeance || z.date || base.echeance : '',
+          validite: imp.type === 'devis' ? z.echeance || base.validite : '',
+          objet: z.objet,
+          client: { nom: z.client, adresse: '' },
+          lignes: z.lignes,
+          remise: z.remise || '',
+          tva: z.tva || 0,
+          notes: z.notes || base.notes,
+          importZoho: true,
+        }
+        const total = totals(dd).total
+        const annulee = imp.type === 'facture' && zohoAnnulee(z)
+        if (annulee) dd.annulee = true
+        if (imp.type === 'devis' && zohoDevisStatut(z)) dd.statut = zohoDevisStatut(z)
+        const rows = []
+        if (pid && !annulee && total > 0) {
+          const [row] = await api.addActions([
+            { prospect_id: pid, date: dd.date, canal: 'Autre', action: imp.type === 'facture' ? 'Intervention' : 'Proposition envoyée', montant: total, facture: imp.type === 'facture' ? z.numero : null, notes: 'Importé de Zoho Invoice' },
+          ])
+          dd.actionId = row.id
+          const paye = imp.type === 'facture' ? zohoPaye(z, total) : 0
+          if (paye > 0) rows.push({ prospect_id: pid, date: dd.date, action: 'Paiement reçu', montant: paye, facture: z.numero, notes: 'Importé de Zoho Invoice' })
+        }
+        if (rows.length) await api.addActions(rows)
+        await api.saveDoc({ type: imp.type, numero: z.numero, prospect_id: pid || null, data: dd })
+        n++
+      }
+      toast(`${n} ${imp.type === 'devis' ? 'devis importés' : 'factures importées'} de Zoho ✓`)
+      setImp(null)
+    } catch (e) {
+      toast(`Import interrompu après ${n} documents : ${e.message}`, true)
+    }
+    setBusy(false)
+  }
+  return (
+    <div className="card">
+      <h2 className="section"><span className="sec-ic"><Icon n="download" size={16} /></span> Importer depuis Zoho Invoice</h2>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Dans Zoho Invoice : Factures (ou Devis) › menu ⋯ › Exporter, au format CSV ou XLSX. Choisis ensuite le fichier ici : tes factures arrivent avec leurs
+        lignes, leurs paiements et leurs clients. Les numéros déjà présents dans le CRM sont ignorés, et la numérotation continue après ton dernier numéro Zoho.
+      </p>
+      <button className="btn" disabled={busy} onClick={() => ref.current.click()}>
+        <Icon n="upload" size={16} /> Choisir l'export Zoho
+      </button>
+      <input ref={ref} type="file" accept=".csv,.xlsx,.xls" hidden onChange={choisir} />
+      {imp && (
+        <div className="card" style={{ marginTop: 14, background: 'var(--gold-soft)' }}>
+          <b>{imp.file}</b>
+          <div className="small" style={{ margin: '6px 0 10px' }}>
+            {imp.docs.length} {imp.type === 'devis' ? 'devis trouvés' : `facture${imp.docs.length > 1 ? 's' : ''} trouvée${imp.docs.length > 1 ? 's' : ''}`}
+            {imp.dejaLa ? `, dont ${imp.dejaLa} déjà dans le CRM` : ''}. {imp.nouveaux.length} à importer
+            {imp.nouveaux.length ? ` (${imp.nouveaux[0].numero}${imp.nouveaux.length > 1 ? ` → ${imp.nouveaux[imp.nouveaux.length - 1].numero}` : ''})` : ''}.
+          </div>
+          {clientsNouveaux.length > 0 && (
+            <label className="row small" style={{ marginBottom: 10 }}>
+              <input type="checkbox" checked={creer} onChange={(e) => setCreer(e.target.checked)} />{' '}
+              {clientsNouveaux.length > 1 ? `Créer les ${clientsNouveaux.length} clients qui n'existent pas encore` : "Créer le client qui n'existe pas encore"} ({clientsNouveaux.slice(0, 3).join(', ')}
+              {clientsNouveaux.length > 3 ? '…' : ''})
+            </label>
+          )}
+          {imp.manquantes.some((k) => ['date', 'pu', 'solde', 'statut'].includes(k)) && (
+            <div className="tiny orange" style={{ marginBottom: 10 }}>
+              Colonnes non trouvées : {imp.manquantes.filter((k) => ['date', 'pu', 'solde', 'statut', 'qte', 'echeance'].includes(k)).join(', ')}. Vérifie le résultat après l'import.
+            </div>
+          )}
+          <div className="row">
+            <button className="btn primary" disabled={busy || !imp.nouveaux.length} onClick={importer}>
+              {busy ? 'Import en cours…' : `Importer ${imp.nouveaux.length} ${imp.type === 'devis' ? 'devis' : 'factures'}`}
+            </button>
+            <button className="btn" disabled={busy} onClick={() => setImp(null)}>
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Rappels sur le téléphone : abonnement de cet appareil, heure par défaut, test
+function RappelsCard({ s, change, setS }) {
+  const { settings, api, toast } = useApp()
+  const [abonne, setAbonne] = useState(null)
+  const [busy, setBusy] = useState('')
+  useEffect(() => {
+    abonnementActuel().then((x) => setAbonne(!!x), () => setAbonne(false))
+  }, [])
+  const run = async (k, fn) => {
+    setBusy(k)
+    try {
+      await fn()
+    } catch (e) {
+      toast(e.message, true)
+    }
+    setBusy('')
+  }
+  const activer = () =>
+    run('on', async () => {
+      await activerRappels()
+      const r = { ...settings.rappels, actif: true }
+      await api.saveSettings({ ...settings, rappels: r })
+      setS((x) => ({ ...x, rappels: { ...x.rappels, actif: true } }))
+      setAbonne(true)
+      toast('Rappels activés sur cet appareil ✓')
+    })
+  const desactiver = () =>
+    run('off', async () => {
+      await desactiverRappels()
+      setAbonne(false)
+      toast('Rappels désactivés sur cet appareil')
+    })
+  const tester = () =>
+    run('test', async () => {
+      const r = await testerRappels()
+      toast(r.envoyes ? 'Notification de test envoyée ✓' : "Aucun appareil abonné : active d'abord les rappels", !r.envoyes)
+    })
+  if (!rappelsDispo())
+    return (
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="bell" size={16} /></span> Rappels sur le téléphone</h2>
+        <p className="small muted" style={{ margin: 0 }}>
+          {isLocal ? 'Disponible dans la version en ligne (crm.agence-elite.fr).' : 'Ce navigateur ne gère pas les notifications. Essaie Chrome ou l’appli installée sur ton téléphone.'}
+        </p>
+      </div>
+    )
+  return (
+    <div className="card">
+      <h2 className="section"><span className="sec-ic"><Icon n="bell" size={16} /></span> Rappels sur le téléphone</h2>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Une notification à l'heure de chaque relance (heure de rappel de la saisie, sinon l'heure par défaut), un résumé des relances en retard le matin et les
+        échéances de factures. Elles arrivent même quand le CRM est fermé.
+      </p>
+      {iosSansInstall() && (
+        <div className="banner small" style={{ marginBottom: 12 }}>
+          Sur iPhone : ouvre le CRM dans Safari, touche Partager puis « Sur l'écran d'accueil », et active les rappels depuis l'icône installée.
+        </div>
+      )}
+      <div className="row" style={{ marginBottom: 12 }}>
+        <span className={`badge ${abonne ? 'b-green' : 'b-Perdu'}`}>{abonne === null ? '…' : abonne ? 'Activés sur cet appareil' : 'Pas activés sur cet appareil'}</span>
+      </div>
+      <div className="row">
+        {!abonne ? (
+          <button className="btn gold" disabled={!!busy} onClick={activer}>
+            <Icon n="bell" size={15} /> {busy === 'on' ? 'Activation…' : 'Activer sur cet appareil'}
+          </button>
+        ) : (
+          <>
+            <button className="btn" disabled={!!busy} onClick={tester}>
+              {busy === 'test' ? 'Envoi…' : 'Envoyer une notification de test'}
+            </button>
+            <button className="btn ghost danger" disabled={!!busy} onClick={desactiver}>
+              Désactiver sur cet appareil
+            </button>
+          </>
+        )}
+      </div>
+      <Field label="Heure par défaut des rappels" style={{ marginTop: 14, maxWidth: 220 }}>
+        <input type="time" value={s.rappels?.heureDefaut || '09:00'} onChange={(e) => change({ ...s, rappels: { ...s.rappels, heureDefaut: e.target.value } })} />
+      </Field>
+      <div className="tiny muted" style={{ marginTop: 8 }}>Active les rappels sur chaque appareil où tu veux les recevoir (téléphone, ordinateur).</div>
+    </div>
+  )
+}
+
 export default function Parametres({ section }) {
   const { settings, prospects, actions, api, toast } = useApp()
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)))
@@ -454,6 +661,31 @@ export default function Parametres({ section }) {
         )}
       </div>
     ))
+  // Éditeur d'une liste de messages { titre, texte }
+  const msgEditor = (key, ico, title, max) => (
+    <div className="card">
+      <h2 className="section"><span className="sec-ic"><Icon n={ico} size={16} /></span> {title}</h2>
+      <div className="tiny muted" style={{ marginBottom: 10 }}>
+        Remplis automatiquement : {'{entreprise}'}, {'{produit}'} (ce qu'il vend), {'{contact}'}, {'{lien}'} (lien de la Loom).
+      </div>
+      {(s[key] || []).map((x, i) => (
+        <div key={i} style={{ marginBottom: 12 }}>
+          <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
+            <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
+            <button className="icon-btn" title="Retirer" onClick={() => change({ ...s, [key]: s[key].filter((_, j) => j !== i) })}>
+              ✕
+            </button>
+          </div>
+          <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+        </div>
+      ))}
+      {(s[key] || []).length < max && (
+        <button className="btn sm" onClick={() => change({ ...s, [key]: [...(s[key] || []), { titre: 'Nouveau message', texte: '' }] })}>
+          + Ajouter un message
+        </button>
+      )}
+    </div>
+  )
   const cols = (...cards) => (
     <div className="grid grid-2" style={{ alignItems: 'start' }}>
       {cards}
@@ -588,28 +820,7 @@ export default function Parametres({ section }) {
           {sec === 'scripts' && (
             <>
               <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="instagram" size={16} /></span> Scripts Instagram (à copier depuis la fiche)</h2>
-          <div className="tiny muted" style={{ marginBottom: 10 }}>
-            Remplis automatiquement : {'{entreprise}'}, {'{produit}'} (ce qu'il vend), {'{contact}'}, {'{lien}'} (lien de la Loom).
-          </div>
-          {(s.scriptsDM || []).map((x, i) => (
-            <div key={i} style={{ marginBottom: 12 }}>
-              <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
-                <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
-                <button className="icon-btn" style={{ width: 30, height: 30 }} title="Retirer" onClick={() => change({ ...s, scriptsDM: s.scriptsDM.filter((_, j) => j !== i) })}>
-                  ✕
-                </button>
-              </div>
-              <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
-            </div>
-          ))}
-          {(s.scriptsDM || []).length < 15 && (
-            <button className="btn sm" onClick={() => change({ ...s, scriptsDM: [...(s.scriptsDM || []), { titre: 'Nouveau message', texte: '' }] })}>
-              + Ajouter un message
-            </button>
-          )}
-        </div>
+              {msgEditor('scriptsDM', 'instagram', 'Scripts Instagram (à copier depuis la fiche)', 15)}
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
           {s.script.map((x, i) => (
@@ -619,11 +830,28 @@ export default function Parametres({ section }) {
           ))}
         </div>
               </div>
+              <div className="grid grid-2" style={{ alignItems: 'start' }}>
+                {msgEditor('messagesRelance', 'repeat', 'Messages de relance (1re, 2e, 3e relance…)', 6)}
+                <div className="card">
+                  <h2 className="section"><span className="sec-ic"><Icon n="file" size={16} /></span> Messages WhatsApp des factures</h2>
+                  <div className="tiny muted" style={{ marginBottom: 10 }}>
+                    Remplis automatiquement : {'{contact}'}, {'{client}'}, {'{document}'}, {'{numero}'}, {'{date}'}, {'{montant}'}, {'{reste}'}, {'{echeance}'}.
+                  </div>
+                  <Field label="Relance d'une facture impayée" style={{ marginBottom: 10 }}>
+                    <textarea rows={4} value={s.messageImpaye || ''} onChange={(e) => change({ ...s, messageImpaye: e.target.value })} />
+                  </Field>
+                  <Field label="Envoi d'une facture ou d'un devis">
+                    <textarea rows={4} value={s.messageEnvoi || ''} onChange={(e) => change({ ...s, messageEnvoi: e.target.value })} />
+                  </Field>
+                </div>
+              </div>
               {cols(listCard('modeles'), listCard('signaux'))}
             </>
           )}
+          {sec === 'rappels' && <RappelsCard s={s} change={change} setS={setS} />}
           {sec === 'excel' && (
             <>
+              <ZohoCard />
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="folder" size={16} /></span> Fichier Excel</h2>
         <p className="small muted" style={{ marginTop: 0 }}>

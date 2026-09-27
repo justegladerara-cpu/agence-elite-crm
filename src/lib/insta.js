@@ -50,6 +50,12 @@ export const REACTIONS = [
   { id: 'silence', label: 'Pas de réponse', tone: 'red', row: () => ({ canal: 'DM', action: 'Relance', resultat: 'Pas de réponse', prochaine_action: 'Relancer : avez-vous pu voir la vidéo ?', date_relance: addDays(today(), 3) }) },
 ]
 
+// Dernière action enregistrée par une étape (pour pouvoir l'annuler)
+export function actionEtape(e, p, settings) {
+  const modele = e.id === 'signe' ? { action: 'Signature' } : e.row(settings)
+  return [...p.acts].reverse().find((a) => a.action === modele.action && (!modele.resultat || a.resultat === modele.resultat))
+}
+
 export const ligne = (pid, r, extra = {}) => ({ prospect_id: pid, date: today(), time: nowTime(), ...r, ...extra })
 
 // Remplit un script avec les infos du prospect
@@ -87,3 +93,25 @@ export const QUALIF = [
   ['resultatsOk', 'Satisfait de ses résultats actuels ?'],
 ]
 export const OBJECTIFS_PROSPECT = ['Plus de ventes', 'Plus de leads', 'Plus de visibilité', 'Meilleure conversion']
+
+// ---------- Relance en 1 clic ----------
+// Numéro de la prochaine relance (1, 2, 3…) d'après les relances déjà notées
+export const numeroRelance = (p) => p.acts.filter((a) => a.action === 'Relance').length + 1
+
+export function messageRelance(p, settings) {
+  const l = settings.messagesRelance || []
+  if (!l.length) return ''
+  return remplir(l[Math.min(numeroRelance(p), l.length) - 1].texte, p)
+}
+
+// Ligne de Saisie pour « Relancé » : la date de la relance suivante suit la séquence des Paramètres (J+2, J+5, J+10)
+export function ligneRelance(p, settings) {
+  const n = p.tentatives + 1
+  const r = settings.relance || {}
+  const j = Number(n <= 1 ? r.j1 : n === 2 ? r.j2 : r.j3) || 3
+  return {
+    row: ligne(p.id, { canal: p.canal || 'DM', action: 'Relance', prochaine_action: `Relance ${numeroRelance(p) + 1} si pas de réponse` }),
+    prochaine: addDays(today(), j),
+    stop: n >= Number(r.stop || 99) && !p.reponses,
+  }
+}

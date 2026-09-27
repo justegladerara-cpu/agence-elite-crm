@@ -197,6 +197,18 @@ export const DEFAULT_SETTINGS = {
     { titre: 'Relance Loom sans réponse', texte: 'Hello, avez-vous pu regarder la vidéo ? Il y a 2 ou 3 ajustements simples qui peuvent vraiment faire la différence sur vos résultats.' },
     { titre: 'Proposer un appel', texte: 'Ravi que ça vous parle ! Le plus simple serait d’en discuter 15 minutes au téléphone pour voir comment on peut mettre ça en place pour vous. Vous êtes plutôt disponible quand cette semaine ?' },
   ],
+  // Messages de relance, choisis selon le nombre de relances déjà faites
+  messagesRelance: [
+    { titre: 'Relance 1', texte: 'Hello 🙂 Je me permets de revenir vers vous au sujet de {entreprise}. Souhaitez-vous que je vous envoie la petite vidéo avec mes suggestions ?' },
+    { titre: 'Relance 2', texte: 'Bonjour ! Je reviens vers vous une dernière fois cette semaine : j’ai 2 ou 3 idées simples pour attirer plus de clients sur {produit}. Je vous les envoie ?' },
+    { titre: 'Relance 3', texte: 'Bonjour, je ne veux pas vous déranger davantage. Si le sujet vous intéresse plus tard, je reste disponible ici. Belle journée à vous et à {entreprise} !' },
+  ],
+  // Messages WhatsApp pour les factures
+  messageImpaye:
+    'Bonjour {contact}, petit rappel concernant la facture {numero} du {date} : il reste {reste} à régler (échéance le {echeance}). Merci de me tenir informé du règlement. Belle journée !',
+  messageEnvoi: 'Bonjour {contact}, voici {document} {numero} d’un montant de {montant}. Je reste disponible pour toute question. Merci pour votre confiance !',
+  // Rappels sur le téléphone
+  rappels: { actif: false, heureDefaut: '09:00' },
   script: [
     { titre: 'Accroche', texte: "« Bonjour [prénom], [ton prénom] d'Agence Elite. J'ai vu votre publicité sur Instagram, je vous appelle 30 secondes, c'est possible ? »" },
     { titre: 'Question 1', texte: "« Aujourd'hui, la plupart de vos clients vous trouvent comment : Instagram, Google, bouche-à-oreille ? »" },

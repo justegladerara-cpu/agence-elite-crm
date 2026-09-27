@@ -1,21 +1,24 @@
 import { useMemo } from 'react'
 import { Icon } from '../icons'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, nb, Tabs, useTab } from '../ui'
-import { computeStats } from '../lib/logic'
+import { RelanceBoutons } from './Insta'
+import BilanSemaine from './Bilan'
+import { RelanceFactureBtn, facturesImpayees } from './Factures'
+import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Tabs, useTab } from '../ui'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
-import { today, fmtDate, addDays, diffDays, weekday } from '../lib/dates'
+import { today, fmtDate, diffDays, weekday } from '../lib/dates'
 
-function ProspectRow({ p, children, overdue }) {
+function ProspectRow({ p, children, overdue, relance }) {
   const { openAction } = useApp()
   return (
-    <div className={`list-item click ${overdue ? 'overdue' : ''}`} onClick={() => go(`/prospect/${p.id}`)}>
+    <div className={`list-item click ${overdue ? 'overdue' : ''} ${relance ? 'with-relance' : ''}`} onClick={() => go(`/prospect/${p.id}`)}>
       <div className="li-main">
         <div className="li-title">{p.name}</div>
         <div className="li-sub">{children}</div>
       </div>
       <div className="li-side">
         <ContactButtons p={p} compact />
+        {relance && <RelanceBoutons p={p} compact />}
         <button
           className="btn sm gold"
           onClick={(e) => {
@@ -31,15 +34,11 @@ function ProspectRow({ p, children, overdue }) {
 }
 
 export default function Journee() {
-  const { data, settings, prospects, api, toast } = useApp()
+  const { data, settings, prospects, api, toast, documents, actions } = useApp()
+  const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
   const t = today()
   const { jour, update } = useJournee(t)
   const [onglet, setOnglet] = useTab('journee', 'relances')
-  const semaine = useMemo(() => {
-    const debut = addDays(t, -(weekday(t) - 1) - 7)
-    const fin = addDays(debut, 6)
-    return { debut, fin, s: computeStats(data, settings, { mois: 'x', debut, fin }, 'Tous').cur }
-  }, [data, settings, t])
   const h = new Date().getHours()
   const hello = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir'
 
@@ -70,13 +69,22 @@ export default function Journee() {
         <ObjectifsJour jour={jour} update={update} />
       </div>
 
+      {weekday(t) === 1 && onglet !== 'historique' && (
+        <div className="banner row">
+          <Icon n="sparkles" size={16} />
+          <span style={{ flex: 1 }}>C'est lundi : ton bilan de la semaine et 3 conseils sont prêts.</span>
+          <button className="btn sm" onClick={() => setOnglet('historique')}>
+            Voir mon bilan
+          </button>
+        </div>
+      )}
       <Tabs
         items={[
           ['relances', 'Relances', data.aRelancer.length],
           ['chauds', 'Prospects chauds'],
-          ['alertes', 'Alertes', data.alertes.length + data.clientsAlertes.length],
+          ['alertes', 'Alertes', data.alertes.length + data.clientsAlertes.length + impayees.length],
           ['routine', 'Ma routine'],
-          ['historique', 'Historique'],
+          ['historique', 'Bilan et historique'],
         ]}
         value={onglet}
         onChange={setOnglet}
@@ -91,7 +99,7 @@ export default function Journee() {
             <div className="list">
               {data.aRelancer.length === 0 && <Empty>Aucune relance en attente. Bravo !</Empty>}
               {data.aRelancer.map((p) => (
-                <ProspectRow key={p.id} p={p} overdue={p.relance < t}>
+                <ProspectRow key={p.id} p={p} overdue={p.relance < t} relance>
                   <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction || p.canal} ·{' '}
                   {p.fiche?.contact || ''} {p.relance < t ? `· ${diffDays(t, p.relance)} j de retard` : ''}
                 </ProspectRow>
@@ -160,34 +168,37 @@ export default function Journee() {
         </div>
       )}
 
+      {onglet === 'alertes' && (
+        <div className="card">
+          <h2 className="section">
+            <span className="sec-ic"><Icon n="file" size={16} /></span> Factures à relancer <span className="count">{impayees.length}</span>
+          </h2>
+          <div className="list">
+            {impayees.length === 0 && <Empty>Aucune facture en retard. 👌</Empty>}
+            {impayees.map((d) => (
+              <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
+                <div className="li-main">
+                  <div className="li-title">{d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}</div>
+                  <div className="li-sub">
+                    {d.numero} · reste {eur(d.reste)} · échéance {fmtDate(d.data?.echeance)}
+                  </div>
+                </div>
+                <div className="li-side">
+                  <span className={`badge ${d.statut === 'En retard' ? 'b-red' : 'b-orange'}`}>{d.statut}</span>
+                  <RelanceFactureBtn doc={d} label="Relancer" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {onglet === 'routine' && <TodoJour jour={jour} update={update} />}
 
       {onglet === 'historique' && (
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <HistoriqueJours />
-          <div className="card">
-            <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Revue de la semaine dernière</h2>
-            <div className="tiny muted" style={{ marginBottom: 8 }}>
-              Du {fmtDate(semaine.debut)} au {fmtDate(semaine.fin)} · 15 minutes le lundi pour ajuster.
-            </div>
-            <div className="info-grid">
-              {[
-                ['Prospects ajoutés', semaine.s.prospects],
-                ['Appels', semaine.s.appels],
-                ['DM', semaine.s.dm],
-                ['Réponses', semaine.s.reponses],
-                ['RDV', semaine.s.rdv],
-                ['Clients signés', semaine.s.signes],
-                ['CA signé', eur(semaine.s.caSigne)],
-                ['Encaissé', eur(semaine.s.encaisse)],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div className="k">{k}</div>
-                  <div className="v">{typeof v === 'number' ? nb(v) : v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BilanSemaine />
         </div>
       )}
     </div>

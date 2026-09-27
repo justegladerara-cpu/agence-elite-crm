@@ -21,7 +21,7 @@ export default function Scripts() {
       </div>
       <Tabs
         items={[
-          ['dm', 'Messages Instagram', (settings.scriptsDM || []).length],
+          ['dm', 'Messages Instagram et relances', (settings.scriptsDM || []).length + (settings.messagesRelance || []).length],
           ['appel', "Script d'appel"],
         ]}
         value={onglet}
