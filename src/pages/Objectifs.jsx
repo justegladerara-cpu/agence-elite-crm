@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Bar, Modal, Field, go, nb } from '../ui'
 import { today, fmtDate } from '../lib/dates'
+import { QuickInsta } from './Insta'
 import { SOURCES, jourId, journeeVue, avancement, compterJour, historique, objectifsParDefaut } from '../lib/journee'
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? 0 : Number(v))
@@ -71,6 +72,7 @@ export function ObjectifsJour({ jour, update }) {
   const { data, documents, settings } = useApp()
   const t = today()
   const [edit, setEdit] = useState(false)
+  const [insta, setInsta] = useState(false)
   const counts = useMemo(() => compterJour(data, t), [data, t])
   const av = avancement(jour, counts)
   const hist = useMemo(() => historique(documents, settings, data, 30), [documents, settings, data])
@@ -131,11 +133,15 @@ export function ObjectifsJour({ jour, update }) {
         <button className="btn gold" onClick={() => setEdit(true)}>
           <Icon n="target" size={15} /> Définir mes objectifs du jour
         </button>
+        <button className="btn ghost-light" onClick={() => setInsta(true)}>
+          <Icon n="instagram" size={14} /> + Prospect Instagram
+        </button>
         <button className="btn ghost-light" onClick={() => go('/session')}>
           <Icon n="play" size={14} /> Session d'appels
         </button>
       </div>
-      <div className="tiny" style={{ color: '#9fb0cf', marginTop: 8 }}>
+      {insta && <QuickInsta onClose={() => setInsta(false)} />}
+      <div className="tiny" style={{ color: 'var(--on-dark-2)', marginTop: 8 }}>
         Tes saisies (DM, appels, relances…) se comptent toutes seules. Les boutons +1 / +10 ajoutent le volume que tu n'as pas saisi un par un.
       </div>
 

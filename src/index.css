@@ -558,3 +558,28 @@ input[type="color"] { width: 38px; height: 30px; padding: 0; border: 1px solid v
 .grid > .card + .card { margin-top: 0; }
 .donut { flex-wrap: wrap; justify-content: center; }
 .donut-legend { min-width: 180px; }
+
+/* Prospection Instagram express */
+.lbl-small { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.steps { display: flex; gap: 6px; flex-wrap: wrap; }
+.step { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: #fff; border-radius: 99px; padding: 5px 12px 5px 5px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.step-dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--line-2); color: var(--muted); }
+.step.done { color: var(--text); border-color: #bfe3d2; background: var(--green-soft); }
+.step.done .step-dot { background: var(--green); color: #fff; }
+.step.current { color: var(--on-accent); border-color: var(--gold); background: linear-gradient(135deg, var(--gold-2), var(--gold)); box-shadow: 0 6px 16px -8px rgba(var(--gold-rgb), .9); }
+.step.current .step-dot { background: rgba(255, 255, 255, .55); color: var(--text); }
+.step:hover:not(:disabled) { filter: brightness(1.04); }
+.reaction { margin-top: 14px; padding: 12px; border-radius: 12px; background: var(--gold-soft); border: 1px solid var(--gold-line); }
+.react-green { color: var(--green); border-color: #bfe3d2; } .react-orange { color: var(--orange); border-color: #f1d3a8; } .react-red { color: var(--red); border-color: #f0c9c8; }
+.scripts { display: flex; flex-direction: column; gap: 6px; }
+.script { border: 1px solid var(--line-2); border-radius: 12px; padding: 7px 8px 7px 12px; }
+.script-head { display: flex; align-items: center; gap: 8px; }
+.script-t { flex: 1; text-align: left; border: 0; background: none; font-weight: 600; font-size: 13.5px; color: var(--text); padding: 4px 0; }
+.script-t::after { content: ' ▾'; color: var(--muted); font-size: 11px; }
+.script.open .script-t::after { content: ' ▴'; }
+.script-txt { white-space: pre-wrap; font-size: 13px; color: var(--text); background: var(--line-2); border-radius: 8px; padding: 10px 12px; margin: 6px 4px 4px 0; }
+.qualif { display: flex; flex-direction: column; gap: 8px; }
+.q-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.q-btns { display: flex; gap: 6px; flex-shrink: 0; }
+@media (max-width: 640px) { .step { font-size: 12px; padding: 4px 10px 4px 4px; } .step-dot { width: 22px; height: 22px; } }

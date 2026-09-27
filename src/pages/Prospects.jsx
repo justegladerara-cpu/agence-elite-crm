@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Modal, Field } from '../ui'
 import { FicheInput } from './Saisie'
+import { QuickInsta } from './Insta'
+import { Icon } from '../icons'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate, today, nowTime } from '../lib/dates'
 
@@ -68,6 +70,7 @@ export default function Prospects() {
   const [sort, setSort] = useState(() => readPref('crm-sort', 'score'))
   const [view, setView] = useState(() => readPref('crm-view', 'liste'))
   const [adding, setAdding] = useState(false)
+  const [insta, setInsta] = useState(false)
   const etapes = settings.etapes.map((e) => e.nom)
 
   const counts = useMemo(() => {
@@ -120,8 +123,11 @@ export default function Prospects() {
               </button>
             ))}
           </div>
-          <button className="btn gold" onClick={() => setAdding(true)}>
-            + Nouveau prospect
+          <button className="btn gold" onClick={() => setInsta(true)}>
+            <Icon n="instagram" size={15} /> + Prospect Instagram
+          </button>
+          <button className="btn" onClick={() => setAdding(true)}>
+            + Fiche complète
           </button>
         </div>
       </div>
@@ -230,6 +236,7 @@ export default function Prospects() {
         </div>
       )}
       {adding && <NewProspect onClose={() => setAdding(false)} />}
+      {insta && <QuickInsta onClose={() => setInsta(false)} />}
     </div>
   )
 }

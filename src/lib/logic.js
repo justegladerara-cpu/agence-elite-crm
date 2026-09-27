@@ -433,9 +433,11 @@ export function computeStats(data, settings, periode, canal) {
     const r = a.filter((x) => isReponse(x, L)).length
     return { label: j, n: a.length, r, taux: a.length ? r / a.length : 0 }
   })
+  // Un envoi compte comme « répondu » si le prospect a répondu ensuite (DM) ou pendant l'appel
+  const aRepondu = (x) => isReponse(x, L) || (byId[x.prospect_id]?.acts || []).some((y) => y !== x && y.date >= x.date && isReponse(y, L))
   const modeles = settings.modeles.map((m) => {
     const a = acts.filter((x) => x.modele === m)
-    const r = a.filter((x) => isReponse(x, L)).length
+    const r = a.filter(aRepondu).length
     return { label: m, n: a.length, r, taux: a.length ? r / a.length : 0 }
   })
   const objTotal = acts.filter((x) => x.objection).length

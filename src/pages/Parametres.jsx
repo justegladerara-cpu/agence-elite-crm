@@ -22,6 +22,7 @@ const LIST_DEFS = [
   ['offres', 'Grille tarifaire', [['nom', 'Offre'], ['prix', 'Prix (€)', 'num'], ['abonnement', '€/mois', 'num'], ['cout', 'Coût (€)', 'num']]],
   ['objections', 'Objections / motifs de perte', null],
   ['modeles', 'Modèles / accroches', null],
+  ['signaux', 'Signaux repérés sur les pubs Instagram', null],
   ['sources', 'Sources', null],
   ['zones', 'Zones', null],
   ['depensesFixes', 'Dépenses fixes / mois', [['nom', 'Poste'], ['montant', 'Montant (€)', 'num']]],
@@ -597,7 +598,7 @@ export default function Parametres() {
               value={s[key]}
               cols={cols}
               max={LIST_CAPACITY[key]}
-              excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine'].includes(key)}
+              excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine', 'signaux'].includes(key)}
               fixedLength={key === 'etapes'}
               onChange={(v) => change({ ...s, [key]: v })}
             />
@@ -609,6 +610,28 @@ export default function Parametres() {
             )}
           </div>
         ))}
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="instagram" size={16} /></span> Scripts Instagram (à copier depuis la fiche)</h2>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>
+            Remplis automatiquement : {'{entreprise}'}, {'{produit}'} (ce qu'il vend), {'{contact}'}, {'{lien}'} (lien de la Loom).
+          </div>
+          {(s.scriptsDM || []).map((x, i) => (
+            <div key={i} style={{ marginBottom: 12 }}>
+              <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
+                <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
+                <button className="icon-btn" style={{ width: 30, height: 30 }} title="Retirer" onClick={() => change({ ...s, scriptsDM: s.scriptsDM.filter((_, j) => j !== i) })}>
+                  ✕
+                </button>
+              </div>
+              <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+            </div>
+          ))}
+          {(s.scriptsDM || []).length < 15 && (
+            <button className="btn sm" onClick={() => change({ ...s, scriptsDM: [...(s.scriptsDM || []), { titre: 'Nouveau message', texte: '' }] })}>
+              + Ajouter un message
+            </button>
+          )}
+        </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
           {s.script.map((x, i) => (

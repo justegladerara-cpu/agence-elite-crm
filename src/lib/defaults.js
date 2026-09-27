@@ -110,6 +110,7 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Intéressé', rang: 3, reponse: true },
     { nom: 'RDV pris', rang: 5, reponse: true },
     { nom: 'Loom vu', rang: 0, reponse: false },
+    { nom: 'A répondu', rang: 0, reponse: true },
     { nom: 'Autre', rang: 0, reponse: false },
   ],
   offres: [
@@ -143,6 +144,7 @@ export const DEFAULT_SETTINGS = {
     'Autre',
   ],
   modeles: [
+    'Script principal (vidéo gratuite)',
     'Accroche A - Pub Insta',
     'Accroche B - Avis Google',
     'DM 1 - Compliment + question',
@@ -168,6 +170,33 @@ export const DEFAULT_SETTINGS = {
   ],
   categoriesDepenses: ['Transport', 'Impression', 'Matériel', 'Publicité', 'Abonnements / logiciels', 'Téléphone / internet', 'Sous-traitance', 'Repas', 'Autre'],
   modesPaiement: ['Espèces', 'Mobile Money', 'Virement', 'Chèque', 'Carte'],
+  // Prospection Instagram express : signaux repérés sur la pub et messages prêts à copier
+  signaux: [
+    'Belle offre, pub moyenne',
+    'Bon produit, landing page faible',
+    'Bonne pub, CTA flou',
+    'Compte Instagram peu optimisé',
+    'Incohérence pub / profil / conversion',
+    'Pas de système derrière la pub',
+  ],
+  scriptsDM: [
+    { titre: "Message d'ouverture", texte: 'Hello ! Comment allez-vous ?' },
+    {
+      titre: 'Script principal',
+      texte:
+        'Je suis Glade Rara, spécialiste en marketing digital.\nJe suis tombé sur votre publicité Instagram et j’ai trouvé {produit} vraiment magnifiques.\nCependant, j’ai repéré quelques petits ajustements que vous pourriez faire pour attirer encore plus de clients et booster vos commandes.\nJ’ai d’ailleurs préparé une courte vidéo gratuite avec mes suggestions, juste pour vous aider à optimiser vos résultats.\nSouhaitez-vous que je vous l’envoie ici ou plutôt sur WhatsApp ?',
+    },
+    { titre: 'Relance sans réponse au script', texte: 'Hello 🙂 Je me permets de revenir vers vous : souhaitez-vous que je vous envoie la vidéo ici ou sur WhatsApp ?' },
+    {
+      titre: 'Questions de qualification',
+      texte:
+        'Super ! Pour que la vidéo vous soit vraiment utile, 2 petites questions :\n• Est-ce vous qui gérez actuellement vos publicités ?\n• Votre objectif principal en ce moment : plus de commandes, plus de visibilité ou plus de demandes ?',
+    },
+    { titre: 'Envoi de la Loom', texte: 'Voici la vidéo : {lien}\nJ’ai pris quelques minutes pour vous montrer ce que j’ai observé sur {entreprise}. Dites-moi ce qui vous parle le plus, et si vous voulez, on peut en discuter.' },
+    { titre: 'Relance prospect tiède', texte: 'Merci pour votre retour ! Parmi les points de la vidéo, lequel serait le plus prioritaire pour vous en ce moment ?' },
+    { titre: 'Relance Loom sans réponse', texte: 'Hello, avez-vous pu regarder la vidéo ? Il y a 2 ou 3 ajustements simples qui peuvent vraiment faire la différence sur vos résultats.' },
+    { titre: 'Proposer un appel', texte: 'Ravi que ça vous parle ! Le plus simple serait d’en discuter 15 minutes au téléphone pour voir comment on peut mettre ça en place pour vous. Vous êtes plutôt disponible quand cette semaine ?' },
+  ],
   script: [
     { titre: 'Accroche', texte: "« Bonjour [prénom], [ton prénom] d'Agence Elite. J'ai vu votre publicité sur Instagram, je vous appelle 30 secondes, c'est possible ? »" },
     { titre: 'Question 1', texte: "« Aujourd'hui, la plupart de vos clients vous trouvent comment : Instagram, Google, bouche-à-oreille ? »" },
@@ -228,6 +257,6 @@ export const ACTION_COLS = {
 export const LIST_CAPACITY = {
   canaux: 5, etapes: 8, actions: 28, resultats: 12, offres: 10, secteurs: 15,
   objections: 12, modeles: 9, sources: 11, zones: 8, depensesFixes: 7,
-  categoriesDepenses: 20, modesPaiement: 10, objectifsQuotidiens: 12, routine: 15,
+  categoriesDepenses: 20, modesPaiement: 10, objectifsQuotidiens: 12, routine: 15, signaux: 15,
 }
 export const MAX_PROSPECTS = 500

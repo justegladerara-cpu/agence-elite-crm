@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../icons'
 import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
+import { ProcessCard, ScriptsCard, QualifCard } from './Insta'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink } from '../lib/logic'
@@ -82,13 +83,14 @@ export default function Fiche({ id }) {
           <div className="li-main">
             <h1 style={{ margin: 0, color: 'var(--navy)', fontSize: 24 }}>{p.name}</h1>
             <div className="muted" style={{ marginTop: 4 }}>
-              {[f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`, f.secteur, f.ville, f.telephone].filter(Boolean).join(' · ')}
+              {[f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`, f.instagram, f.secteur, f.produit, f.ville, f.telephone].filter(Boolean).join(' · ')}
             </div>
             <div className="row" style={{ marginTop: 10 }}>
               <StageBadge etape={p.etape} />
               <Score v={p.score} />
               {p.alerte && <span className="badge b-orange">{p.alerte}</span>}
               {client && <span className="badge b-green">Client {client.statut.toLowerCase()}</span>}
+              {f.signal && <span className="badge b-gold">{f.signal}</span>}
             </div>
           </div>
           <div className="row">
@@ -114,6 +116,16 @@ export default function Fiche({ id }) {
           </button>
         </div>
       </div>
+
+      {!client && (
+        <>
+          <ProcessCard p={p} />
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            <ScriptsCard p={p} />
+            <QualifCard p={p} />
+          </div>
+        </>
+      )}
 
       <DocsCard pid={p.id} />
 

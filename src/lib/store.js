@@ -49,6 +49,9 @@ export function mergeSettings(s) {
   const noms = new Set(m.actions.map((a) => a.nom))
   const manquantes = DEFAULT_SETTINGS.actions.filter((a) => a.nom === 'Intervention' && !noms.has(a.nom))
   if (manquantes.length) m.actions = [...m.actions, ...manquantes]
+  // Résultat « A répondu » (prospection Instagram) ajouté après coup
+  if (!m.resultats.some((r) => r.nom === 'A répondu')) m.resultats = [...m.resultats, DEFAULT_SETTINGS.resultats.find((r) => r.nom === 'A répondu')]
+  if (!m.modeles.includes('Script principal (vidéo gratuite)') && m.modeles.length < 9) m.modeles = ['Script principal (vidéo gratuite)', ...m.modeles]
   return m
 }
 
