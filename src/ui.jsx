@@ -165,13 +165,13 @@ export function Bar({ value, max = 1, tone }) {
   )
 }
 
-export function Kpi({ label, value, delta, invert, navy }) {
+export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.' }) {
   let cls = 'flat'
   let txt = ''
   if (delta !== undefined && delta !== null) {
     const good = invert ? delta < 0 : delta > 0
     cls = delta === 0 ? 'flat' : good ? 'up' : 'down'
-    txt = `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${delta > 0 ? '+' : ''}${typeof delta === 'number' ? delta.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : delta} vs mois préc.`
+    txt = `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${delta > 0 ? '+' : ''}${typeof delta === 'number' ? delta.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : delta} vs ${vs}`
   }
   return (
     <div className={`kpi ${navy ? 'navy' : ''}`}>

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useApp, Kpi, Bar, eur, pct, nb } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { computeStats, periodeFor, monthlySeries } from '../lib/logic'
-import { today, fmtMonth, fmtMonthShort, parse } from '../lib/dates'
+import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
 const C_ENC = '#b8862b'
@@ -125,13 +125,39 @@ function RateTable({ title, rows, cols }) {
   )
 }
 
+// Chiffre clé en grand, avec l'évolution par rapport à la période précédente
+function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb }) {
+  const comp = prev !== null && prev !== undefined
+  const diff = comp ? cur - prev : 0
+  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
+  const p = comp && prev ? Math.round((diff / prev) * 100) : null
+  const pill = !comp ? null : diff === 0 ? '= stable' : `${diff > 0 ? '↑' : '↓'} ${p === null ? `+${fmt(diff)}` : `${Math.abs(p)} %`}`
+  return (
+    <div className="bigkpi">
+      <div className="bk-head">
+        <span className="bk-ic"><Icon n={ico} size={16} /></span>
+        {label}
+      </div>
+      <div className="bk-value">{value}</div>
+      <div className="bk-comp">
+        {pill && <span className={`bk-delta ${cls}`}>{pill}</span>}
+        {comp && <span className="bk-prev">{vs.charAt(0).toUpperCase() + vs.slice(1)} : {fmt(prev)}</span>}
+      </div>
+      {sub && <div className="bk-sub">{sub}</div>}
+    </div>
+  )
+}
+
+let dernierePeriode = 'Cette semaine'
+
 export default function Dashboard() {
   const { data, settings, actions } = useApp()
-  const [mois, setMois] = useState('Mois en cours')
+  const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
-  const year = mois === 'Tous' || mois === 'Mois en cours' ? Number(today().slice(0, 4)) : Number(mois.slice(0, 4))
+  dernierePeriode = mois
+  const year = /^\d{4}-\d{2}$/.test(mois) ? Number(mois.slice(0, 4)) : Number(today().slice(0, 4))
   const series = useMemo(() => monthlySeries(data, settings, year, canal), [data, settings, year, canal])
   const months = useMemo(() => {
     const set = new Set(actions.map((a) => (a.date || '').slice(0, 7)).filter(Boolean))
@@ -158,7 +184,10 @@ export default function Dashboard() {
   const d = (k) => (pv ? Math.round((c[k] - pv[k]) * 100) / 100 : null)
   const best = series.reduce((b, m) => (m.caSigne > (b?.caSigne ?? -1) ? m : b), null)
   const funnelMax = Math.max(1, st.funnel[0]?.n || 0)
-  const titre = mois === 'Tous' ? "Tout l'historique" : fmtMonth(periode.key)
+  const titre = mois === 'Tous' ? "Tout l'historique" : periode.semaine ? `${mois} (${fmtDate(periode.debut)} → ${fmtDate(periode.fin)})` : fmtMonth(periode.key)
+  const vs = periode.prevLabel
+  const pvv = (k) => (pv ? pv[k] : null)
+  const contacts = c.dm + c.appels
 
   return (
     <div className="stack">
@@ -172,6 +201,8 @@ export default function Dashboard() {
         </div>
         <div className="row">
           <select className="input" style={{ width: 'auto' }} value={mois} onChange={(e) => setMois(e.target.value)}>
+            <option value="Cette semaine">Cette semaine</option>
+            <option value="Semaine dernière">Semaine dernière</option>
             <option value="Mois en cours">Mois en cours</option>
             <option value="Tous">Tout l'historique</option>
             {months.map((m) => (
@@ -189,18 +220,21 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="bigkpis">
+        <BigKpi ico="instagram" label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
+        <BigKpi ico="message" label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
+        <BigKpi ico="play" label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
+        <BigKpi ico="phone" label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
+        <BigKpi ico="handshake" label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
+        <BigKpi ico="coins" label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
+      </div>
+
       <div className="grid grid-6">
-        <Kpi label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} />
-        <Kpi label="Appels passés" value={nb(c.appels)} delta={d('appels')} />
-        <Kpi label="DM envoyés" value={nb(c.dm)} delta={d('dm')} />
-        <Kpi label="Réponses" value={nb(c.reponses)} delta={d('reponses')} />
-        <Kpi label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} />
-        <Kpi label="Propositions" value={nb(c.propositions)} delta={d('propositions')} />
-        <Kpi label="Clients signés" value={nb(c.signes)} delta={d('signes')} navy />
+        <Kpi label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} />
+        <Kpi label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
+        <Kpi label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
+        <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} navy />
         <Kpi label="Taux de closing" value={pct(c.closing)} navy />
-        <Kpi label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} navy />
-        <Kpi label="CA encaissé" value={eur(c.encaisse)} delta={d('encaisse')} navy />
-        <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} navy />
         <Kpi label="Revenu récurrent (MRR)" value={eur(st.mrr)} navy />
       </div>
 

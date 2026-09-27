@@ -315,7 +315,9 @@ export function computeStats(data, settings, periode, canal) {
     const prospAct = acts.filter((x) => isProspection(x, L))
     const sumAct = (name) =>
       acts.filter((x) => x.action === name && canalOk(pc(x))).reduce((m, x) => m + montantRetenu(x, byId[x.prospect_id], L), 0)
-    const depenses = acts.filter((x) => x.action === 'Dépense').reduce((m, x) => m + num(x.montant), 0) + (withFixes ? fixes : 0)
+    // Dépenses fixes mensuelles : au prorata des jours pour une semaine
+    const partFixes = periode.semaine ? (diffDays(b, a) + 1) / 30.44 : 1
+    const depenses = acts.filter((x) => x.action === 'Dépense').reduce((m, x) => m + num(x.montant), 0) + (withFixes ? fixes * partFixes : 0)
     const signes = list.filter((p) => inP(p.stageDates[5], a, b) && canalOk(p.canal)).length
     const propositions = acts.filter((x) => x.action === 'Proposition envoyée' && canalOk(pc(x))).length
     const encaisse = sumAct('Paiement reçu')
@@ -324,6 +326,7 @@ export function computeStats(data, settings, periode, canal) {
       appels: prospAct.filter((x) => x.canal === 'Appel' && canalOk(x.canal)).length,
       dm: prospAct.filter((x) => x.canal === 'DM' && canalOk(x.canal)).length,
       reponses: acts.filter((x) => isReponse(x, L) && canalOk(x.canal)).length,
+      looms: acts.filter((x) => (x.action === 'Loom envoyé' || x.action === 'Audit réalisé') && canalOk(pc(x))).length,
       rdv: list.filter((p) => inP(p.stageDates[3], a, b) && canalOk(p.canal)).length,
       propositions,
       signes,
@@ -495,10 +498,17 @@ export function computeStats(data, settings, periode, canal) {
 // Période du tableau de bord : « Mois en cours », « Tous » ou « AAAA-MM ».
 export function periodeFor(mois) {
   const t = today()
+  // Semaines du lundi au dimanche. Semaine en cours : comparée aux mêmes jours de la semaine d'avant
+  if (mois === 'Cette semaine' || mois === 'Semaine dernière') {
+    const lundi = addDays(t, 1 - weekday(t))
+    if (mois === 'Cette semaine') return { mois, semaine: true, debut: lundi, fin: t, prevDebut: addDays(lundi, -7), prevFin: addDays(t, -7), prevLabel: 'sem. dernière' }
+    const l = addDays(lundi, -7)
+    return { mois, semaine: true, debut: l, fin: addDays(l, 6), prevDebut: addDays(l, -7), prevFin: addDays(l, -1), prevLabel: 'sem. préc.' }
+  }
   if (mois === 'Tous') return { mois, debut: '2000-01-01', fin: '2100-12-31', prevDebut: null, prevFin: null }
   const key = mois === 'Mois en cours' ? t.slice(0, 7) : mois
   const p = prevMonth(key)
-  return { mois, key, debut: monthStart(key), fin: monthEnd(key), prevDebut: monthStart(p), prevFin: monthEnd(p) }
+  return { mois, key, debut: monthStart(key), fin: monthEnd(key), prevDebut: monthStart(p), prevFin: monthEnd(p), prevLabel: 'mois préc.' }
 }
 
 // Évolution mois par mois sur une année
