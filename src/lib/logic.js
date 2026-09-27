@@ -45,8 +45,25 @@ export function waLink(phone, indicatif = '33') {
   if (n.startsWith('0')) n = indicatif + n.slice(1)
   return `https://wa.me/${n}`
 }
+// Nom du compte Instagram tiré d'un @, d'un nom ou d'un lien partagé (« ?igsh=… » retiré). Vide si ce n'est pas un compte.
+export function handleInsta(v) {
+  let t = String(v || '').trim()
+  if (!t) return ''
+  const m = t.match(/(?:instagram\.com|instagr\.am)\/([^?#]*)/i)
+  if (m) {
+    const parts = m[1].split('/').filter(Boolean)
+    // Story : le compte suit « stories/ » ; publication, reel… : pas de compte dans le lien
+    if (parts[0]?.toLowerCase() === 'stories') t = parts[1] || ''
+    else if (!parts.length || ['p', 'reel', 'reels', 'tv', 'explore', 'accounts'].includes(parts[0].toLowerCase())) return ''
+    else t = parts[0]
+  } else if (/^https?:\/\//i.test(t) || t.includes(' ')) return ''
+  t = t.replace(/^@+/, '')
+  return /^[A-Za-z0-9._]{1,30}$/.test(t) ? t.toLowerCase() : ''
+}
 export function instaLink(v) {
   if (!v) return ''
+  const h = handleInsta(v)
+  if (h) return `https://www.instagram.com/${h}/`
   if (v.startsWith('http')) return v
   return `https://www.instagram.com/${v.replace('@', '').replace(/\s/g, '')}`
 }

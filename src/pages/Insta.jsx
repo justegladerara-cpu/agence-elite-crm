@@ -3,14 +3,11 @@ import { useState } from 'react'
 import { useApp, Modal, Field, go } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
-import { instaLink } from '../lib/logic'
+import { instaLink, handleInsta } from '../lib/logic'
 import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT } from '../lib/insta'
 
 const nomDepuisCompte = (v) =>
-  v
-    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, '')
-    .replace(/[/?].*$/, '')
-    .replace('@', '')
+  handleInsta(v)
     .replace(/[._]+/g, ' ')
     .trim()
     .replace(/\b\w/g, (c) => c.toUpperCase())
@@ -45,10 +42,12 @@ export function QuickInsta({ onClose }) {
 
   const save = async (envoye) => {
     if (!compte.trim() && !nom.trim()) return toast('Indique le compte Instagram', true)
+    if (!name) return toast("Indique le nom de l'entreprise", true)
     if (data.list.some((p) => p.name.toLowerCase() === name.toLowerCase())) return toast('Ce prospect existe déjà', true)
     setBusy(true)
     try {
-      const handle = compte.trim() ? (compte.trim().startsWith('http') ? compte.trim() : `@${compte.trim().replace('@', '')}`) : ''
+      const h = handleInsta(compte)
+      const handle = h ? `@${h}` : compte.trim()
       const fiche = Object.fromEntries(
         Object.entries({ instagram: handle, secteur, produit: produit.trim(), signal, source: 'Publicité Instagram' }).filter(([, v]) => v),
       )
@@ -75,7 +74,28 @@ export function QuickInsta({ onClose }) {
     <Modal title="Prospect Instagram express" onClose={onClose}>
       <div className="card stack" style={{ gap: 12 }}>
         <Field label="Compte Instagram">
-          <input autoFocus placeholder="@nomducompte ou lien" value={compte} onChange={(e) => setCompte(e.target.value)} />
+          <input
+            autoFocus
+            placeholder="@nomducompte ou lien du profil"
+            value={compte}
+            onChange={(e) => setCompte(e.target.value)}
+            onBlur={() => handleInsta(compte) && setCompte(`@${handleInsta(compte)}`)}
+          />
+          {handleInsta(compte) ? (
+            <a className="insta-check" href={instaLink(compte)} target="_blank" rel="noreferrer">
+              <Icon n="instagram" size={14} /> Vérifier le compte @{handleInsta(compte)} ↗
+            </a>
+          ) : (
+            /instagram\.com|instagr\.am/i.test(compte) && (
+              <div className="tiny orange" style={{ marginTop: 6 }}>
+                Ce lien mène à une publication, pas au compte.{' '}
+                <a href={compte.trim().startsWith('http') ? compte.trim() : `https://${compte.trim()}`} target="_blank" rel="noreferrer">
+                  Ouvre-la
+                </a>{' '}
+                et copie le @ du compte.
+              </div>
+            )
+          )}
         </Field>
         <Field label="Nom de l'entreprise (facultatif)">
           <input placeholder={nomDepuisCompte(compte) || 'Repris du compte'} value={nom} onChange={(e) => setNom(e.target.value)} />
