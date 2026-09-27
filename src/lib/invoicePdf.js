@@ -1,6 +1,6 @@
 // PDF des factures et devis (modèle « Pro » d'Agence Elite), généré dans le navigateur.
 import { jsPDF } from 'jspdf'
-import { totals, montantEnLettres, TYPES } from './invoice'
+import { totals, montantEnLettres, TYPES, num } from './invoice'
 
 const fmtDate = (iso) => {
   if (!iso) return '—'
@@ -16,7 +16,9 @@ const LINE = [225, 225, 225]
 
 // Espaces ordinaires : la police standard du PDF ne connaît pas l'espace fine insécable
 const clean = (s) => String(s ?? '').replace(/[  ]/g, ' ')
-const n0 = (v) => clean(Math.round(Number(v) || 0).toLocaleString('fr-FR'))
+// Montants et quantités : décimales gardées si besoin (ex. 1,5 ou 12,50 €)
+const nd = (v) => clean(num(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 }))
+const n0 = nd
 
 let logoCache = null
 async function loadLogo() {
@@ -133,9 +135,9 @@ export async function buildPdf(doc, { fact, code, statut, paye = 0 }) {
     let yy = y + 6
     des.forEach((s) => (text(s, cx[0] + 3, yy, { size: 10 }), (yy += 5)))
     desc.forEach((s) => (text(s, cx[0] + 3, yy - 0.5, { size: 8.5, color: [80, 80, 80] }), (yy += 4)))
-    text(n0(l.qte), cx[2] - 3, y + 6, { size: 10, align: 'right' })
-    text(n0(l.pu), cx[3] - 3, y + 6, { size: 10, align: 'right' })
-    text(n0(l.montant), cx[4] - 3, y + 6, { size: 10, align: 'right' })
+    text(nd(l.qte), cx[2] - 3, y + 6, { size: 10, align: 'right' })
+    text(nd(l.pu), cx[3] - 3, y + 6, { size: 10, align: 'right' })
+    text(nd(l.montant), cx[4] - 3, y + 6, { size: 10, align: 'right' })
     pdf.setDrawColor(...LINE)
     pdf.rect(M, y, R - M, h)
     ;[cx[1], cx[2], cx[3]].forEach((x) => pdf.line(x, y, x, y + h))

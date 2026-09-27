@@ -84,7 +84,8 @@ export function historique(documents, settings, data, n = 30) {
     const doc = trouverJour(documents, date)
     const jour = doc ? doc.data : { objectifs: objectifsParDefaut(settings), compteurs: {} }
     const av = avancement(jour, compterJour(data, date))
-    jours.push({ date, score: av.score, volume: av.volume, off: estJourOff(settings, date) && av.volume === 0, today: date === t })
+    // Jour off : ne compte pas, sauf s'il est réussi (bonus pour la série)
+    jours.push({ date, score: av.score, volume: av.volume, off: estJourOff(settings, date) && av.score < 100, repos: estJourOff(settings, date), today: date === t })
   }
   // Série : jours réussis consécutifs (on saute les jours off, aujourd'hui compte seulement s'il est réussi)
   let serie = 0
@@ -95,7 +96,7 @@ export function historique(documents, settings, data, n = 30) {
     else if (j.today) continue
     else break
   }
-  const actifs = jours.filter((j) => !j.off && !j.today)
+  const actifs = jours.filter((j) => !j.repos && !j.today)
   const moyenne = actifs.length ? Math.round(actifs.reduce((m, j) => m + j.volume, 0) / actifs.length) : 0
   const reussis = jours.filter((j) => j.score >= 100).length
   return { jours, serie, moyenne, reussis }

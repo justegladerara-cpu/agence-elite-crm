@@ -3,10 +3,9 @@ import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { PaiementsTab, DepensesTab, PaiementForm } from './Finances'
-import { TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
+import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays } from '../lib/dates'
 
-const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(String(v).replace(',', '.'))) ? 0 : Number(String(v).replace(',', '.')))
 
 // ---------- Liste ----------
 let dernierOnglet = 'facture'
@@ -207,14 +206,18 @@ export function DocEditor({ id, query }) {
       // Suivi client : l'intervention (ou la proposition pour un devis) reprend le montant et le numéro
       if (pid && !dataOut.annulee) {
         const linked = dataOut.actionId ? actions.find((a) => a.id === dataOut.actionId) : null
-        const fields = { date: dataOut.date, montant: t.total, facture: doc.numero.trim(), notes: dataOut.objet || null }
+        const fields = { prospect_id: pid, date: dataOut.date, montant: t.total, facture: isFact ? doc.numero.trim() : null }
         if (linked) await api.updateAction(linked.id, { ...linked, ...fields })
         else if (suivi && t.total > 0) {
           const niveau = data.byId[pid]?.niveau || 0
           const action = !isFact ? 'Proposition envoyée' : dataOut.devisId && niveau < 7 ? 'Signature' : 'Intervention'
-          const [row] = await api.addActions([{ prospect_id: pid, canal: 'Autre', action, ...fields }])
+          const [row] = await api.addActions([{ canal: 'Autre', action, ...fields, notes: dataOut.objet || null }])
           dataOut.actionId = row.id
         }
+      }
+      // Numéro modifié : les paiements déjà reçus suivent la facture
+      if (existing && isFact && existing.numero !== doc.numero.trim()) {
+        for (const a of paiementsDe(existing, actions)) await api.updateAction(a.id, { ...a, facture: doc.numero.trim() })
       }
       const out = await api.saveDoc({ ...doc, numero: doc.numero.trim(), prospect_id: pid, data: dataOut })
       // Devis transformé en facture : on le marque accepté
@@ -275,12 +278,21 @@ export function DocEditor({ id, query }) {
     setDoc((x) => ({ ...x, data: { ...x.data, statut: s } }))
     toast(`Devis ${s.toLowerCase()} ✓`)
   }
+  // Facture annulée ou supprimée : son devis peut de nouveau être transformé
+  const libererDevis = async () => {
+    const dv = existing.data.devisId && documents.find((x) => x.id === existing.data.devisId)
+    if (dv && dv.data.factureNumero === existing.numero) {
+      const { factureNumero, ...rest } = dv.data // eslint-disable-line no-unused-vars
+      await api.saveDoc({ ...dv, data: rest })
+    }
+  }
   const annuler = async () => {
     if (!window.confirm('Annuler cette facture ? Son montant sera retiré du suivi client.')) return
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
     if (linked) await api.deleteAction(linked.id)
     const nd = { ...existing.data, annulee: true, actionId: null }
     await api.saveDoc({ ...existing, data: nd })
+    await libererDevis()
     setDoc((x) => ({ ...x, data: nd }))
     toast('Facture annulée')
   }
@@ -289,6 +301,7 @@ export function DocEditor({ id, query }) {
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
     if (linked && window.confirm('Supprimer aussi la ligne correspondante dans le suivi client ?')) await api.deleteAction(linked.id)
     await api.deleteDoc(existing.id)
+    await libererDevis()
     toast('Document supprimé')
     go('/factures')
   }

@@ -12,6 +12,12 @@ export function useJournee(date = today()) {
   const { documents, settings, api } = useApp()
   const vue = journeeVue(documents, settings, date)
   const [local, setLocal] = useState(null)
+  const [localDate, setLocalDate] = useState(date)
+  if (localDate !== date) {
+    // Passage à minuit : on repart de la nouvelle journée
+    setLocalDate(date)
+    setLocal(null)
+  }
   const pending = useRef(null)
   const timer = useRef(null)
   const version = useRef(0)

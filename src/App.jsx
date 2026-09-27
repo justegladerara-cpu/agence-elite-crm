@@ -130,7 +130,12 @@ function Crm() {
     }),
     deleteProspect: wrap(async (id) => {
       await db.deleteProspect(id)
-      setState((s) => ({ ...s, prospects: s.prospects.filter((x) => x.id !== id), actions: s.actions.filter((a) => a.prospect_id !== id) }))
+      setState((s) => ({
+        ...s,
+        prospects: s.prospects.filter((x) => x.id !== id),
+        actions: s.actions.filter((a) => a.prospect_id !== id),
+        documents: s.documents.map((d) => (d.prospect_id === id ? { ...d, prospect_id: null } : d)),
+      }))
     }),
     addActions: wrap(async (list) => {
       const rows = await db.addActions(list)

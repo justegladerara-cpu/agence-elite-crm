@@ -93,6 +93,9 @@ export default function Session() {
             <h1>Session d'appels</h1>
             <div className="sub">Chronométrée : relances du jour d'abord, puis les prospects les plus chauds. Un clic sur le résultat enregistre l'appel.</div>
           </div>
+          <button className="btn ghost" onClick={() => go('/journee')}>
+            ← Ma journée
+          </button>
         </div>
         <div className="card">
           <p style={{ marginTop: 0 }}>

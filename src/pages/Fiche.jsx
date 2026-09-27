@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal } from '../ui'
+import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
@@ -14,6 +14,7 @@ export default function Fiche({ id }) {
   const [fiche, setFiche] = useState(null)
   const [name, setName] = useState('')
   const [editAction, setEditAction] = useState(null)
+  const [tousChamps, setTousChamps] = useState(false)
   if (!p)
     return (
       <div className="card">
@@ -105,7 +106,7 @@ export default function Fiche({ id }) {
             + Devis
           </button>
           <button className="btn" onClick={startEdit}>
-            ✎ Modifier la fiche
+            <Icon n="edit" size={15} /> Modifier la fiche
           </button>
           <div className="spacer" />
           <button className="btn danger sm" onClick={remove}>
@@ -155,7 +156,7 @@ export default function Fiche({ id }) {
           <div className="card">
             <h2 className="section">Fiche</h2>
             <div className="info-grid">
-              {FICHE_FIELDS.map((x) => {
+              {FICHE_FIELDS.filter((x) => tousChamps || f[x.key] || f[x.key] === 0).map((x) => {
                 let v = f[x.key]
                 if (!v && v !== 0) v = '—'
                 else if (x.key === 'instagram') v = <a href={instaLink(v)} target="_blank" rel="noreferrer">{v}</a>
@@ -163,12 +164,17 @@ export default function Fiche({ id }) {
                 else if (x.type === 'date') v = fmtDate(v)
                 return (
                   <div key={x.key}>
-                    <div className="k">{x.label}</div>
+                    <div className="k">{lbl(x.label)}</div>
                     <div className="v">{v}</div>
                   </div>
                 )
               })}
             </div>
+            {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
+              <button className="toggle-link" style={{ marginTop: 10 }} onClick={() => setTousChamps((v) => !v)}>
+                {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
+              </button>
+            )}
           </div>
         </div>
         <div className="card">
@@ -223,7 +229,7 @@ function AuditCard({ p }) {
   const { api } = useApp()
   const audit = p.fiche?.audit || {}
   const done = AUDIT.filter(([k]) => audit[k]).length
-  const set = (patch) => api.updateProspect(p.id, { fiche: { ...p.fiche, audit: { ...audit, ...patch } } })
+  const set = (patch) => api.updateProspect(p.id, { fiche: { ...p.fiche, audit: { ...audit, ...patch } } }).catch(() => {})
   return (
     <div className="card">
       <h2 className="section">

@@ -1,7 +1,12 @@
 // Factures et devis : numérotation, totaux, statut, montant en lettres.
 import { today, addDays } from './dates'
 
-const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(String(v).replace(',', '.'))) ? 0 : Number(String(v).replace(',', '.')))
+// Nombre saisi : accepte « 150 000 », « 12,5 »… (espaces et virgule)
+export const num = (v) => {
+  if (v === null || v === undefined || v === '') return 0
+  const n = Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'))
+  return isNaN(n) ? 0 : n
+}
 
 export const TYPES = {
   facture: { label: 'Facture', titre: 'FACTURE', prefixe: 'prefixeFacture' },
@@ -12,8 +17,10 @@ export const TYPES = {
 export function nextNumero(documents, type, fact, date = today()) {
   const prefix = `${fact[TYPES[type].prefixe] || ''}${date.slice(0, 4)}`
   let max = 0
+  // Même préfixe pour factures et devis : une seule suite de numéros
+  const memePrefixe = (fact.prefixeFacture || '') === (fact.prefixeDevis || '')
   documents
-    .filter((d) => d.type === type && (d.numero || '').startsWith(prefix))
+    .filter((d) => (d.type === type || (memePrefixe && TYPES[d.type])) && (d.numero || '').startsWith(prefix))
     .forEach((d) => {
       const n = parseInt(d.numero.slice(prefix.length), 10)
       if (!isNaN(n)) max = Math.max(max, n)
@@ -107,7 +114,7 @@ function sous1000(n) {
   return s
 }
 export function enLettres(n) {
-  n = Math.round(Math.abs(n))
+  n = Math.floor(Math.abs(n))
   if (n === 0) return 'zéro'
   const parts = []
   const milliards = Math.floor(n / 1e9)
@@ -121,8 +128,21 @@ export function enLettres(n) {
   return parts.join(' ')
 }
 const NOM_DEVISE = { XAF: 'francs CFA', XOF: 'francs CFA', EUR: 'euros', USD: 'dollars', MAD: 'dirhams', CAD: 'dollars canadiens' }
+const CENTIMES = { EUR: 'centimes', USD: 'cents', CAD: 'cents', MAD: 'centimes' }
 export function montantEnLettres(n, code) {
-  const s = enLettres(n)
-  const de = Math.round(n) >= 1e6 && Math.round(n) % 1e6 === 0 ? 'de ' : ''
-  return `${s.charAt(0).toUpperCase()}${s.slice(1)} ${de}${NOM_DEVISE[code] || ''}`.trim()
+  n = Math.abs(Number(n) || 0)
+  // Francs CFA : pas de décimales
+  if (code === 'XAF' || code === 'XOF' || !CENTIMES[code]) n = Math.round(n)
+  let ent = Math.floor(n)
+  let cts = Math.round((n - ent) * 100)
+  if (cts === 100) {
+    ent += 1
+    cts = 0
+  }
+  const s = enLettres(ent)
+  const nom = ent < 2 ? (NOM_DEVISE[code] || '').replace(/s\b/g, '') : NOM_DEVISE[code] || ''
+  let out = s.charAt(0).toUpperCase() + s.slice(1)
+  if (nom) out += ent >= 1e6 && ent % 1e6 === 0 ? (/^[aeiou]/i.test(nom) ? ` d'${nom}` : ` de ${nom}`) : ` ${nom}`
+  if (cts) out += ` et ${enLettres(cts)} ${CENTIMES[code]}`
+  return out
 }

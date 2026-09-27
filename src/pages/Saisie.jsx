@@ -502,12 +502,12 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
       </div>
       <div className="li-side">
         <button className="icon-btn" title="Modifier" onClick={() => onEdit(a)}>
-          ✎
+          <Icon n="edit" size={15} />
         </button>
         <button
           className="icon-btn"
           title="Supprimer"
-          onClick={() => window.confirm('Supprimer cette action ?') && api.deleteAction(a.id)}
+          onClick={() => window.confirm('Supprimer cette action ?') && api.deleteAction(a.id).catch(() => {})}
         >
           <Icon n="trash" size={15} />
         </button>

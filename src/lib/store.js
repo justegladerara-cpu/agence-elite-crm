@@ -14,12 +14,18 @@ const ACTION_FIELDS = [
 ]
 const NUMERIC = ['montant', 'duree', 'note', 'remise']
 
+// Ne nettoie que les champs présents (mise à jour partielle)
+export function cleanPatch(a) {
+  const full = cleanAction(a)
+  return Object.fromEntries(Object.keys(full).filter((k) => k in a).map((k) => [k, full[k]]))
+}
+
 export function cleanAction(a) {
   const out = {}
   ACTION_FIELDS.forEach((k) => {
     let v = a[k]
     if (v === '' || v === undefined) v = null
-    if (v !== null && NUMERIC.includes(k)) v = Number(String(v).replace(',', '.'))
+    if (v !== null && NUMERIC.includes(k)) v = Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'))
     if (v !== null && NUMERIC.includes(k) && isNaN(v)) v = null
     out[k] = v
   })
@@ -123,6 +129,7 @@ const local = {
     const db = readLocal()
     db.prospects = db.prospects.filter((x) => x.id !== id)
     db.actions = db.actions.filter((x) => x.prospect_id !== id)
+    db.documents = db.documents.map((d) => (d.prospect_id === id ? { ...d, prospect_id: null } : d))
     writeLocal(db)
   },
   async addActions(list) {
@@ -135,7 +142,7 @@ const local = {
   async updateAction(id, patch) {
     const db = readLocal()
     const a = db.actions.find((x) => x.id === id)
-    Object.assign(a, cleanAction({ ...a, ...patch }))
+    Object.assign(a, cleanPatch(patch))
     writeLocal(db)
     return a
   },
@@ -201,13 +208,14 @@ const remote = {
     return check(await supabase.from('actions').insert(list.map(cleanAction)).select())
   },
   async updateAction(id, patch) {
-    return check(await supabase.from('actions').update(cleanAction(patch)).eq('id', id).select().single())
+    return check(await supabase.from('actions').update(cleanPatch(patch)).eq('id', id).select().single())
   },
   async deleteAction(id) {
     check(await supabase.from('actions').delete().eq('id', id))
   },
   async saveSettings(settings) {
-    const { data: u } = await supabase.auth.getUser()
+    const { data: u, error } = await supabase.auth.getUser()
+    if (error || !u?.user) throw new Error(`auth : ${error?.message || 'session expirée'}`)
     check(await supabase.from('settings').upsert({ user_id: u.user.id, data: settings, updated_at: nowIso() }))
   },
   async bulkImport(prospects, actions) {
@@ -237,15 +245,20 @@ const writeJson = (k, v) => {
   try {
     localStorage.setItem(k, JSON.stringify(v))
   } catch {
-    /* stockage plein ou indisponible */
+    throw new Error("Mémoire de l'appareil pleine : reconnecte-toi à internet pour synchroniser avant de continuer.")
   }
+}
+// Déconnexion : on efface la copie locale pour ne rien laisser au compte suivant
+export function clearOffline() {
+  ;[CACHE, QUEUE, RECUS].forEach((k) => localStorage.removeItem(k))
+  emit({ pending: 0, error: '' })
 }
 export const hasOfflineCache = () => !!localStorage.getItem(CACHE)
 
 const isNetworkError = (e) =>
   !navigator.onLine || /fetch|network|load failed|timed? ?out|connexion/i.test(String(e?.message || e))
 // Session expirée : on garde la file et on réessaiera après reconnexion
-const isAuthError = (e) => /jwt|token|auth|401|403|row-level security/i.test(String(e?.message || e))
+const isAuthError = (e) => /jwt|token|auth|401|session/i.test(String(e?.message || e))
 
 // État de synchronisation, affiché dans l'interface
 let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: '' }
@@ -269,6 +282,7 @@ function applyLocal(c, op) {
   if (op.t === 'deleteProspect') {
     c.prospects = c.prospects.filter((x) => x.id !== op.id)
     c.actions = c.actions.filter((x) => x.prospect_id !== op.id)
+    c.documents = (c.documents || []).map((d) => (d.prospect_id === op.id ? { ...d, prospect_id: null } : d))
   }
   if (op.t === 'addActions') {
     const ids = new Set(op.rows.map((r) => r.id))
@@ -318,8 +332,9 @@ async function doFlush() {
     /* hors ligne */
   }
   while (q.length) {
+    const op = q[0]
     try {
-      await sendRemote(q[0])
+      await sendRemote(op)
     } catch (e) {
       if (isNetworkError(e) || isAuthError(e)) {
         emit({ syncing: false, online: navigator.onLine, pending: q.length, error: !isNetworkError(e) ? 'Reconnecte-toi pour synchroniser tes modifications.' : '' })
@@ -328,17 +343,30 @@ async function doFlush() {
       // Refus du serveur (donnée invalide) : on l'écarte pour ne pas bloquer la file
       emit({ error: `Une modification n'a pas pu être synchronisée : ${e.message}` })
     }
-    q = q.slice(1)
-    writeJson(QUEUE, q)
+    // Relit la file : des modifications ont pu s'ajouter pendant l'envoi
+    q = readJson(QUEUE, [])
+    if (q.length && (q[0].k === op.k || (!op.k && JSON.stringify(q[0]) === JSON.stringify(op)))) q = q.slice(1)
+    try {
+      writeJson(QUEUE, q)
+    } catch {
+      /* rien de plus petit à écrire */
+    }
     emit({ pending: q.length })
   }
   emit({ syncing: false, online: true, pending: 0, error: '' })
 }
 
+let generation = 0
 async function queued(op) {
-  writeJson(CACHE, applyLocal(readJson(CACHE, { prospects: [], actions: [], settings: null }), op))
+  op = { ...op, k: uid() }
+  generation++
   const q = [...readJson(QUEUE, []), op]
   writeJson(QUEUE, q)
+  try {
+    writeJson(CACHE, applyLocal(readJson(CACHE, { prospects: [], actions: [], settings: null }), op))
+  } catch {
+    /* la file est prioritaire ; la copie locale sera reconstruite au prochain chargement */
+  }
   emit({ pending: q.length })
   flush()
 }
@@ -349,15 +377,23 @@ const offline = {
       try {
         await flush()
         if (!readJson(QUEUE, []).length) {
+          const gen = generation
           const [prospects, actions, documents, settings] = await Promise.all([
             fetchAll('prospects'),
             fetchAll('actions'),
             fetchAll('documents'),
             supabase.from('settings').select('*').maybeSingle().then(check),
           ])
-          writeJson(CACHE, { prospects, actions, documents, settings: settings?.data || null })
-          emit({ online: true })
-          return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
+          // Une modification faite pendant le chargement : on garde la copie locale, plus récente
+          if (gen === generation) {
+            try {
+              writeJson(CACHE, { prospects, actions, documents, settings: settings?.data || null })
+            } catch {
+              /* cache trop gros : on continue sans */
+            }
+            emit({ online: true })
+            return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
+          }
         }
       } catch (e) {
         if (!isNetworkError(e) || !hasOfflineCache()) throw e
@@ -386,9 +422,9 @@ const offline = {
     return rows
   },
   async updateAction(id, patch) {
-    const clean = cleanAction(patch)
+    const clean = cleanPatch(patch)
     await queued({ t: 'updateAction', id, patch: clean })
-    return clean
+    return { id, ...clean }
   },
   async deleteAction(id) {
     await queued({ t: 'deleteAction', id })

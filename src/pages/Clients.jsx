@@ -30,7 +30,7 @@ export default function Clients() {
         <div className="list">
           {cl.length === 0 && <Empty>Pas encore de client. Ta première signature arrivera vite.</Empty>}
           {cl.map((c) => (
-            <div key={c.id} className="list-item click" onClick={() => go(`/prospect/${c.id}`)} style={{ alignItems: 'flex-start' }}>
+            <div key={c.id} className="list-item click client-item" onClick={() => go(`/prospect/${c.id}`)} style={{ alignItems: 'flex-start' }}>
               <div className="li-main">
                 <div className="row" style={{ gap: 6 }}>
                   <span className="li-title">{c.name}</span>
@@ -60,7 +60,7 @@ export default function Clients() {
                   ))}
                 </div>
                 {!c.nbInterventions && <div className="row" style={{ marginTop: 10 }}>
-                  <span className="tiny muted" style={{ width: 90 }}>
+                  <span className="tiny muted" style={{ whiteSpace: 'nowrap' }}>
                     Onboarding {Math.round(c.onboarding * 100)} %
                   </span>
                   <div style={{ flex: 1, maxWidth: 240 }}>

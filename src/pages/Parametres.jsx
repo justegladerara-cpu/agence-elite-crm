@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useApp, Field, eur, lbl, DEVISES } from '../ui'
 import { Icon, withIcon } from '../icons'
-import { supabase, isLocal } from '../lib/store'
+import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { SOURCES } from '../lib/journee'
 import { today } from '../lib/dates'
@@ -54,7 +54,7 @@ function convertMontants(s, from, to) {
   }
 }
 
-function ListEditor({ value, cols, onChange, max, fixedLength }) {
+function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
   const upd = (i, v) => onChange(value.map((x, j) => (j === i ? v : x)))
   return (
     <div className="list-editor">
@@ -69,7 +69,7 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
         </div>
       )}
       {value.map((item, i) => (
-        <div className="le-row" key={i}>
+        <div className={`le-row ${cols?.some((c) => c[2] === 'select') ? 'has-select' : ''}`} key={i}>
           {!cols ? (
             <input style={{ flex: 1 }} value={item} onChange={(e) => upd(i, e.target.value)} />
           ) : (
@@ -111,7 +111,12 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
           + Ajouter
         </button>
       )}
-      {!fixedLength && <div className="tiny muted" style={{ marginTop: 4 }}>Maximum {max} (limite du fichier Excel)</div>}
+      {!fixedLength && (
+        <div className="tiny muted" style={{ marginTop: 4 }}>
+          Maximum {max}
+          {excel ? ' (limite du fichier Excel)' : ''}
+        </div>
+      )}
     </div>
   )
 }
@@ -229,6 +234,9 @@ export default function Parametres() {
       if (imp.withSettings && imp.settings) {
         const merged = { ...settings }
         Object.entries(imp.settings).forEach(([k, v]) => (merged[k] = Array.isArray(v) ? v : { ...settings[k], ...v }))
+        // Objectifs du jour du fichier Excel : repris dans les objectifs quotidiens
+        const oj = imp.settings.objectifsJour
+        if (oj) merged.objectifsQuotidiens = (merged.objectifsQuotidiens || []).map((o) => (oj[o.source] !== undefined ? { ...o, cible: Number(oj[o.source]) || 0 } : o))
         await api.saveSettings(merged)
         setS(JSON.parse(JSON.stringify(merged)))
       }
@@ -411,6 +419,7 @@ export default function Parametres() {
               value={s[key]}
               cols={cols}
               max={LIST_CAPACITY[key]}
+              excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine'].includes(key)}
               fixedLength={key === 'etapes'}
               onChange={(v) => change({ ...s, [key]: v })}
             />
@@ -438,7 +447,15 @@ export default function Parametres() {
           {isLocal ? (
             <span className="small muted">Mode démo : les données sont enregistrées dans ce navigateur uniquement.</span>
           ) : (
-            <button className="btn" onClick={() => supabase.auth.signOut()}>
+            <button
+              className="btn"
+              onClick={async () => {
+                const n = syncStatus.get().pending
+                if (n && !window.confirm(`${n} modification${n > 1 ? 's' : ''} pas encore synchronisée${n > 1 ? 's' : ''} ser${n > 1 ? 'ont' : 'a'} perdue${n > 1 ? 's' : ''}. Se déconnecter quand même ?`)) return
+                clearOffline()
+                await supabase.auth.signOut()
+              }}
+            >
               Se déconnecter
             </button>
           )}
@@ -450,6 +467,14 @@ export default function Parametres() {
           </button>
         </div>
       </div>
+      {dirty && (
+        <div className="save-bar">
+          <span>Modifications non enregistrées</span>
+          <button className="btn gold" onClick={save}>
+            Enregistrer
+          </button>
+        </div>
+      )}
     </div>
   )
 }

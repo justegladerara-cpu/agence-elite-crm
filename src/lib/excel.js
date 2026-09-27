@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 import { FICHE_FIELDS, ACTION_COLS } from './defaults'
 import { sortActions } from './logic'
 import { uid } from './store'
-import { parse, pad } from './dates'
+import { parse, pad, iso } from './dates'
 
 // ---------- Correspondance Paramètres <-> cellules ----------
 const SCALARS = [
@@ -149,6 +149,23 @@ async function sheetPaths(zip) {
 // ---------- Export ----------
 export const SAISIE_ROWS = 2000
 const INTERV = 'Intervention : '
+// Champs propres au CRM (paiements, dépenses) : ajoutés en fin de notes « [Mode : … · Réf : …] »
+const EXTRAS = [['mode', 'Mode'], ['reference', 'Réf'], ['categorie', 'Catégorie'], ['fournisseur', 'Fournisseur'], ['recu', 'Reçu']]
+const extrasTexte = (a) => {
+  const parts = EXTRAS.filter(([k]) => a[k]).map(([k, l]) => `${l} : ${String(a[k]).replace(/[·\]]/g, ' ')}`)
+  return parts.length ? `[${parts.join(' · ')}]` : ''
+}
+function lireExtras(notes) {
+  const m = /\s*\[((?:Mode|Réf|Catégorie|Fournisseur|Reçu) : [^\]]*)\]$/.exec(notes || '')
+  if (!m) return { notes }
+  const out = { notes: notes.slice(0, m.index).trim() || null }
+  m[1].split(' · ').forEach((part) => {
+    const i = part.indexOf(' : ')
+    const e = EXTRAS.find(([, l]) => l === part.slice(0, i))
+    if (e) out[e[0]] = part.slice(i + 3).trim()
+  })
+  return out
+}
 
 export async function buildExcel(templateBuffer, prospects, actions, settings) {
   const zip = await JSZip.loadAsync(templateBuffer)
@@ -159,7 +176,7 @@ export async function buildExcel(templateBuffer, prospects, actions, settings) {
   const withActs = new Set(rows.map((a) => a.prospect_id))
   prospects
     .filter((p) => !withActs.has(p.id))
-    .forEach((p) => rows.push({ prospect_id: p.id, date: (p.created_at || '').slice(0, 10), action: 'Ajout prospect' }))
+    .forEach((p) => rows.push({ prospect_id: p.id, date: p.created_at ? iso(new Date(p.created_at)) : '', action: 'Ajout prospect' }))
   const ordered = sortActions(rows)
   if (ordered.length > SAISIE_ROWS) throw new Error(`Le fichier Excel accepte ${SAISIE_ROWS} lignes de saisie, tu en as ${ordered.length}.`)
 
@@ -197,7 +214,7 @@ export async function buildExcel(templateBuffer, prospects, actions, settings) {
     set('N', a.note === null || a.note === undefined ? null : Number(a.note))
     set('O', a.facture)
     set('P', a.remise === null || a.remise === undefined ? null : Number(a.remise))
-    set('Q', a.notes)
+    set('Q', [a.notes, extrasTexte(a)].filter(Boolean).join(' ') || null)
     // Fiche complète sur la première ligne du prospect
     if (p && !seen.has(p.id)) {
       seen.add(p.id)
@@ -318,6 +335,7 @@ export function parseExcel(buffer, { skipExamples = true } = {}) {
         ? { action: 'Intervention', notes: String(g('Q')).slice(INTERV.length) || null }
         : {}),
     })
+    Object.assign(actions[actions.length - 1], lireExtras(actions[actions.length - 1].notes))
   }
 
   // Paramètres

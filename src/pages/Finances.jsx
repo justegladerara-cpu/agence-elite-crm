@@ -3,10 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb } from '../ui'
 import { ProspectPicker } from './Saisie'
-import { totals, paiementsDe } from '../lib/invoice'
+import { totals, paiementsDe, num } from '../lib/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
 
-const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(String(v).replace(',', '.'))) ? 0 : Number(String(v).replace(',', '.')))
 
 // ---------- Période ----------
 const PERIODES = [

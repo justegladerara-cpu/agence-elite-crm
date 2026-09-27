@@ -1,6 +1,6 @@
 // Tous les calculs automatiques, repris des formules du fichier Excel
 // (onglets Prospects, Clients, Ma journée et Tableau de bord).
-import { addDays, addMonths, diffDays, today, monthStart, monthEnd, prevMonth, weekday } from './dates'
+import { iso, addDays, addMonths, diffDays, today, monthStart, monthEnd, prevMonth, weekday } from './dates'
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? 0 : Number(v))
 
@@ -84,7 +84,7 @@ export function computeAll(prospects, actions, settings) {
     const tentatives = acts.filter((a) => isProspection(a, L)).length
     const reponses = acts.filter((a) => isReponse(a, L)).length
     const dates = acts.map((a) => a.date).filter(Boolean)
-    const dateAjout = dates.length ? dates.reduce((m, d) => (d < m ? d : m)) : (p.created_at || '').slice(0, 10)
+    const dateAjout = dates.length ? dates.reduce((m, d) => (d < m ? d : m)) : (p.created_at ? iso(new Date(p.created_at)) : '')
     const derniereAction = dates.length ? dates.reduce((m, d) => (d > m ? d : m)) : ''
     const joursSansAction = derniereAction ? diffDays(t, derniereAction) : null
     const stop = tentatives >= s.relance.stop && reponses === 0

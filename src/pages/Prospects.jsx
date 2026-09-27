@@ -127,7 +127,7 @@ export default function Prospects() {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <div className="row" style={{ marginBottom: 12 }}>
+        <div className="row filters" style={{ marginBottom: 12 }}>
           <input className="input" style={{ flex: 1, minWidth: 200 }} placeholder="Rechercher : nom, contact, téléphone, ville…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input" style={{ width: 'auto' }} value={canal} onChange={(e) => setCanal(e.target.value)}>
             <option value="Tous">Tous les canaux</option>
