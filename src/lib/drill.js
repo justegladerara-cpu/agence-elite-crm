@@ -42,7 +42,12 @@ export function detail(data, settings, periode, canal, spec, debut = periode.deb
           if (key === 'appels') return isProspection(x, L) && x.canal === 'Appel' && canalOk(x.canal)
           if (key === 'reponses') return isReponse(x, L) && canalOk(x.canal)
           if (key === 'looms') return (x.action === 'Loom envoyé' || x.action === 'Audit réalisé') && canalOk(pc(x))
-          return (isProspection(x, L) || isReponse(x, L)) && canalOk(pc(x) || x.canal)
+          // Les 4 séries de la courbe réunies
+          return (
+            (isProspection(x, L) && (x.canal === 'DM' || x.canal === 'Appel') && canalOk(x.canal)) ||
+            (isReponse(x, L) && canalOk(x.canal)) ||
+            ((x.action === 'Loom envoyé' || x.action === 'Audit réalisé') && canalOk(pc(x)))
+          )
         }),
       )
     case 'modele':

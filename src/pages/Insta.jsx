@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp, Modal, Field, go, RelanceTag } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
-import { instaLink, handleInsta, doublonInsta } from '../lib/logic'
+import { instaLink, handleInsta, doublonInsta, actionRank } from '../lib/logic'
 import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../lib/insta'
 
 const nomDepuisCompte = (v) =>
@@ -157,6 +157,9 @@ export function QuickInsta({ onClose }) {
   )
 }
 
+// Un seul enregistrement à la fois par prospect (la barre et la carte « Prochaine étape » partagent ce verrou)
+const enCours = new Set()
+
 // Process Instagram : état des 7 étapes et actions (enregistrer, annuler, réaction à la Loom)
 function useProcess(p) {
   const { api, settings, data, toast, openAction } = useApp()
@@ -167,6 +170,8 @@ function useProcess(p) {
   const lastLoom = [...p.acts].reverse().find((a) => a.action === 'Loom envoyé')
   const reaction = lastLoom && p.acts.some((a) => a.date >= lastLoom.date && a !== lastLoom && a.action !== 'Loom envoyé' && a.resultat)
   const enregistrer = async (row, msg) => {
+    if (enCours.has(p.id)) return
+    enCours.add(p.id)
     setBusy(true)
     try {
       await api.addActions([ligne(p.id, row)])
@@ -174,13 +179,22 @@ function useProcess(p) {
     } catch {
       // erreur déjà affichée
     }
+    enCours.delete(p.id)
     setBusy(false)
   }
   // Étape déjà faite : on propose de l'annuler (supprime l'action qu'elle a enregistrée)
+  // On n'annule que la dernière étape faite, et seulement si supprimer son action la décoche vraiment
   const annuler = async (e) => {
+    const derniere = [...etats].reverse().find((x) => x.ok)
+    if (derniere && derniere.id !== e.id) return toast(`Annule d'abord la dernière étape faite : « ${derniere.label} ».`, true)
     const a = actionEtape(e, p, settings)
-    if (!a) return toast(`« ${e.label} » vient d'une action saisie à la main : modifie-la dans l'onglet Historique.`, true)
+    const reste = a && p.acts.filter((x) => x.id !== a.id)
+    const niveau = reste ? Math.max(1, ...reste.map((x) => actionRank(x, data.L))) : 0
+    if (!a || e.fait({ ...p, acts: reste, niveau }, data.L))
+      return toast(`« ${e.label} » vient aussi d'autres actions : modifie-les dans l'onglet Historique.`, true)
     if (!window.confirm(`Annuler « ${e.label} » ? L'action du ${fmtDate(a.date)} sera supprimée de l'historique.`)) return
+    if (enCours.has(p.id)) return
+    enCours.add(p.id)
     setBusy(true)
     try {
       await api.deleteAction(a.id)
@@ -188,6 +202,7 @@ function useProcess(p) {
     } catch {
       // erreur déjà affichée
     }
+    enCours.delete(p.id)
     setBusy(false)
   }
   const cliquer = async (e) => {

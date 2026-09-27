@@ -341,17 +341,18 @@ function ZohoCard() {
         const annulee = imp.type === 'facture' && zohoAnnulee(z)
         if (annulee) dd.annulee = true
         if (imp.type === 'devis' && zohoDevisStatut(z)) dd.statut = zohoDevisStatut(z)
-        const rows = []
+        // Le document d'abord : si la suite échoue, un nouvel import ne le recréera pas en double
+        const saved = await api.saveDoc({ type: imp.type, numero: z.numero, prospect_id: pid || null, data: dd })
         if (pid && !annulee && total > 0) {
-          const [row] = await api.addActions([
-            { prospect_id: pid, date: dd.date, canal: 'Autre', action: imp.type === 'facture' ? 'Intervention' : 'Proposition envoyée', montant: total, facture: imp.type === 'facture' ? z.numero : null, notes: 'Importé de Zoho Invoice' },
-          ])
-          dd.actionId = row.id
           const paye = imp.type === 'facture' ? zohoPaye(z, total) : 0
-          if (paye > 0) rows.push({ prospect_id: pid, date: dd.date, action: 'Paiement reçu', montant: paye, facture: z.numero, notes: 'Importé de Zoho Invoice' })
+          const rows = [
+            { prospect_id: pid, date: dd.date, canal: 'Autre', action: imp.type === 'facture' ? 'Intervention' : 'Proposition envoyée', montant: total, facture: imp.type === 'facture' ? z.numero : null, notes: 'Importé de Zoho Invoice' },
+            ...(paye > 0 ? [{ prospect_id: pid, date: dd.date, action: 'Paiement reçu', montant: paye, facture: z.numero, notes: 'Importé de Zoho Invoice' }] : []),
+          ]
+          const ajoutees = await api.addActions(rows)
+          const row = ajoutees.find((r) => r.action === rows[0].action) || ajoutees[0]
+          await api.saveDoc({ ...saved, data: { ...dd, actionId: row.id } })
         }
-        if (rows.length) await api.addActions(rows)
-        await api.saveDoc({ type: imp.type, numero: z.numero, prospect_id: pid || null, data: dd })
         n++
       }
       toast(`${n} ${imp.type === 'devis' ? 'devis importés' : 'factures importées'} de Zoho ✓`)

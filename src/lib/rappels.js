@@ -86,7 +86,7 @@ export async function syncRappels(data, settings, documents, actions) {
   const rows = listeRappels(data, settings, documents, actions).map((r) => ({ ...r, quand: r.quand.toISOString() }))
   const sig = JSON.stringify(rows)
   if (sig === dernier) return
-  const { error: e1 } = await supabase.from('rappels').delete().eq('envoye', false)
+  const { error: e1 } = await supabase.from('rappels').delete().eq('envoye', false).gt('quand', new Date().toISOString())
   if (e1) return
   if (rows.length) {
     const { error } = await supabase.from('rappels').upsert(rows, { onConflict: 'user_id,cle', ignoreDuplicates: true })

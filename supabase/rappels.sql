@@ -11,7 +11,8 @@ create table if not exists public.push_subscriptions (
 );
 alter table public.push_subscriptions enable row level security;
 drop policy if exists "own push" on public.push_subscriptions;
-create policy "own push" on public.push_subscriptions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own push" on public.push_subscriptions for all using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create index if not exists push_subscriptions_user_id_idx on public.push_subscriptions (user_id);
 
 create table if not exists public.rappels (
   id uuid primary key default gen_random_uuid(),
@@ -28,7 +29,7 @@ create table if not exists public.rappels (
 create index if not exists rappels_a_envoyer on public.rappels (quand) where not envoye;
 alter table public.rappels enable row level security;
 drop policy if exists "own rappels" on public.rappels;
-create policy "own rappels" on public.rappels for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own rappels" on public.rappels for all using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 -- Configuration privée : lisible uniquement par le service (aucune règle d'accès pour les utilisateurs)
 create table if not exists public.push_config (

@@ -155,6 +155,7 @@ export default function Prospects() {
     if (!p || p.etape === cible) return
     const i = settings.etapes.findIndex((e) => e.nom === cible)
     const action = ACTION_ETAPE[i]
+    if (cible === 'Perdu' && p.niveau >= 7) return toast(`${p.name} est déjà client : pour l'arrêter, saisis plutôt une « Résiliation » dans sa fiche.`, true)
     if (!action || i === 0) return toast('Un prospect ne revient pas à « Nouveau » : annule plutôt ses étapes dans sa fiche.', true)
     if (cible !== 'Perdu' && p.etape !== 'Perdu' && i + 1 <= p.niveau)
       return toast(`${p.name} a déjà passé cette étape. Pour revenir en arrière, annule l'étape dans sa fiche.`, true)

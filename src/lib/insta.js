@@ -53,7 +53,10 @@ export const REACTIONS = [
 // Dernière action enregistrée par une étape (pour pouvoir l'annuler)
 export function actionEtape(e, p, settings) {
   const modele = e.id === 'signe' ? { action: 'Signature' } : e.row(settings)
-  return [...p.acts].reverse().find((a) => a.action === modele.action && (!modele.resultat || a.resultat === modele.resultat))
+  const rev = [...p.acts].reverse()
+  const meme = (a) => a.action === modele.action && (!modele.resultat || a.resultat === modele.resultat)
+  // D'abord la ligne écrite par l'étape elle-même (même prochaine action), sinon la dernière du même type
+  return rev.find((a) => meme(a) && modele.prochaine_action && a.prochaine_action === modele.prochaine_action) || rev.find(meme)
 }
 
 export const ligne = (pid, r, extra = {}) => ({ prospect_id: pid, date: today(), time: nowTime(), ...r, ...extra })

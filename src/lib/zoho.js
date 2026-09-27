@@ -51,7 +51,10 @@ export function dateZoho(v) {
 }
 
 export function lireZoho(buffer) {
-  const wb = XLSX.read(buffer, { type: 'array', cellDates: true })
+  // CSV : on garde les dates en texte (sinon « 05/09/2026 » serait lu à l'américaine, en mai)
+  const estXlsx = buffer[0] === 0x50 && buffer[1] === 0x4b
+  const estXls = buffer[0] === 0xd0 && buffer[1] === 0xcf
+  const wb = XLSX.read(buffer, estXlsx || estXls ? { type: 'array', cellDates: true } : { type: 'array', raw: true })
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: true })
   if (!rows.length) throw new Error('Fichier vide.')
   const headers = Object.keys(rows[0])
@@ -61,7 +64,7 @@ export function lireZoho(buffer) {
     if (h) col[k] = h
   })
   if (!col.numero || !col.client) throw new Error('Colonnes « numéro » et « client » introuvables : exporte les factures ou les devis depuis Zoho Invoice (CSV ou XLSX).')
-  const type = headers.some((h) => /estimate|devis|quote/.test(norm(h))) ? 'devis' : 'facture'
+  const type = /estimate|devis|quote/.test(norm(col.numero)) ? 'devis' : 'facture'
   const get = (r, k) => (col[k] ? r[col[k]] : '')
   const docs = new Map()
   rows.forEach((r) => {
