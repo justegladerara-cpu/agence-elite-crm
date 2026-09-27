@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Icon } from '../icons'
 import { useApp, StageBadge, Score, ContactButtons, Empty, go, Select, Field } from '../ui'
 import { today, nowTime, fmtDate } from '../lib/dates'
 
@@ -98,7 +99,7 @@ export default function Session() {
             <b>{candidates.length}</b> prospect{candidates.length > 1 ? 's' : ''} à appeler (avec un numéro de téléphone).
           </p>
           <button className="btn gold" disabled={!candidates.length} onClick={begin}>
-            ▶ Démarrer la session
+            <Icon n="play" size={14} /> Démarrer la session
           </button>
         </div>
       </div>
@@ -124,7 +125,7 @@ export default function Session() {
     return (
       <div className="stack">
         <div className="page-head" style={{ marginBottom: 0 }}>
-          <h1>Session terminée 🎉</h1>
+          <h1>Session terminée</h1>
         </div>
         {stats}
         <div className="card">
@@ -196,7 +197,7 @@ export default function Session() {
           </div>
         </div>
         <a className="btn primary block" style={{ marginTop: 14, fontSize: 18, padding: 14 }} href={`tel:${f.telephone.replace(/\s/g, '')}`}>
-          📞 Appeler {f.telephone}
+          <Icon n="phone" size={18} /> Appeler {f.telephone}
         </a>
         <div className="row" style={{ marginTop: 8 }}>
           <ContactButtons p={p} />
@@ -230,7 +231,7 @@ export default function Session() {
       </div>
       <div className="card">
         <details className="script">
-          <summary>📞 Script d'appel</summary>
+          <summary><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</summary>
           {settings.script.map((s, i) => (
             <p key={i}>
               <b>{s.titre} :</b> {s.texte}

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/store'
+import { Logo } from '../icons'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -32,12 +33,13 @@ export default function Login() {
     <div className="login">
       <form className="card stack" onSubmit={submit}>
         <div className="brand">
-          <div className="brand-mark">E</div>
+          <Logo />
           <div>
             <div className="brand-name">AGENCE ELITE</div>
             <div className="brand-sub">CRM de pilotage</div>
           </div>
         </div>
+        <p className="login-tag">Chaque appel compte. Pilote ta prospection, du premier message à la signature.</p>
         <div className="field">
           <label>E-mail</label>
           <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

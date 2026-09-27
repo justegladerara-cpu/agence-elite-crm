@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useApp, Kpi, Bar, eur, pct, nb } from '../ui'
+import { Icon, withIcon } from '../icons'
 import { computeStats, periodeFor, monthlySeries } from '../lib/logic'
 import { today, fmtMonth, fmtMonthShort, parse } from '../lib/dates'
 
@@ -95,7 +96,7 @@ function niceStep(max) {
 function RateTable({ title, rows, cols }) {
   return (
     <div>
-      <h2 className="section">{title}</h2>
+      <h2 className="section">{withIcon(title)}</h2>
       <div className="table-wrap">
         <table className="t">
           <thead>
@@ -205,7 +206,7 @@ export default function Dashboard() {
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
-          <h2 className="section">🎯 Objectifs du mois en cours</h2>
+          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
           {goals.map(([l, v, cible, fmt]) => {
             const proj = dayN ? (v / dayN) * daysIn : 0
             const ok = proj >= cible
@@ -228,7 +229,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h2 className="section">🔻 Entonnoir du pipeline</h2>
+          <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir du pipeline</h2>
           <div className="tiny muted" style={{ marginBottom: 8 }}>
             Prospects ajoutés sur la période, étape la plus haute atteinte
           </div>
@@ -254,7 +255,7 @@ export default function Dashboard() {
       <div className="card">
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
           <h2 className="section" style={{ margin: 0 }}>
-            📈 CA mois par mois ({year})
+            <span className="sec-ic"><Icon n="trend" size={16} /></span> CA mois par mois ({year})
           </h2>
           <div className="legend">
             <span>
@@ -265,7 +266,7 @@ export default function Dashboard() {
               <i style={{ background: C_ENC }} />
               Encaissé
             </span>
-            {best && best.caSigne > 0 && <span>🏆 Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
+            {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
           </div>
         </div>
         <MonthChart series={series} />
@@ -345,7 +346,7 @@ export default function Dashboard() {
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
-          <h2 className="section">💶 Pipeline et trésorerie</h2>
+          <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Pipeline et trésorerie</h2>
           <div className="info-grid">
             {[
               ['Pipeline pondéré', eur(st.pipelinePondere)],
@@ -396,7 +397,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h2 className="section">⚡ Vitesse et production</h2>
+          <h2 className="section"><span className="sec-ic"><Icon n="bolt" size={16} /></span> Vitesse et production</h2>
           <table className="t">
             <tbody>
               {[...st.vitesse, ...st.autres].map((r) => (

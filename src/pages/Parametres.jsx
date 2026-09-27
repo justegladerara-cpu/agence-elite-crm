@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { useApp, Field, eur } from '../ui'
+import { useApp, Field, eur, lbl, DEVISES } from '../ui'
+import { Icon, withIcon } from '../icons'
 import { supabase, isLocal } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { today } from '../lib/dates'
@@ -28,6 +29,27 @@ const LIST_DEFS = [
   ['etapes', 'Probabilités par étape', [['nom', 'Étape', 'ro'], ['proba', 'Probabilité (0 à 1)', 'num']]],
 ]
 
+// Convertit les montants des paramètres d'une devise à l'autre (arrondis propres)
+function convertMontants(s, from, to) {
+  const a = DEVISES.find((d) => d.code === from) || DEVISES[1]
+  const b = DEVISES.find((d) => d.code === to) || DEVISES[1]
+  const f = b.parEuro / a.parEuro
+  const r = (v) => {
+    const n = Number(v)
+    if (!n || isNaN(n)) return v
+    const x = n * f
+    const step = x >= 100000 ? 1000 : x >= 10000 ? 500 : x >= 1000 ? 50 : x >= 100 ? 5 : 1
+    return Math.max(step, Math.round(x / step) * step)
+  }
+  return {
+    ...s,
+    devise: to,
+    objectifsMois: { ...s.objectifsMois, ca: r(s.objectifsMois.ca) },
+    offres: s.offres.map((o) => ({ ...o, prix: r(o.prix), abonnement: r(o.abonnement), cout: r(o.cout) })),
+    depensesFixes: s.depensesFixes.map((d) => ({ ...d, montant: r(d.montant) })),
+  }
+}
+
 function ListEditor({ value, cols, onChange, max, fixedLength }) {
   const upd = (i, v) => onChange(value.map((x, j) => (j === i ? v : x)))
   return (
@@ -36,7 +58,7 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
         <div className="le-row tiny muted bold">
           {cols.map((c) => (
             <span key={c[0]} style={{ flex: c[0] === 'nom' ? 2 : 1 }}>
-              {c[1]}
+              {lbl(c[1])}
             </span>
           ))}
           <span style={{ width: 30 }} />
@@ -102,6 +124,7 @@ export default function Parametres() {
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState('')
   const [imp, setImp] = useState(null)
+  const [convertir, setConvertir] = useState(true)
   const fileRef = useRef()
   const change = (next) => {
     setS(next)
@@ -199,17 +222,43 @@ export default function Parametres() {
       </div>
 
       <div className="card">
-        <h2 className="section">📁 Fichier Excel</h2>
+        <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> Devise</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Monnaie utilisée partout dans le CRM (montants, tableau de bord, clients).
+        </p>
+        <div className="row" style={{ alignItems: 'flex-end' }}>
+          <Field label="Devise" style={{ minWidth: 240 }}>
+            <select
+              value={s.devise || 'EUR'}
+              onChange={(e) => change(convertir ? convertMontants(s, s.devise || 'EUR', e.target.value) : { ...s, devise: e.target.value })}
+            >
+              {DEVISES.map((d) => (
+                <option key={d.code} value={d.code}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <label className="row small" style={{ paddingBottom: 10, flexWrap: 'nowrap', alignItems: 'flex-start', flex: '1 1 260px' }}>
+            <input type="checkbox" checked={convertir} onChange={(e) => setConvertir(e.target.checked)} /> Convertir aussi mes tarifs, objectif de CA et
+            dépenses fixes (1 € = 655,957 FCFA)
+          </label>
+        </div>
+        {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
+      </div>
+
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="folder" size={16} /></span> Fichier Excel</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
           Le CRM est ta base principale. L'export génère ton fichier de pilotage complet (Saisie remplie, tous les onglets et calculs,
           Paramètres à jour). L'import reprend ce que tu as saisi dans le fichier Excel.
         </p>
         <div className="row">
           <button className="btn primary" disabled={!!busy} onClick={exportXlsx}>
-            {busy === 'export' ? 'Préparation…' : '⬇ Exporter vers Excel'}
+            {busy === 'export' ? 'Préparation…' : <><Icon n="download" size={16} /> Exporter vers Excel</>}
           </button>
           <button className="btn" disabled={!!busy} onClick={() => fileRef.current.click()}>
-            ⬆ Importer un fichier Excel
+            <Icon n="upload" size={16} /> Importer un fichier Excel
           </button>
           <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={pickFile} />
         </div>
@@ -251,7 +300,7 @@ export default function Parametres() {
       </div>
 
       <div className="card">
-        <h2 className="section">🧪 Données d'exemple</h2>
+        <h2 className="section"><span className="sec-ic"><Icon n="flask" size={16} /></span> Données d'exemple</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
           7 prospects fictifs marqués « (EXEMPLE) » pour voir le CRM rempli. Supprime-les avant de commencer pour de vrai.
         </p>
@@ -268,12 +317,12 @@ export default function Parametres() {
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         {NUM_GROUPS.map(([title, g, fields]) => (
           <div className="card" key={g}>
-            <h2 className="section">{title}</h2>
+            <h2 className="section">{withIcon(title)}</h2>
             <div className="stack" style={{ gap: 10 }}>
               {fields.map(([k, label, t]) => (
                 <div className="row" key={k} style={{ flexWrap: 'nowrap' }}>
                   <span className="small" style={{ flex: 1 }}>
-                    {label}
+                    {lbl(label)}
                   </span>
                   <input
                     className="input"
@@ -293,7 +342,7 @@ export default function Parametres() {
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         {LIST_DEFS.map(([key, title, cols]) => (
           <div className="card" key={key}>
-            <h2 className="section">{title}</h2>
+            <h2 className="section">{withIcon(title)}</h2>
             <ListEditor
               value={s[key]}
               cols={cols}
@@ -310,7 +359,7 @@ export default function Parametres() {
           </div>
         ))}
         <div className="card">
-          <h2 className="section">📞 Script d'appel</h2>
+          <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
           {s.script.map((x, i) => (
             <Field key={i} label={x.titre} style={{ marginBottom: 10 }}>
               <textarea value={x.texte} onChange={(e) => change({ ...s, script: s.script.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />

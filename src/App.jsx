@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AppCtx, Modal, useToast, go } from './ui'
+import { Icon, Logo } from './icons'
+import { AppCtx, Modal, useToast, go, setDevise, DEVISES } from './ui'
 import { db, supabase, isLocal } from './lib/store'
 import { computeAll } from './lib/logic'
 import { buildSeed, isExample, TAG } from './lib/seed'
@@ -14,12 +15,12 @@ import Parametres from './pages/Parametres'
 import Session from './pages/Session'
 
 const NAV = [
-  { path: 'journee', label: 'Ma journée', short: 'Journée', ico: '☀' },
-  { path: 'prospects', label: 'Prospects', short: 'Prospects', ico: '👥' },
-  { path: 'saisie', label: 'Saisir une action', short: 'Saisir', ico: '+', cta: true },
-  { path: 'clients', label: 'Clients', short: 'Clients', ico: '🤝' },
-  { path: 'dashboard', label: 'Tableau de bord', short: 'Stats', ico: '📊' },
-  { path: 'parametres', label: 'Paramètres', short: 'Réglages', ico: '⚙' },
+  { path: 'journee', label: 'Ma journée', short: 'Journée', ico: 'sun' },
+  { path: 'prospects', label: 'Prospects', short: 'Prospects', ico: 'users' },
+  { path: 'saisie', label: 'Saisir une action', short: 'Saisir', ico: 'plus', cta: true },
+  { path: 'clients', label: 'Clients', short: 'Clients', ico: 'handshake' },
+  { path: 'dashboard', label: 'Tableau de bord', short: 'Stats', ico: 'chart' },
+  { path: 'parametres', label: 'Paramètres', short: 'Réglages', ico: 'settings' },
 ]
 
 function useRoute() {
@@ -60,7 +61,8 @@ function Crm() {
     try {
       let st = await db.load()
       // Démo publique : charge les exemples si le navigateur est vide
-      if (isLocal && import.meta.env.VITE_AUTOSEED && st.prospects.length === 0) {
+      if (isLocal && import.meta.env.VITE_AUTOSEED && st.prospects.length === 0 && !window.__seeded) {
+        window.__seeded = true
         const seed = buildSeed()
         await db.bulkImport(seed.prospects, seed.actions)
         st = await db.load()
@@ -128,7 +130,10 @@ function Crm() {
       await reload()
     }),
     loadSeed: wrap(async () => {
-      const { prospects, actions } = buildSeed()
+      const { prospects, actions: raw } = buildSeed()
+      // Montants d'exemple (en euros) convertis dans la devise choisie
+      const k = (DEVISES.find((d) => d.code === state.settings.devise) || DEVISES[1]).parEuro
+      const actions = raw.map((a) => (a.montant ? { ...a, montant: Math.round((a.montant * k) / 50) * 50 || a.montant } : a))
       await db.bulkImport(prospects, actions)
       await reload()
     }),
@@ -155,6 +160,7 @@ function Crm() {
     )
   if (!state) return <div className="login" />
 
+  setDevise(state.settings.devise)
   const ctx = {
     ...state,
     data,
@@ -180,7 +186,7 @@ function Crm() {
       <div className="app">
         <aside className="sidebar">
           <div className="brand">
-            <div className="brand-mark">E</div>
+            <Logo />
             <div>
               <div className="brand-name">AGENCE ELITE</div>
               <div className="brand-sub">CRM de pilotage</div>
@@ -188,13 +194,20 @@ function Crm() {
           </div>
           {NAV.map((n) => (
             <button key={n.path} className={`nav-item ${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-              <span className="ico">{n.ico}</span>
+              <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
               {n.label}
             </button>
           ))}
           <div className="sidebar-foot">{isLocal ? 'Mode démo : données dans ce navigateur' : 'Synchronisé en ligne'}</div>
         </aside>
         <main className="main">
+          <header className="mobile-top">
+            <Logo size={32} />
+            <div>
+              <div className="brand-name">AGENCE ELITE</div>
+              <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || 'CRM de pilotage'}</div>
+            </div>
+          </header>
           {isLocal && route.startsWith('journee') && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
@@ -203,7 +216,7 @@ function Crm() {
         <nav className="bottom-nav">
           {NAV.map((n) => (
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-              <span className="ico">{n.ico}</span>
+              <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
               {n.short}
             </button>
           ))}

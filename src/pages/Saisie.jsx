@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { Icon } from '../icons'
 import { useApp, Chips, Field, Select, StageBadge, eur, Empty, Modal } from '../ui'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
@@ -508,7 +509,7 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
           title="Supprimer"
           onClick={() => window.confirm('Supprimer cette action ?') && api.deleteAction(a.id)}
         >
-          🗑
+          <Icon n="trash" size={15} />
         </button>
       </div>
     </div>

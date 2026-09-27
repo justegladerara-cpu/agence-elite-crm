@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Icon } from '../icons'
 import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Bar, Empty, go, eur, nb } from '../ui'
 import { todayCounts, computeStats } from '../lib/logic'
 import { isExample } from '../lib/seed'
@@ -65,13 +66,13 @@ export default function Journee() {
         </div>
       )}
       <div className="hero">
-        <h1>{hello} Juste ☀</h1>
+        <h1>{hello} Juste</h1>
         <div className="sub">
           {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
           {data.alertes.length > 1 ? 's' : ''}
         </div>
         <button className="btn gold" style={{ marginTop: 14 }} onClick={() => go('/session')}>
-          ▶ Lancer une session d'appels
+          <Icon n="play" size={14} /> Lancer une session d'appels
         </button>
         <div className="grid grid-3" style={{ marginTop: 16, gap: 10 }}>
           {goals.map(([l, v, c]) => (
@@ -90,7 +91,7 @@ export default function Journee() {
         <div className="stack">
           <div className="card">
             <h2 className="section">
-              🔴 À relancer aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
+              <span className="sec-ic"><Icon n="alert" size={16} /></span> À relancer aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
             </h2>
             <div className="list">
               {data.aRelancer.length === 0 && <Empty>Aucune relance en attente. Bravo !</Empty>}
@@ -104,7 +105,7 @@ export default function Journee() {
           </div>
 
           <div className="card">
-            <h2 className="section">🔥 Les 10 prospects les plus chauds à appeler</h2>
+            <h2 className="section"><span className="sec-ic"><Icon n="flame" size={16} /></span> Les 10 prospects les plus chauds à appeler</h2>
             <div className="list">
               {data.chauds.length === 0 && <Empty>Ajoute des prospects pour voir ta liste d'appels du jour.</Empty>}
               {data.chauds.map((p) => (
@@ -120,7 +121,7 @@ export default function Journee() {
         <div className="stack">
           <div className="card">
             <h2 className="section">
-              🟠 Alertes prospects <span className="count">{data.alertes.length}</span>
+              <span className="sec-ic"><Icon n="bell" size={16} /></span> Alertes prospects <span className="count">{data.alertes.length}</span>
             </h2>
             <div className="list">
               {data.alertes.length === 0 && <Empty>Aucune alerte.</Empty>}
@@ -135,7 +136,7 @@ export default function Journee() {
 
           <div className="card">
             <h2 className="section">
-              🤝 Clients à surveiller <span className="count">{data.clientsAlertes.length}</span>
+              <span className="sec-ic"><Icon n="handshake" size={16} /></span> Clients à surveiller <span className="count">{data.clientsAlertes.length}</span>
             </h2>
             <div className="list">
               {data.clientsAlertes.length === 0 && <Empty>Tous tes clients sont à jour.</Empty>}
@@ -149,7 +150,7 @@ export default function Journee() {
           </div>
 
           <div className="card">
-            <h2 className="section">📅 Prochaines relances</h2>
+            <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Prochaines relances</h2>
             <div className="list">
               {data.aVenir.length === 0 && <Empty>Rien de planifié.</Empty>}
               {data.aVenir.slice(0, 8).map((p) => (
@@ -161,7 +162,7 @@ export default function Journee() {
           </div>
 
           <div className="card">
-            <h2 className="section">🗓 Revue de la semaine dernière</h2>
+            <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Revue de la semaine dernière</h2>
             <div className="tiny muted" style={{ marginBottom: 8 }}>
               Du {fmtDate(semaine.debut)} au {fmtDate(semaine.fin)} · 15 minutes le lundi pour ajuster.
             </div>
@@ -186,7 +187,7 @@ export default function Journee() {
 
           <div className="card">
             <details className="script">
-              <summary>📞 Script d'appel</summary>
+              <summary><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</summary>
               {settings.script.map((s, i) => (
                 <p key={i}>
                   <b>{s.titre} :</b> {s.texte}

@@ -1,14 +1,31 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { waLink, instaLink, siteLink } from './lib/logic'
 import { fmtDate, today } from './lib/dates'
+import { Icon } from './icons'
 
 export const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
 
-export const eur = (v, dec = 0) =>
-  v === null || v === undefined || v === '' || isNaN(v)
-    ? '—'
-    : Number(v).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: dec, minimumFractionDigits: dec })
+// Devise d'affichage, réglée dans Paramètres (settings.devise)
+export const DEVISES = [
+  { code: 'XOF', label: 'Franc CFA (FCFA)', sym: 'FCFA', parEuro: 655.957 },
+  { code: 'EUR', label: 'Euro (€)', sym: '€', parEuro: 1 },
+  { code: 'USD', label: 'Dollar US ($)', sym: '$', parEuro: 1.08 },
+  { code: 'MAD', label: 'Dirham marocain (MAD)', sym: 'MAD', parEuro: 10.8 },
+  { code: 'CAD', label: 'Dollar canadien (CAD)', sym: 'CAD', parEuro: 1.47 },
+]
+let devise = DEVISES[1]
+export function setDevise(code) {
+  devise = DEVISES.find((d) => d.code === code) || DEVISES[1]
+}
+export const sym = () => devise.sym
+// Remplace le symbole € d'un libellé par la devise choisie
+export const lbl = (s) => (typeof s === 'string' ? s.replace(/€/g, devise.sym) : s)
+export const eur = (v, dec = 0) => {
+  if (v === null || v === undefined || v === '' || isNaN(v)) return '—'
+  const n = Number(v).toLocaleString('fr-FR', { maximumFractionDigits: dec, minimumFractionDigits: dec })
+  return devise.code === 'USD' ? `${n} $` : `${n} ${devise.sym}`
+}
 export const pct = (v) => (v === null || v === undefined || isNaN(v) ? '—' : `${Math.round(v * 100)} %`)
 export const nb = (v, dec = 0) =>
   v === null || v === undefined || isNaN(v) ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: dec })
@@ -30,7 +47,7 @@ export function RelanceTag({ date, heure }) {
   const label = date < t ? `En retard · ${fmtDate(date)}` : date === t ? "Aujourd'hui" : fmtDate(date)
   return (
     <span className={`badge ${cls}`}>
-      ⏰ {label}
+      <Icon n="clock" size={12} /> {label}
       {heure ? ` ${heure}` : ''}
     </span>
   )
@@ -46,22 +63,22 @@ export function ContactButtons({ p, compact }) {
     <div className="row" onClick={stop}>
       {phone && (
         <a className="icon-btn" href={`tel:${phone.replace(/\s/g, '')}`} title={`Appeler ${phone}`}>
-          📞
+          <Icon n="phone" size={16} />
         </a>
       )}
       {wa && (
         <a className="icon-btn" href={wa} target="_blank" rel="noreferrer" title="WhatsApp">
-          💬
+          <Icon n="message" size={16} />
         </a>
       )}
       {f.instagram && (
         <a className="icon-btn" href={instaLink(f.instagram)} target="_blank" rel="noreferrer" title="Instagram">
-          📸
+          <Icon n="instagram" size={16} />
         </a>
       )}
       {!compact && f.site && (
         <a className="icon-btn" href={siteLink(f.site)} target="_blank" rel="noreferrer" title="Site internet">
-          🌐
+          <Icon n="globe" size={16} />
         </a>
       )}
     </div>
@@ -88,7 +105,7 @@ export function Chips({ options, value, onChange, small, allowEmpty = true }) {
 export function Field({ label, children, style }) {
   return (
     <div className="field" style={style}>
-      {label && <label>{label}</label>}
+      {label && <label>{lbl(label)}</label>}
       {children}
     </div>
   )

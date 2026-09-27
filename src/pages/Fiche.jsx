@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icon } from '../icons'
 import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
 import { FICHE_FIELDS } from '../lib/defaults'
@@ -217,7 +218,7 @@ function AuditCard({ p }) {
   return (
     <div className="card">
       <h2 className="section">
-        🔍 Checklist d'audit <span className="count">{done}/{AUDIT.length}</span>
+        <span className="sec-ic"><Icon n="search" size={16} /></span> Checklist d'audit <span className="count">{done}/{AUDIT.length}</span>
       </h2>
       <div className="stack" style={{ gap: 8 }}>
         {AUDIT.map(([k, label]) => (

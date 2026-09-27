@@ -1,5 +1,6 @@
 // Paramètres par défaut, repris de l'onglet « Paramètres » du fichier Excel.
 export const DEFAULT_SETTINGS = {
+  devise: 'EUR',
   objectifsJour: { prospects: 10, appels: 20, dm: 20 },
   objectifsMois: { appels: 400, dm: 300, rdv: 10, clients: 3, ca: 6000 },
   relance: { j1: 2, j2: 5, j3: 10, stop: 5 },

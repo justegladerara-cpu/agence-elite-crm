@@ -231,6 +231,12 @@ export async function buildExcel(templateBuffer, prospects, actions, settings) {
   wbXml = wbXml.replace(/activeTab="\d+"/, 'activeTab="0"')
   zip.file('xl/workbook.xml', wbXml)
 
+  // Devise : remplace le symbole € des formats de nombre
+  const devSym = { XOF: 'FCFA', USD: '$', MAD: 'MAD', CAD: 'CAD' }[settings.devise]
+  if (devSym) {
+    const st = await zip.file('xl/styles.xml').async('string')
+    zip.file('xl/styles.xml', st.replace(/formatCode="[^"]*"/g, (m) => m.replace(/ €/g, ` &quot;${devSym}&quot;`)))
+  }
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
 }
 
