@@ -38,7 +38,7 @@ export function FicheInput({ f, value, onChange }) {
   )
 }
 
-function ProspectPicker({ value, onPick, onNew }) {
+export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prospect" }) {
   const { data } = useApp()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
@@ -115,7 +115,7 @@ function ProspectPicker({ value, onPick, onNew }) {
               </div>
             ) : (
               <div key="new" className={`combo-item new ${i === hl ? 'hl' : ''}`} onMouseDown={() => choose(it)}>
-                ＋ Nouveau prospect : « {it.nouveau} »
+                ＋ {newLabel} : « {it.nouveau} »
               </div>
             ),
           )}

@@ -1,6 +1,25 @@
 // Paramètres par défaut, repris de l'onglet « Paramètres » du fichier Excel.
 export const DEFAULT_SETTINGS = {
   devise: 'EUR',
+  // Facturation : coordonnées et mentions reprises sur les factures et devis
+  facturation: {
+    nom: 'AGENCE ELITE',
+    adresse: '111 Av. Moé Vangoula\nPointe-Noire, Kouilou — Congo',
+    telephone: '055222968',
+    email: 'contact@agence-elite.fr',
+    site: 'www.agence-elite.fr',
+    slogan: 'L’innovation au service de votre succès',
+    prefixeFacture: 'FAC-',
+    prefixeDevis: 'DEV-',
+    premierNumero: 204,
+    delaiPaiement: 0,
+    validiteDevis: 30,
+    conditions: 'Payable à réception',
+    tva: 0,
+    paiement: 'Banque / Mobile Money : à compléter\nTitulaire : AGENCE ELITE',
+    notes: 'Merci de votre confiance. Le règlement est payable à réception de la présente facture.',
+    cgv: 'La présente facture est soumise aux Conditions Générales de Vente d’Agence Elite disponibles sur www.agence-elite.fr/cgv. Toute validation de commande implique l’acceptation desdites conditions.',
+  },
   objectifsJour: { prospects: 10, appels: 20, dm: 20 },
   objectifsMois: { appels: 400, dm: 300, rdv: 10, clients: 3, ca: 6000 },
   relance: { j1: 2, j2: 5, j3: 10, stop: 5 },

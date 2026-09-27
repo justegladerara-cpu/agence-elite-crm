@@ -13,12 +13,14 @@ import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
 import Session from './pages/Session'
+import Factures, { DocEditor } from './pages/Factures'
 
 const NAV = [
   { path: 'journee', label: 'Ma journée', short: 'Journée', ico: 'sun' },
   { path: 'prospects', label: 'Prospects', short: 'Prospects', ico: 'users' },
   { path: 'saisie', label: 'Saisir une action', short: 'Saisir', ico: 'plus', cta: true },
   { path: 'clients', label: 'Clients', short: 'Clients', ico: 'handshake' },
+  { path: 'factures', label: 'Factures & devis', short: 'Factures', ico: 'file' },
   { path: 'dashboard', label: 'Tableau de bord', short: 'Stats', ico: 'chart' },
   { path: 'parametres', label: 'Paramètres', short: 'Réglages', ico: 'settings' },
 ]
@@ -74,7 +76,7 @@ function Crm() {
         await db.bulkImport(seed.prospects, seed.actions)
         st = await db.load()
       }
-      setState(st)
+      setState({ ...st, documents: st.documents || [] })
       setError(null)
     } catch (e) {
       setError(e.message)
@@ -99,6 +101,7 @@ function Crm() {
     if (isLocal || !navigator.onLine) return
     const t = setTimeout(() => {
       import('./lib/excel').catch(() => {})
+      import('./lib/invoicePdf').catch(() => {})
       fetch(`${import.meta.env.BASE_URL}template/Agence_Elite_Pilotage.xlsx`).catch(() => {})
     }, 4000)
     return () => clearTimeout(t)
@@ -143,6 +146,15 @@ function Crm() {
       await db.deleteAction(id)
       setState((s) => ({ ...s, actions: s.actions.filter((x) => x.id !== id) }))
     }),
+    saveDoc: wrap(async (doc) => {
+      const d = await db.saveDoc(doc)
+      setState((s) => ({ ...s, documents: [...s.documents.filter((x) => x.id !== d.id), d] }))
+      return d
+    }),
+    deleteDoc: wrap(async (id) => {
+      await db.deleteDoc(id)
+      setState((s) => ({ ...s, documents: s.documents.filter((x) => x.id !== id) }))
+    }),
     saveSettings: wrap(async (settings) => {
       await db.saveSettings(settings)
       setState((s) => ({ ...s, settings }))
@@ -155,7 +167,7 @@ function Crm() {
     loadSeed: wrap(async () => {
       const { prospects, actions: raw } = buildSeed()
       // Montants d'exemple (en euros) convertis dans la devise choisie
-      const k = (DEVISES.find((d) => d.code === state.settings.devise) || DEVISES[1]).parEuro
+      const k = (DEVISES.find((d) => d.code === state.settings.devise) || DEVISES.find((x) => x.code === 'EUR')).parEuro
       const actions = raw.map((a) => (a.montant ? { ...a, montant: Math.round((a.montant * k) / 50) * 50 || a.montant } : a))
       await db.bulkImport(prospects, actions)
       await reload()
@@ -198,8 +210,9 @@ function Crm() {
     openAction: (prefill) => setActionModal(prefill || {}),
   }
 
-  const [page, arg] = route.split('/')
-  const current = page === 'prospect' ? 'prospects' : page === 'session' ? 'journee' : page
+  const [page, argFull = ''] = route.split(/\/(.*)/s)
+  const [arg, query = ''] = argFull.split('?')
+  const current = page === 'prospect' ? 'prospects' : page === 'session' ? 'journee' : page === 'facture' ? 'factures' : page
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
   else if (page === 'prospects') content = <Prospects />
@@ -208,6 +221,8 @@ function Crm() {
   else if (page === 'clients') content = <Clients />
   else if (page === 'parametres') content = <Parametres />
   else if (page === 'session') content = <Session />
+  else if (page === 'factures') content = <Factures />
+  else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else content = <Journee />
 
   return (
@@ -236,6 +251,9 @@ function Crm() {
               <div className="brand-name">AGENCE ELITE</div>
               <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || 'CRM de pilotage'}</div>
             </div>
+            <button className={`icon-btn mobile-settings ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
+              <Icon n="settings" size={18} />
+            </button>
           </header>
           {!isLocal && (!sync.online || sync.pending > 0 || sync.error) && (
             <div className={`sync-banner ${syncCls}`}>
@@ -250,7 +268,7 @@ function Crm() {
           {content}
         </main>
         <nav className="bottom-nav">
-          {NAV.map((n) => (
+          {NAV.filter((n) => n.path !== 'parametres').map((n) => (
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
               {n.short}

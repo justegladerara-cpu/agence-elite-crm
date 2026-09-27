@@ -31,8 +31,8 @@ const LIST_DEFS = [
 
 // Convertit les montants des paramètres d'une devise à l'autre (arrondis propres)
 function convertMontants(s, from, to) {
-  const a = DEVISES.find((d) => d.code === from) || DEVISES[1]
-  const b = DEVISES.find((d) => d.code === to) || DEVISES[1]
+  const a = DEVISES.find((d) => d.code === from) || DEVISES.find((x) => x.code === 'EUR')
+  const b = DEVISES.find((d) => d.code === to) || DEVISES.find((x) => x.code === 'EUR')
   const f = b.parEuro / a.parEuro
   const r = (v) => {
     const n = Number(v)
@@ -104,8 +104,29 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
   )
 }
 
+// [clé, libellé, zone de texte, type]
+const FACT_FIELDS = [
+  ['nom', 'Nom de l’entreprise'],
+  ['telephone', 'Téléphone'],
+  ['email', 'E-mail'],
+  ['site', 'Site web'],
+  ['slogan', 'Slogan'],
+  ['conditions', 'Conditions de paiement'],
+  ['prefixeFacture', 'Préfixe des factures'],
+  ['prefixeDevis', 'Préfixe des devis'],
+  ['premierNumero', 'Premier numéro', false, 'num'],
+  ['delaiPaiement', 'Délai de paiement (jours)', false, 'num'],
+  ['validiteDevis', 'Validité des devis (jours)', false, 'num'],
+  ['tva', 'TVA par défaut (%)', false, 'num'],
+  ['adresse', 'Adresse', true],
+  ['paiement', 'Informations de paiement (banque, Mobile Money…)', true],
+  ['notes', 'Notes par défaut', true],
+  ['cgv', 'Mentions en bas de page (CGV)', true],
+]
+
 function normalize(s) {
   const out = JSON.parse(JSON.stringify(s))
+  if (out.facturation) FACT_FIELDS.forEach(([k, , , t]) => t === 'num' && (out.facturation[k] = Number(String(out.facturation[k]).replace(',', '.')) || 0))
   NUM_GROUPS.forEach(([, g, fields]) => fields.forEach(([k, , t]) => t !== 'text' && (out[g][k] = Number(String(out[g][k]).replace(',', '.')) || 0)))
   LIST_DEFS.forEach(([key, , cols]) => {
     if (!cols) out[key] = out[key].map((x) => x.trim()).filter(Boolean)
@@ -245,6 +266,32 @@ export default function Parametres() {
           </label>
         </div>
         {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
+      </div>
+
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="file" size={16} /></span> Factures et devis</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Informations imprimées sur tes factures et devis PDF.
+        </p>
+        <div className="form-grid">
+          {FACT_FIELDS.filter((f) => !f[2]).map(([k, label, , type]) => (
+            <Field key={k} label={label}>
+              <input
+                className="input"
+                inputMode={type === 'num' ? 'numeric' : undefined}
+                value={s.facturation?.[k] ?? ''}
+                onChange={(e) => change({ ...s, facturation: { ...s.facturation, [k]: e.target.value } })}
+              />
+            </Field>
+          ))}
+        </div>
+        <div className="grid grid-2" style={{ marginTop: 14 }}>
+          {FACT_FIELDS.filter((f) => f[2]).map(([k, label]) => (
+            <Field key={k} label={label}>
+              <textarea rows={3} value={s.facturation?.[k] ?? ''} onChange={(e) => change({ ...s, facturation: { ...s.facturation, [k]: e.target.value } })} />
+            </Field>
+          ))}
+        </div>
       </div>
 
       <div className="card">

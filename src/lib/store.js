@@ -28,6 +28,7 @@ export function cleanAction(a) {
 export function mergeSettings(s) {
   const m = { ...DEFAULT_SETTINGS, ...(s || {}) }
   m.alertes = { ...DEFAULT_SETTINGS.alertes, ...(m.alertes || {}) }
+  m.facturation = { ...DEFAULT_SETTINGS.facturation, ...(m.facturation || {}) }
   // Actions ajoutées après coup : on les complète dans les réglages déjà enregistrés
   const noms = new Set(m.actions.map((a) => a.nom))
   const manquantes = DEFAULT_SETTINGS.actions.filter((a) => a.nom === 'Intervention' && !noms.has(a.nom))
@@ -42,9 +43,11 @@ const nowIso = () => new Date().toISOString()
 const LS = 'agence-elite-crm'
 const readLocal = () => {
   try {
-    return JSON.parse(localStorage.getItem(LS)) || { prospects: [], actions: [], settings: null }
+    const db = JSON.parse(localStorage.getItem(LS)) || { prospects: [], actions: [], settings: null }
+    db.documents = db.documents || []
+    return db
   } catch {
-    return { prospects: [], actions: [], settings: null }
+    return { prospects: [], actions: [], documents: [], settings: null }
   }
 }
 const writeLocal = (db) => localStorage.setItem(LS, JSON.stringify(db))
@@ -52,7 +55,19 @@ const writeLocal = (db) => localStorage.setItem(LS, JSON.stringify(db))
 const local = {
   async load() {
     const db = readLocal()
-    return { prospects: db.prospects, actions: db.actions, settings: mergeSettings(db.settings) }
+    return { prospects: db.prospects, actions: db.actions, documents: db.documents, settings: mergeSettings(db.settings) }
+  },
+  async saveDoc(doc) {
+    const db = readLocal()
+    const row = { created_at: nowIso(), ...doc, id: doc.id || uid() }
+    db.documents = [...db.documents.filter((x) => x.id !== row.id), row]
+    writeLocal(db)
+    return row
+  },
+  async deleteDoc(id) {
+    const db = readLocal()
+    db.documents = db.documents.filter((x) => x.id !== id)
+    writeLocal(db)
   },
   async addProspect(name, fiche) {
     const db = readLocal()
@@ -129,12 +144,13 @@ async function fetchAll(table) {
 
 const remote = {
   async load() {
-    const [prospects, actions, settings] = await Promise.all([
+    const [prospects, actions, documents, settings] = await Promise.all([
       fetchAll('prospects'),
       fetchAll('actions'),
+      fetchAll('documents'),
       supabase.from('settings').select('*').maybeSingle().then(check),
     ])
-    return { prospects, actions, settings: mergeSettings(settings?.data) }
+    return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
   },
   async addProspect(name, fiche) {
     return check(await supabase.from('prospects').insert({ name, fiche: fiche || {} }).select().single())
@@ -225,6 +241,8 @@ function applyLocal(c, op) {
   if (op.t === 'updateAction') c.actions = c.actions.map((x) => (x.id === op.id ? { ...x, ...op.patch } : x))
   if (op.t === 'deleteAction') c.actions = c.actions.filter((x) => x.id !== op.id)
   if (op.t === 'saveSettings') c.settings = op.settings
+  if (op.t === 'saveDoc') c.documents = [...(c.documents || []).filter((x) => x.id !== op.row.id), op.row]
+  if (op.t === 'deleteDoc') c.documents = (c.documents || []).filter((x) => x.id !== op.id)
   return c
 }
 
@@ -237,6 +255,8 @@ async function sendRemote(op) {
   if (op.t === 'updateAction') check(await supabase.from('actions').update(op.patch).eq('id', op.id))
   if (op.t === 'deleteAction') check(await supabase.from('actions').delete().eq('id', op.id))
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
+  if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
 }
 
 let flushing = null
@@ -285,14 +305,15 @@ const offline = {
       try {
         await flush()
         if (!readJson(QUEUE, []).length) {
-          const [prospects, actions, settings] = await Promise.all([
+          const [prospects, actions, documents, settings] = await Promise.all([
             fetchAll('prospects'),
             fetchAll('actions'),
+            fetchAll('documents'),
             supabase.from('settings').select('*').maybeSingle().then(check),
           ])
-          writeJson(CACHE, { prospects, actions, settings: settings?.data || null })
+          writeJson(CACHE, { prospects, actions, documents, settings: settings?.data || null })
           emit({ online: true })
-          return { prospects, actions, settings: mergeSettings(settings?.data) }
+          return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
         }
       } catch (e) {
         if (!isNetworkError(e) || !hasOfflineCache()) throw e
@@ -301,7 +322,7 @@ const offline = {
     if (!hasOfflineCache()) throw new Error("Pas de connexion internet. Ouvre le CRM une première fois en ligne sur cet appareil.")
     emit({ online: navigator.onLine })
     const c = readJson(CACHE, {})
-    return { prospects: c.prospects || [], actions: c.actions || [], settings: mergeSettings(c.settings) }
+    return { prospects: c.prospects || [], actions: c.actions || [], documents: c.documents || [], settings: mergeSettings(c.settings) }
   },
   async addProspect(name, fiche) {
     const row = { id: uid(), name, fiche: fiche || {}, created_at: nowIso() }
@@ -330,6 +351,15 @@ const offline = {
   },
   async saveSettings(settings) {
     await queued({ t: 'saveSettings', settings })
+  },
+  async saveDoc(doc) {
+    const row = { created_at: nowIso(), ...doc, id: doc.id || uid() }
+    delete row.user_id
+    await queued({ t: 'saveDoc', row })
+    return row
+  },
+  async deleteDoc(id) {
+    await queued({ t: 'deleteDoc', id })
   },
   // Import et remise à zéro : uniquement en ligne
   async bulkImport(prospects, actions) {

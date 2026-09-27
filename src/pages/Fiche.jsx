@@ -5,6 +5,7 @@ import { FicheInput, ActionForm, ActionLine } from './Saisie'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink } from '../lib/logic'
+import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
 
 export default function Fiche({ id }) {
   const { data, api, openAction, toast } = useApp()
@@ -97,6 +98,12 @@ export default function Fiche({ id }) {
           <button className="btn gold" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
             + Saisir une action
           </button>
+          <button className="btn" onClick={() => go(`/facture/new?type=facture&p=${p.id}`)}>
+            + Facture
+          </button>
+          <button className="btn" onClick={() => go(`/facture/new?type=devis&p=${p.id}`)}>
+            + Devis
+          </button>
           <button className="btn" onClick={startEdit}>
             ✎ Modifier la fiche
           </button>
@@ -106,6 +113,8 @@ export default function Fiche({ id }) {
           </button>
         </div>
       </div>
+
+      <DocsCard pid={p.id} />
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="stack">
@@ -235,6 +244,39 @@ function AuditCard({ p }) {
           style={{ minHeight: 60 }}
         />
         <div className="tiny muted">Une fois l'audit fini, saisis l'action « Audit réalisé » avec sa note sur 100 et le temps passé.</div>
+      </div>
+    </div>
+  )
+}
+
+function DocsCard({ pid }) {
+  const { documents, actions } = useApp()
+  const docs = documents.filter((d) => d.prospect_id === pid).sort((a, b) => (b.data?.date || '').localeCompare(a.data?.date || ''))
+  if (!docs.length) return null
+  return (
+    <div className="card">
+      <h2 className="section">
+        <span className="sec-ic"><Icon n="file" size={16} /></span> Factures et devis <span className="count">{docs.length}</span>
+      </h2>
+      <div className="list">
+        {docs.map((d) => {
+          const st = statutDe(d, actions)
+          return (
+            <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
+              <div className="li-main">
+                <div className="li-title">{d.type === 'facture' ? 'Facture' : 'Devis'} {d.numero}</div>
+                <div className="li-sub">
+                  {fmtDate(d.data?.date)}
+                  {d.data?.objet ? ` · ${d.data.objet}` : ''}
+                </div>
+              </div>
+              <div className="li-side" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                <b>{eur(totals(d.data || {}).total)}</b>
+                <span className={`badge ${STATUT_TONE[st] || 'b-gold'}`}>{st}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

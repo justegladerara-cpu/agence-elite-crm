@@ -8,17 +8,20 @@ export const useApp = () => useContext(AppCtx)
 
 // Devise d'affichage, réglée dans Paramètres (settings.devise)
 export const DEVISES = [
-  { code: 'XOF', label: 'Franc CFA (FCFA)', sym: 'FCFA', parEuro: 655.957 },
+  { code: 'XAF', label: 'Franc CFA Afrique centrale (XAF)', sym: 'FCFA', parEuro: 655.957 },
+  { code: 'XOF', label: 'Franc CFA Afrique de l’Ouest (XOF)', sym: 'FCFA', parEuro: 655.957 },
   { code: 'EUR', label: 'Euro (€)', sym: '€', parEuro: 1 },
   { code: 'USD', label: 'Dollar US ($)', sym: '$', parEuro: 1.08 },
   { code: 'MAD', label: 'Dirham marocain (MAD)', sym: 'MAD', parEuro: 10.8 },
   { code: 'CAD', label: 'Dollar canadien (CAD)', sym: 'CAD', parEuro: 1.47 },
 ]
-let devise = DEVISES[1]
+export const EURO = DEVISES.find((d) => d.code === 'EUR')
+let devise = EURO
 export function setDevise(code) {
-  devise = DEVISES.find((d) => d.code === code) || DEVISES[1]
+  devise = DEVISES.find((d) => d.code === code) || EURO
 }
 export const sym = () => devise.sym
+export const deviseCode = () => devise.code
 // Remplace le symbole € d'un libellé par la devise choisie
 export const lbl = (s) => (typeof s === 'string' ? s.replace(/€/g, devise.sym) : s)
 export const eur = (v, dec = 0) => {

@@ -55,3 +55,20 @@ create policy "own actions" on public.actions for all to authenticated
 drop policy if exists "own settings" on public.settings;
 create policy "own settings" on public.settings for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+-- Factures et devis (ajout du 27/09/2026)
+create table if not exists public.documents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  type text not null default 'facture',
+  numero text not null,
+  prospect_id uuid references public.prospects on delete set null,
+  data jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists documents_user_idx on public.documents (user_id);
+create index if not exists documents_prospect_idx on public.documents (prospect_id);
+alter table public.documents enable row level security;
+drop policy if exists "own documents" on public.documents;
+create policy "own documents" on public.documents for all to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));

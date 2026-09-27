@@ -71,6 +71,9 @@ export default function Clients() {
                 <button className="btn sm" onClick={() => openAction({ prospect_id: c.id, action: 'Paiement reçu', montant: c.reste ? String(c.reste) : '' })}>
                   + Paiement
                 </button>
+                <button className="btn sm" onClick={() => go(`/facture/new?type=facture&p=${c.id}`)}>
+                  + Facture
+                </button>
                 <button className="btn sm" onClick={() => openAction({ prospect_id: c.id, action: nextOnboarding(c) })}>
                   + Suivi
                 </button>
