@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useApp, Kpi, Empty, Modal, Field, go, eur, nb } from '../ui'
+import { useApp, Kpi, Empty, Modal, Field, go, eur, nb, Tabs, useTab } from '../ui'
 import { PaiementForm } from './Finances'
 import { fmtDate, today, nowTime } from '../lib/dates'
 
@@ -91,6 +91,16 @@ export default function Clients() {
   const mrr = actifs.reduce((m, c) => m + c.abonnement, 0)
   const reste = cl.reduce((m, c) => m + c.reste, 0)
   const total = cl.reduce((m, c) => m + c.total, 0)
+  const FILTRES = [
+    ['tous', 'Tous', () => true],
+    ['actifs', 'Actifs', (c) => c.statut === 'Actif'],
+    ['encaisser', 'À encaisser', (c) => c.reste > 0],
+    ['abonnes', 'Abonnés', (c) => c.abonnement > 0],
+    ['alertes', 'À surveiller', (c) => !!c.alerte],
+  ]
+  const [filtre, setFiltre] = useTab('clients', 'tous')
+  const fx = FILTRES.find(([k]) => k === filtre) || FILTRES[0]
+  const vus = cl.filter(fx[2])
   const tone = { Payé: 'b-green', 'En retard': 'b-red', Partiel: 'b-orange', 'En attente': 'b-gold' }
   return (
     <div className="stack">
@@ -112,9 +122,10 @@ export default function Clients() {
         <Kpi label="Total facturé" value={eur(total)} />
         <Kpi label="Reste à encaisser" value={eur(reste)} />
       </div>
+      <Tabs items={FILTRES.map(([k, l, fn]) => [k, l, k === 'tous' ? cl.length : cl.filter(fn).length])} value={fx[0]} onChange={setFiltre} />
       <div className="card flush">
-        {cl.length === 0 ? (
-          <Empty>Pas encore de client. Ta première signature arrivera vite, ou ajoute un ancien client.</Empty>
+        {vus.length === 0 ? (
+          <Empty>{cl.length ? 'Aucun client dans ce filtre.' : 'Pas encore de client. Ta première signature arrivera vite, ou ajoute un ancien client.'}</Empty>
         ) : (
           <div className="table-wrap">
             <table className="t zt">
@@ -130,7 +141,7 @@ export default function Clients() {
                 </tr>
               </thead>
               <tbody>
-                {cl.map((c) => (
+                {vus.map((c) => (
                   <tr key={c.id} className="click" onClick={() => go(`/prospect/${c.id}`)}>
                     <td className="ell-cell">
                       <div className="bold ell">{c.name}</div>

@@ -1,6 +1,6 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
 import { useState } from 'react'
-import { useApp, Modal, Field, go } from '../ui'
+import { useApp, Modal, Field, go, RelanceTag } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
 import { instaLink, handleInsta, doublonInsta } from '../lib/logic'
@@ -157,15 +157,13 @@ export function QuickInsta({ onClose }) {
   )
 }
 
-// Carte du process sur la fiche : où en est le prospect et le bouton de l'étape suivante
-export function ProcessCard({ p }) {
-  const { api, settings, data, toast } = useApp()
+// Process Instagram : état des 7 étapes et actions (enregistrer, annuler, réaction à la Loom)
+function useProcess(p) {
+  const { api, settings, data, toast, openAction } = useApp()
   const [busy, setBusy] = useState(false)
-  const L = data.L
-  const etats = ETAPES.map((e) => ({ ...e, ok: e.fait(p, L) }))
+  const etats = ETAPES.map((e) => ({ ...e, ok: e.fait(p, data.L) }))
   const courante = etats.findIndex((e) => !e.ok)
-  const loomFaite = etats[3].ok
-  const apresLoom = loomFaite && !etats[4].ok
+  const apresLoom = etats[3].ok && !etats[4].ok
   const lastLoom = [...p.acts].reverse().find((a) => a.action === 'Loom envoyé')
   const reaction = lastLoom && p.acts.some((a) => a.date >= lastLoom.date && a !== lastLoom && a.action !== 'Loom envoyé' && a.resultat)
   const enregistrer = async (row, msg) => {
@@ -194,6 +192,7 @@ export function ProcessCard({ p }) {
   }
   const cliquer = async (e) => {
     if (e.ok) return annuler(e)
+    if (e.id === 'signe') return openAction({ prospect_id: p.id, action: 'Signature', canal: p.canal })
     let extra = {}
     if (e.id === 'script') extra.modele = lirePref('aecrm-modele', settings.modeles[0] || '')
     if (e.id === 'loom') {
@@ -206,13 +205,61 @@ export function ProcessCard({ p }) {
     }
     await enregistrer({ ...e.row(settings), ...extra }, e.label)
   }
+  return { etats, courante, apresLoom, reaction, busy, cliquer, enregistrer }
+}
+
+// Barre d'étapes façon Zoho (en haut de la fiche) : clic = enregistrer l'étape, clic sur une étape faite = l'annuler
+export function ProcessBar({ p }) {
+  const { etats, courante, busy, cliquer } = useProcess(p)
   return (
-    <div className="card">
-      <h2 className="section"><span className="sec-ic"><Icon n="instagram" size={16} /></span> Process Instagram</h2>
-      <div className="steps">
-        {etats.map((e, i) => (
-          <SignOrStep key={e.id} e={e} i={i} courante={courante} busy={busy} onClick={() => cliquer(e)} p={p} />
-        ))}
+    <div className="stagebar" role="list" aria-label="Process Instagram">
+      {etats.map((e, i) => {
+        const cls = e.ok ? 'done' : i === courante ? 'current' : ''
+        return (
+          <button
+            key={e.id}
+            type="button"
+            role="listitem"
+            className={`stage ${cls}`}
+            disabled={busy}
+            onClick={() => cliquer(e)}
+            title={e.ok ? `${e.label} : fait. Clique pour annuler` : `Marquer « ${e.label} »`}
+          >
+            <span className="stage-n">{e.ok ? '✓' : i + 1}</span>
+            <span className="stage-l">{e.label}</span>
+            {e.ok && <span className="stage-x" aria-hidden="true">✕</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Carte « Prochaine étape » : ce qu'il faut faire maintenant, en 1 clic
+export function ProchaineEtape({ p }) {
+  const { etats, courante, apresLoom, reaction, busy, cliquer, enregistrer } = useProcess(p)
+  const suivante = courante >= 0 ? etats[courante] : null
+  return (
+    <div className="card next-card">
+      <h2 className="section">
+        <span className="sec-ic"><Icon n="bolt" size={16} /></span> Prochaine étape
+      </h2>
+      <div className="next-main">
+        <div className="li-main">
+          <div className="bold">{p.prochaineAction || (suivante ? suivante.label : 'Rien de prévu')}</div>
+          <div className="small muted" style={{ marginTop: 2 }}>
+            {p.relance ? <RelanceTag date={p.relance} heure={p.heureRappel} /> : 'Pas de relance programmée'}
+            {p.tentatives ? ` · ${p.tentatives} tentative${p.tentatives > 1 ? 's' : ''}, ${p.reponses} réponse${p.reponses > 1 ? 's' : ''}` : ''}
+          </div>
+        </div>
+      </div>
+      <div className="row" style={{ gap: 6, marginTop: 12 }}>
+        {suivante && (
+          <button type="button" className="btn sm gold" disabled={busy} onClick={() => cliquer(suivante)}>
+            ✓ {suivante.label}
+          </button>
+        )}
+        {p.tentatives > 0 && <RelanceBoutons p={p} />}
       </div>
       {apresLoom && (
         <div className="reaction">
@@ -226,66 +273,64 @@ export function ProcessCard({ p }) {
           </div>
         </div>
       )}
-      <div className="tiny muted" style={{ marginTop: 8 }}>Clique sur une étape faite (✓) pour l'annuler.</div>
-      {p.prochaineAction && (
-        <div className="tiny muted" style={{ marginTop: 6 }}>
-          Prochaine action : <b>{p.prochaineAction}</b>
-          {p.relance ? ` · le ${fmtDate(p.relance)}` : ''}
-        </div>
-      )}
+      <div className="tiny muted" style={{ marginTop: 10 }}>Les étapes en haut se cochent d'un clic ; clique sur une étape faite (✓) pour l'annuler.</div>
     </div>
   )
 }
 
-function SignOrStep({ e, i, courante, busy, onClick, p }) {
-  const { openAction } = useApp()
-  const cls = e.ok ? 'done' : i === courante ? 'current' : ''
-  const act = e.id === 'signe' && !e.ok ? () => openAction({ prospect_id: p.id, action: 'Signature', canal: p.canal }) : onClick
-  return (
-    <button type="button" className={`step ${cls}`} disabled={busy} onClick={act} title={e.ok ? 'Fait : clique pour annuler' : 'Enregistrer cette étape'}>
-      <span className="step-dot">{e.ok ? '✓' : i + 1}</span>
-      {e.ok && <span className="step-x" aria-hidden="true">✕</span>}
-      <span className="step-l">{e.label}</span>
-    </button>
-  )
-}
-
-// Scripts prêts à copier, remplis avec le nom et le produit du prospect
+// Messages prêts à copier, en 2 panneaux : la liste à gauche, le texte rempli à droite
 export function ScriptsCard({ p }) {
   const { settings, toast } = useApp()
-  const [ouvert, setOuvert] = useState(null)
-  const scripts = [...(settings.scriptsDM || []), ...(settings.messagesRelance || [])]
-  if (!scripts.length) return null
+  const groupes = [
+    ['Premier contact et suivi', settings.scriptsDM || []],
+    ['Relances', settings.messagesRelance || []],
+  ].filter(([, l]) => l.length)
+  const tous = groupes.flatMap(([g, l]) => l.map((s, i) => ({ ...s, g, k: `${g}-${i}` })))
+  const [choix, setChoix] = useState(0)
+  if (!tous.length) return null
+  const sel = tous[Math.min(choix, tous.length - 1)]
+  const txt = remplir(sel.texte, p)
+  const copierTxt = async (ouvrir) => {
+    const ok = await copier(txt)
+    toast(ok ? (ouvrir ? 'Copié ✓ Colle-le dans le DM' : 'Copié ✓') : 'Copie impossible', !ok)
+    if (ouvrir && p?.fiche?.instagram) window.open(instaLink(p.fiche.instagram), '_blank', 'noreferrer')
+  }
   return (
-    <div className="card">
-      <h2 className="section"><span className="sec-ic"><Icon n="message" size={16} /></span> Scripts à copier</h2>
-      <div className="scripts">
-        {scripts.map((s, i) => {
-          const txt = remplir(s.texte, p)
-          return (
-            <div key={i} className={`script ${ouvert === i ? 'open' : ''}`}>
-              <div className="script-head">
-                <button type="button" className="script-t" onClick={() => setOuvert(ouvert === i ? null : i)}>
+    <div className="card flush msg-pane">
+      <div className="msg-list">
+        {groupes.map(([g]) => (
+          <div key={g}>
+            <div className="msg-grp">{g}</div>
+            {tous
+              .map((s, i) => [s, i])
+              .filter(([s]) => s.g === g)
+              .map(([s, i]) => (
+                <button key={s.k} type="button" className={`msg-item ${sel === s ? 'on' : ''}`} onClick={() => setChoix(i)}>
                   {s.titre}
                 </button>
-                <button type="button" className="btn sm" onClick={async () => toast((await copier(txt)) ? 'Copié ✓' : 'Copie impossible', false)}>
-                  <Icon n="copy" size={14} /> Copier
-                </button>
-              </div>
-              {ouvert === i && <div className="script-txt">{txt}</div>}
-            </div>
-          )
-        })}
-      </div>
-      <div className="row" style={{ marginTop: 10, justifyContent: 'space-between' }}>
-        {p?.fiche?.instagram && (
-          <a className="btn sm" href={instaLink(p.fiche.instagram)} target="_blank" rel="noreferrer">
-            <Icon n="instagram" size={14} /> Ouvrir le compte
-          </a>
-        )}
-        <button type="button" className="toggle-link" onClick={() => go('/parametres/scripts')}>
-          Modifier mes scripts
+              ))}
+          </div>
+        ))}
+        <button type="button" className="toggle-link msg-edit" onClick={() => go('/parametres/scripts')}>
+          Modifier mes messages
         </button>
+      </div>
+      <div className="msg-view">
+        <div className="msg-head">
+          <div className="bold">{sel.titre}</div>
+          <div className="tiny muted">{sel.g}</div>
+        </div>
+        <div className="msg-txt">{txt}</div>
+        <div className="row" style={{ gap: 6 }}>
+          <button type="button" className="btn sm primary" onClick={() => copierTxt(false)}>
+            <Icon n="copy" size={14} /> Copier
+          </button>
+          {p?.fiche?.instagram && (
+            <button type="button" className="btn sm" onClick={() => copierTxt(true)}>
+              <Icon n="instagram" size={14} /> Copier et ouvrir le DM
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

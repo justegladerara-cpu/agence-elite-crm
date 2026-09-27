@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
@@ -64,6 +64,25 @@ export default function Factures({ type = 'facture' }) {
   const factTotal = actives.reduce((m, d) => m + d.total, 0)
   const encaisse = actives.reduce((m, d) => m + Math.min(d.paye, d.total), 0)
   const retard = actives.filter((d) => d.statut === 'En retard')
+  // Filtres par statut (onglets façon Zoho)
+  const FILTRES =
+    type === 'facture'
+      ? [
+          ['toutes', 'Toutes', () => true],
+          ['impayees', 'Impayées', (d) => d.statut !== 'Payée' && d.statut !== 'Annulée'],
+          ['retard', 'En retard', (d) => d.statut === 'En retard'],
+          ['payees', 'Payées', (d) => d.statut === 'Payée'],
+          ['annulees', 'Annulées', (d) => d.statut === 'Annulée'],
+        ]
+      : [
+          ['toutes', 'Tous', () => true],
+          ['attente', 'En attente', (d) => d.statut === 'En attente'],
+          ['acceptes', 'Acceptés', (d) => d.statut === 'Accepté'],
+          ['refuses', 'Refusés ou expirés', (d) => d.statut === 'Refusé' || d.statut === 'Expiré'],
+        ]
+  const [filtre, setFiltre] = useTab(`liste-${type}`, 'toutes')
+  const fx = FILTRES.find(([k]) => k === filtre) || FILTRES[0]
+  const vus = docs.filter(fx[2])
 
   return (
     <div className="stack">
@@ -97,12 +116,20 @@ export default function Factures({ type = 'facture' }) {
         </div>
       )}
 
+      <Tabs
+        items={FILTRES.filter(([k, , fn]) => k !== 'annulees' || docs.some(fn)).map(([k, l, fn]) => [k, l, k === 'toutes' ? undefined : docs.filter(fn).length])}
+        value={fx[0]}
+        onChange={setFiltre}
+      />
+
       <div className="card flush">
         <div className="list-tools">
           <input className="input" placeholder="Rechercher : numéro, client, objet…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        {docs.length === 0 ? (
-          <Empty>{type === 'facture' ? 'Aucune facture pour le moment.' : 'Aucun devis pour le moment.'}</Empty>
+        {vus.length === 0 ? (
+          <Empty>
+            {docs.length === 0 ? (type === 'facture' ? 'Aucune facture pour le moment.' : 'Aucun devis pour le moment.') : 'Rien dans ce filtre.'}
+          </Empty>
         ) : (
           <div className="table-wrap">
             <table className="t zt">
@@ -119,7 +146,7 @@ export default function Factures({ type = 'facture' }) {
                 </tr>
               </thead>
               <tbody>
-                {docs.map((d) => (
+                {vus.map((d) => (
                   <tr key={d.id} className="click" onClick={() => go(`/facture/${d.id}`)}>
                     <td>{fmtDate(d.data?.date)}</td>
                     <td className="lnk">{d.numero}</td>

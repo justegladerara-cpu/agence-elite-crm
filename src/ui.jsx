@@ -220,3 +220,65 @@ export function Tabs({ items, value, onChange }) {
     </div>
   )
 }
+
+// Menu déroulant (bouton « Plus » façon Zoho) : se ferme au clic dehors ou sur un choix
+export function Menu({ label, icon = 'chevron', items, className = 'btn sm', align = 'right' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef()
+  useEffect(() => {
+    if (!open) return
+    const close = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false)
+    const k = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', close)
+    window.addEventListener('keydown', k)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('keydown', k)
+    }
+  }, [open])
+  return (
+    <div className="menu" ref={ref}>
+      <button type="button" className={className} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        {label}
+        {icon && <Icon n={icon} size={14} />}
+      </button>
+      {open && (
+        <div className={`menu-pop ${align}`} role="menu">
+          {items.filter(Boolean).map((it, i) =>
+            it === '-' ? (
+              <div key={i} className="menu-sep" />
+            ) : (
+              <button
+                key={it.label}
+                type="button"
+                role="menuitem"
+                className={`menu-item ${it.danger ? 'danger' : ''}`}
+                onClick={() => {
+                  setOpen(false)
+                  it.onClick()
+                }}
+              >
+                {it.icon && <Icon n={it.icon} size={15} />}
+                {it.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Liste « libellé : valeur » en lignes (panneau de détails façon Zoho)
+export function KV({ rows }) {
+  return (
+    <dl className="kv">
+      {rows.map(([k, v]) => (
+        <div key={k} className="kv-row">
+          <dt>{k}</dt>
+          <dd>{v}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}

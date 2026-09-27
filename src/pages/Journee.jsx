@@ -38,7 +38,8 @@ export default function Journee() {
   const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
   const t = today()
   const { jour, update } = useJournee(t)
-  const [onglet, setOnglet] = useTab('journee', 'relances')
+  const [onglet, setOnglet] = useTab('journee', 'jour')
+  const tab = onglet === 'relances' ? 'jour' : onglet
   const h = new Date().getHours()
   const hello = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir'
 
@@ -60,16 +61,29 @@ export default function Journee() {
           </button>
         </div>
       )}
-      <div className="hero">
-        <h1>{[hello, settings.apparence?.prenom].filter(Boolean).join(' ')}</h1>
-        <div className="sub">
-          {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
-          {data.alertes.length > 1 ? 's' : ''}
+      <div className="page-head" style={{ marginBottom: 0 }}>
+        <div>
+          <h1>{[hello, settings.apparence?.prenom].filter(Boolean).join(' ')}</h1>
+          <div className="sub">
+            {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
+            {data.alertes.length > 1 ? 's' : ''}
+          </div>
         </div>
-        <ObjectifsJour jour={jour} update={update} />
       </div>
 
-      {weekday(t) === 1 && onglet !== 'historique' && (
+      <Tabs
+        items={[
+          ['jour', "Aujourd'hui", data.aRelancer.length],
+          ['chauds', 'Prospects chauds'],
+          ['alertes', 'Alertes', data.alertes.length + data.clientsAlertes.length + impayees.length],
+          ['routine', 'Ma routine'],
+          ['historique', 'Bilan de la semaine'],
+        ]}
+        value={tab}
+        onChange={setOnglet}
+      />
+
+      {weekday(t) === 1 && tab !== 'historique' && (
         <div className="banner row">
           <Icon n="sparkles" size={16} />
           <span style={{ flex: 1 }}>C'est lundi : ton bilan de la semaine et 3 conseils sont prêts.</span>
@@ -78,19 +92,14 @@ export default function Journee() {
           </button>
         </div>
       )}
-      <Tabs
-        items={[
-          ['relances', 'Relances', data.aRelancer.length],
-          ['chauds', 'Prospects chauds'],
-          ['alertes', 'Alertes', data.alertes.length + data.clientsAlertes.length + impayees.length],
-          ['routine', 'Ma routine'],
-          ['historique', 'Bilan et historique'],
-        ]}
-        value={onglet}
-        onChange={setOnglet}
-      />
 
-      {onglet === 'relances' && (
+      {tab === 'jour' && (
+        <div className="hero">
+          <ObjectifsJour jour={jour} update={update} />
+        </div>
+      )}
+
+      {tab === 'jour' && (
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h2 className="section">
@@ -120,7 +129,7 @@ export default function Journee() {
         </div>
       )}
 
-      {onglet === 'chauds' && (
+      {tab === 'chauds' && (
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="flame" size={16} /></span> Les 10 prospects les plus chauds à appeler</h2>
           <div className="list">
@@ -135,7 +144,7 @@ export default function Journee() {
         </div>
       )}
 
-      {onglet === 'alertes' && (
+      {tab === 'alertes' && (
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h2 className="section">
@@ -168,7 +177,7 @@ export default function Journee() {
         </div>
       )}
 
-      {onglet === 'alertes' && (
+      {tab === 'alertes' && (
         <div className="card">
           <h2 className="section">
             <span className="sec-ic"><Icon n="file" size={16} /></span> Factures à relancer <span className="count">{impayees.length}</span>
@@ -193,9 +202,9 @@ export default function Journee() {
         </div>
       )}
 
-      {onglet === 'routine' && <TodoJour jour={jour} update={update} />}
+      {tab === 'routine' && <TodoJour jour={jour} update={update} />}
 
-      {onglet === 'historique' && (
+      {tab === 'historique' && (
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <HistoriqueJours />
           <BilanSemaine />

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
-import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab } from '../ui'
+import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab, Menu, KV } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
-import { ProcessCard, ScriptsCard, QualifCard, RelanceBoutons } from './Insta'
+import { ProcessBar, ProchaineEtape, ScriptsCard, QualifCard } from './Insta'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
@@ -52,51 +52,87 @@ export default function Fiche({ id }) {
     go('/prospects')
   }
 
-  const infos = [
+  const ig = f.instagram
+  const lien = (href, txt) => (
+    <a href={href} target="_blank" rel="noreferrer">
+      {txt}
+    </a>
+  )
+  const nonVide = (rows) => rows.filter(([, v]) => v)
+  const detailsContact = nonVide([
+    ['Instagram', ig && lien(instaLink(ig), ig)],
+    ['Contact', f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`],
+    ['Téléphone', f.telephone && <a href={`tel:${f.telephone.replace(/\s/g, '')}`}>{f.telephone}</a>],
+    ['WhatsApp', f.whatsapp],
+    ['Site', f.site && lien(siteLink(f.site), f.site)],
+    ['Secteur', f.secteur],
+    ['Ce qu’il vend', f.produit],
+    ['Ville', [f.ville, f.zone].filter(Boolean).join(' · ')],
+    ['Signal repéré', f.signal],
+    ['Source', f.source],
+  ])
+  const detailsSuivi = [
     ['Étape', <StageBadge key="e" etape={p.etape} />],
     ['Score priorité', <Score key="s" v={p.score} />],
-    ['Prochaine relance', p.relance ? <RelanceTag key="r" date={p.relance} heure={p.heureRappel} /> : '—'],
-    ['Prochaine action', p.prochaineAction || '—'],
     ['Canal principal', p.canal || '—'],
     ['Tentatives / réponses', `${p.tentatives} / ${p.reponses}`],
+    ['Qualification', `${p.qualif}/4`],
     ['Ajouté le', fmtDate(p.dateAjout)],
     ['Jours sans action', p.joursSansAction ?? '—'],
-    ['Qualification', `${p.qualif}/4`],
-    ['Montant proposé', p.montantPropose ? eur(p.montantPropose) : '—'],
-    ['Expiration proposition', p.expiration ? fmtDate(p.expiration) : '—'],
-    ['Pipeline pondéré', p.pipelinePondere ? eur(p.pipelinePondere) : '—'],
-    ['Date de signature', p.dateSignature ? fmtDate(p.dateSignature) : '—'],
-    ['Cycle de vente', p.cycle !== null ? `${p.cycle} j` : '—'],
-    ['Dernière objection', p.objection || '—'],
-    ['Temps passé', p.tempsPasse ? `${p.tempsPasse} min` : '—'],
     ...(p.recontacter ? [['À recontacter le', fmtDate(p.recontacter)]] : []),
-    ...(p.demo ? [['Démo type du secteur', <a key="d" href={siteLink(p.demo)} target="_blank" rel="noreferrer">Ouvrir</a>]] : []),
   ]
+  const detailsVente = nonVide([
+    ['Montant proposé', p.montantPropose && eur(p.montantPropose)],
+    ['Expiration', p.expiration && fmtDate(p.expiration)],
+    ['Pipeline pondéré', p.pipelinePondere && eur(p.pipelinePondere)],
+    ['Signé le', p.dateSignature && fmtDate(p.dateSignature)],
+    ['Cycle de vente', p.cycle !== null && p.cycle !== undefined && `${p.cycle} j`],
+    ['Dernière objection', p.objection],
+    ['Temps passé', p.tempsPasse && `${p.tempsPasse} min`],
+    ['Démo du secteur', p.demo && lien(siteLink(p.demo), 'Ouvrir')],
+  ])
   const history = [...p.acts].reverse()
 
   const docs = documents.filter((d) => d.prospect_id === p.id)
-  const ONGLETS = [
-    ['apercu', 'Aperçu'],
-    ['historique', 'Historique', p.acts.length],
-    ...(client ? [] : [['scripts', 'Scripts et qualification']]),
-    ['docs', 'Devis et factures', docs.length],
-    ['fiche', 'Fiche'],
-  ]
+  const ONGLETS = client
+    ? [
+        ['apercu', 'Aperçu'],
+        ['historique', 'Historique', p.acts.length],
+        ['docs', 'Factures', docs.length],
+        ['fiche', 'Informations'],
+      ]
+    : [
+        ['apercu', 'Aperçu'],
+        ['messages', 'Messages'],
+        ['qualif', 'Qualification'],
+        ['historique', 'Historique', p.acts.length],
+        ['docs', 'Factures', docs.length],
+        ['fiche', 'Informations'],
+      ]
   const tab = ONGLETS.some(([k]) => k === onglet) ? onglet : 'apercu'
+  const initiales = p.name
+    .replace(/\(.*?\)/g, '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((x) => x[0])
+    .join('')
+    .toUpperCase()
 
   return (
     <div className="stack fiche">
-      <div className="fiche-head">
-        <div className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+      <div className="rec-head">
+        <div className="rec-top">
           <button className="icon-btn back-btn" title="Retour" onClick={() => go(client ? '/clients' : '/prospects')}>
             ←
           </button>
+          <div className={`rec-avatar ${ig ? 'ig' : ''}`}>{ig ? <Icon n="instagram" size={20} /> : initiales || '?'}</div>
           <div className="li-main">
-            <h1>{p.name}</h1>
-            <div className="muted small ell-2">
-              {[f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`, f.instagram, f.secteur, f.produit, f.ville, f.telephone].filter(Boolean).join(' · ')}
+            <h1 className="ell">{p.name}</h1>
+            <div className="muted small ell">
+              {[f.contact, ig, f.secteur, f.ville].filter(Boolean).join(' · ') || 'Ajoute ses infos avec « Modifier »'}
             </div>
-            <div className="row" style={{ marginTop: 8, gap: 6 }}>
+            <div className="row rec-badges">
               <StageBadge etape={p.etape} />
               <Score v={p.score} />
               {p.alerte && <span className="badge b-orange">{p.alerte}</span>}
@@ -104,90 +140,111 @@ export default function Fiche({ id }) {
               {f.signal && <span className="badge b-gold">{f.signal}</span>}
             </div>
           </div>
-          <div className="row hide-m">
+          <div className="rec-actions">
             <ContactButtons p={p} />
+            <button className="btn gold sm" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
+              + Action
+            </button>
+            <Menu
+              label="Plus"
+              items={[
+                { label: 'Nouveau devis', icon: 'file', onClick: () => go(`/facture/new?type=devis&p=${p.id}`) },
+                { label: 'Nouvelle facture', icon: 'file', onClick: () => go(`/facture/new?type=facture&p=${p.id}`) },
+                { label: 'Modifier la fiche', icon: 'edit', onClick: startEdit },
+                '-',
+                { label: 'Supprimer', icon: 'trash', danger: true, onClick: remove },
+              ]}
+            />
           </div>
         </div>
-        <div className="row fiche-actions">
-          <button className="btn gold sm" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
-            + Saisir une action
-          </button>
-          {!client && p.tentatives > 0 && <RelanceBoutons p={p} />}
-          <button className="btn sm" onClick={() => go(`/facture/new?type=devis&p=${p.id}`)}>
-            + Devis
-          </button>
-          <button className="btn sm" onClick={() => go(`/facture/new?type=facture&p=${p.id}`)}>
-            + Facture
-          </button>
-          <button className="btn sm" onClick={startEdit}>
-            <Icon n="edit" size={14} /> Modifier
-          </button>
-          <div className="show-m">
-            <ContactButtons p={p} />
+        {!client ? (
+          <ProcessBar p={p} />
+        ) : (
+          <div className="rec-strip">
+            {[
+              ['Total signé', eur(client.total)],
+              ['Encaissé', eur(client.encaisse)],
+              ['Reste', eur(client.reste)],
+              ['Abonnement', client.abonnement ? `${eur(client.abonnement)}/mois` : '—'],
+            ].map(([k, v]) => (
+              <div key={k}>
+                <div className="k">{k}</div>
+                <div className={`v ${k === 'Reste' && client.reste > 0 ? 'red' : ''}`}>{v}</div>
+              </div>
+            ))}
           </div>
-          <div className="spacer" />
-          <button className="btn ghost danger sm" onClick={remove}>
-            <Icon n="trash" size={14} /> Supprimer
-          </button>
-        </div>
+        )}
         <Tabs items={ONGLETS} value={tab} onChange={setOnglet} />
       </div>
 
       {tab === 'apercu' && (
-        <>
-          {!client && <ProcessCard p={p} />}
-          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+        <div className="rec-grid">
+          <div className="stack">
+            {!client && <ProchaineEtape p={p} />}
+            {client && (
+              <div className="card">
+                <h2 className="section">
+                  <span className="sec-ic"><Icon n="handshake" size={16} /></span> Suivi client
+                </h2>
+                <KV
+                  rows={[
+                    ['Paiement', client.statutPaiement || '—'],
+                    ['Dernière prestation', client.derniereIntervention ? fmtDate(client.derniereIntervention) : '—'],
+                    ['Renouvellement', client.renouvellement ? fmtDate(client.renouvellement) : '—'],
+                    ['Onboarding', `${Math.round(client.onboarding * 100)} %`],
+                    ['Valeur vie client', eur(client.valeurVie)],
+                  ]}
+                />
+                <div className="row" style={{ gap: 6, marginTop: 12 }}>
+                  <button className="btn sm gold" onClick={() => openAction({ prospect_id: p.id, action: 'Intervention', canal: 'Appel' })}>
+                    + Intervention
+                  </button>
+                  <button className="btn sm" onClick={() => openAction({ prospect_id: p.id, action: 'Paiement reçu' })}>
+                    + Paiement
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="card">
-              <h2 className="section">Suivi</h2>
-              <div className="info-grid">
-                {infos.map(([k, v]) => (
-                  <div key={k}>
-                    <div className="k">{k}</div>
-                    <div className="v">{v}</div>
-                  </div>
+              <h2 className="section">
+                <span className="sec-ic"><Icon n="clock" size={16} /></span> Activité récente
+                <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => setOnglet('historique')}>
+                  Tout voir ({p.acts.length})
+                </button>
+              </h2>
+              <div className="list">
+                {history.length === 0 && <Empty>Aucune action.</Empty>}
+                {history.slice(0, 5).map((a) => (
+                  <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
                 ))}
               </div>
             </div>
-            <div className="stack">
-              {client && (
-                <div className="card">
-                  <h2 className="section">Client</h2>
-                  <div className="info-grid">
-                    {[
-                      ['Total signé', eur(client.total)],
-                      ['Encaissé', eur(client.encaisse)],
-                      ['Reste à encaisser', eur(client.reste)],
-                      ['Paiement', client.statutPaiement || '—'],
-                      ['Abonnement', client.abonnement ? `${eur(client.abonnement)}/mois` : '—'],
-                      ['Renouvellement', client.renouvellement ? fmtDate(client.renouvellement) : '—'],
-                      ['Onboarding', `${Math.round(client.onboarding * 100)} %`],
-                      ['Valeur vie client', eur(client.valeurVie)],
-                    ].map(([k, v]) => (
-                      <div key={k}>
-                        <div className="k">{k}</div>
-                        <div className="v">{v}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="card">
-                <h2 className="section">
-                  Dernières actions
-                  <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => setOnglet('historique')}>
-                    Tout voir
-                  </button>
-                </h2>
-                <div className="list">
-                  {history.length === 0 && <Empty>Aucune action.</Empty>}
-                  {history.slice(0, 4).map((a) => (
-                    <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
-        </>
+          <aside className="stack">
+            <div className="card">
+              <h2 className="section">
+                Détails
+                <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={startEdit}>
+                  Modifier
+                </button>
+              </h2>
+              {detailsContact.length > 0 && (
+                <>
+                  <div className="kv-title">Contact</div>
+                  <KV rows={detailsContact} />
+                </>
+              )}
+              <div className="kv-title">Suivi</div>
+              <KV rows={detailsSuivi} />
+              {detailsVente.length > 0 && (
+                <>
+                  <div className="kv-title">Vente</div>
+                  <KV rows={detailsVente} />
+                </>
+              )}
+            </div>
+          </aside>
+        </div>
       )}
 
       {tab === 'historique' && (
@@ -201,51 +258,51 @@ export default function Fiche({ id }) {
         </div>
       )}
 
-      {tab === 'scripts' && (
+      {tab === 'messages' && <ScriptsCard p={p} />}
+
+      {tab === 'qualif' && (
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
-          <ScriptsCard p={p} />
-          <div className="stack">
-            <QualifCard p={p} />
-            <AuditCard p={p} />
-          </div>
+          <QualifCard p={p} />
+          <AuditCard p={p} />
         </div>
       )}
 
       {tab === 'docs' && <DocsCard pid={p.id} />}
 
       {tab === 'fiche' && (
-        <div className="card">
-          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
-            <h2 className="section" style={{ margin: 0 }}>Informations</h2>
-            <button className="btn sm" onClick={startEdit}>
-              <Icon n="edit" size={14} /> Modifier la fiche
-            </button>
-          </div>
-          <div className="info-grid">
-            {FICHE_FIELDS.filter((x) => tousChamps || f[x.key] || f[x.key] === 0).map((x) => {
-              let v = f[x.key]
-              if (!v && v !== 0) v = '—'
-              else if (x.key === 'instagram') v = <a href={instaLink(v)} target="_blank" rel="noreferrer">{v}</a>
-              else if (x.key === 'site') v = <a href={siteLink(v)} target="_blank" rel="noreferrer">{v}</a>
-              else if (x.type === 'date') v = fmtDate(v)
+        <div className="stack">
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            {GROUPES_FICHE.map(([titre, keys]) => {
+              const champs = FICHE_FIELDS.filter((x) => keys.includes(x.key) && (tousChamps || f[x.key] || f[x.key] === 0))
+              if (!champs.length) return null
               return (
-                <div key={x.key}>
-                  <div className="k">{lbl(x.label)}</div>
-                  <div className="v">{v}</div>
+                <div key={titre} className="card">
+                  <h2 className="section">{titre}</h2>
+                  <KV
+                    rows={champs.map((x) => {
+                      let v = f[x.key]
+                      if (!v && v !== 0) v = '—'
+                      else if (x.key === 'instagram') v = lien(instaLink(v), v)
+                      else if (x.key === 'site') v = lien(siteLink(v), v)
+                      else if (x.type === 'date') v = fmtDate(v)
+                      return [lbl(x.label), v]
+                    })}
+                  />
                 </div>
               )
             })}
+            {client && <AuditCard p={p} />}
           </div>
-          {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
-            <button className="toggle-link" style={{ marginTop: 10 }} onClick={() => setTousChamps((v) => !v)}>
-              {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
+          <div className="row">
+            <button className="btn sm" onClick={startEdit}>
+              <Icon n="edit" size={14} /> Modifier la fiche
             </button>
-          )}
-          {client && (
-            <div style={{ marginTop: 16 }}>
-              <AuditCard p={p} />
-            </div>
-          )}
+            {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
+              <button className="toggle-link" onClick={() => setTousChamps((v) => !v)}>
+                {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -255,13 +312,18 @@ export default function Fiche({ id }) {
             <Field label="Entreprise">
               <input value={name} onChange={(e) => setName(e.target.value)} />
             </Field>
-            <div className="form-grid" style={{ marginTop: 12 }}>
-              {FICHE_FIELDS.map((x) => (
-                <Field key={x.key} label={x.label}>
-                  <FicheInput f={x} value={fiche[x.key]} onChange={(v) => setFiche((s) => ({ ...s, [x.key]: v }))} />
-                </Field>
-              ))}
-            </div>
+            {GROUPES_FICHE.map(([titre, keys]) => (
+              <div key={titre}>
+                <div className="kv-title">{titre}</div>
+                <div className="form-grid">
+                  {FICHE_FIELDS.filter((x) => keys.includes(x.key)).map((x) => (
+                    <Field key={x.key} label={x.label}>
+                      <FicheInput f={x} value={fiche[x.key]} onChange={(v) => setFiche((s) => ({ ...s, [x.key]: v }))} />
+                    </Field>
+                  ))}
+                </div>
+              </div>
+            ))}
             <button className="btn gold block" style={{ marginTop: 16 }} onClick={saveFiche}>
               Enregistrer
             </button>
@@ -276,6 +338,14 @@ export default function Fiche({ id }) {
     </div>
   )
 }
+
+// Rubriques de la fiche (onglet Informations et fenêtre « Modifier »)
+const GROUPES_FICHE = [
+  ['Contact', ['contact', 'fonction', 'telephone', 'whatsapp', 'instagram', 'site']],
+  ['Entreprise', ['secteur', 'ville', 'zone', 'taille', 'standard', 'concurrent']],
+  ['Origine et visibilité', ['source', 'recommande_par', 'pub_active', 'date_pub', 'budget_pub', 'presence_google', 'note_google', 'nb_avis']],
+  ['Offre et qualification', ['offre', 'abonnement', 'budget_ok', 'decideur', 'besoin', 'delai']],
+]
 
 const AUDIT = [
   ['site', 'Site internet (rapide, mobile, réservation / contact)'],
