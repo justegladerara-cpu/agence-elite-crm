@@ -68,7 +68,7 @@ export default function Fiche({ id }) {
   const detailsContact = nonVide([
     ['Instagram', ig && lien(instaLink(ig), ig)],
     ['Contact', f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`],
-    ['Téléphone', f.telephone && <a href={`tel:${f.telephone.replace(/\s/g, '')}`}>{f.telephone}</a>],
+    ['Téléphone', f.telephone && <a key="tel" href={`tel:${f.telephone.replace(/\s/g, '')}`}>{f.telephone}</a>],
     ['WhatsApp', f.whatsapp],
     ['Site', f.site && lien(siteLink(f.site), f.site)],
     ['Secteur', f.secteur],
