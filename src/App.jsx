@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { AppCtx, Modal, useToast, go, setDevise, DEVISES } from './ui'
+import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
@@ -25,15 +25,32 @@ import { syncRappels } from './lib/rappels'
 const NAV = [
   {
     items: [
-      { path: 'dashboard', label: 'Tableau de bord', ico: 'chart' },
-      { path: 'journee', label: 'Ma journée', ico: 'sun' },
+      {
+        path: 'dashboard',
+        memo: 'dashboard',
+        label: 'Tableau de bord',
+        ico: 'chart',
+        sub: [['?onglet=vue', "Vue d'ensemble"], ['?onglet=prospection', 'Prospection'], ['?onglet=ventes', 'Ventes et CA'], ['?onglet=clients', 'Clients'], ['?onglet=marche', 'Ce qui marche']],
+      },
+      {
+        path: 'journee',
+        memo: 'journee',
+        label: 'Ma journée',
+        ico: 'sun',
+        sub: [['?onglet=jour', "Aujourd'hui"], ['?onglet=chauds', 'Prospects chauds'], ['?onglet=alertes', 'Alertes'], ['?onglet=routine', 'Ma routine'], ['?onglet=historique', 'Bilan de la semaine']],
+      },
       { path: 'calendrier', label: 'Calendrier', ico: 'calendar' },
     ],
   },
   {
     titre: 'Prospection',
     items: [
-      { path: 'prospects', label: 'Prospects', ico: 'users' },
+      {
+        path: 'prospects',
+        label: 'Prospects',
+        ico: 'users',
+        sub: [['?etape=Actifs&vue=liste', 'En cours'], ['?vue=pipeline', 'Pipeline'], ['?etape=Proposition&vue=liste', 'Propositions'], ['?etape=Gagné&vue=liste', 'Gagnés'], ['?etape=Perdu&vue=liste', 'Perdus'], ['?etape=Tous&vue=liste', 'Tous']],
+      },
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
     ],
@@ -41,9 +58,21 @@ const NAV = [
   {
     titre: 'Ventes',
     items: [
-      { path: 'clients', label: 'Clients', ico: 'handshake' },
-      { path: 'devis', label: 'Devis', ico: 'clipboard' },
-      { path: 'factures', label: 'Factures', ico: 'file' },
+      {
+        path: 'clients',
+        memo: 'clients',
+        label: 'Clients',
+        ico: 'handshake',
+        sub: [['?filtre=tous', 'Tous'], ['?filtre=actifs', 'Actifs'], ['?filtre=encaisser', 'À encaisser'], ['?filtre=abonnes', 'Abonnés'], ['?filtre=alertes', 'À surveiller']],
+      },
+      { path: 'devis', memo: 'liste-devis', label: 'Devis', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
+      {
+        path: 'factures',
+        memo: 'liste-facture',
+        label: 'Factures',
+        ico: 'file',
+        sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
+      },
       { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
     ],
   },
@@ -51,6 +80,31 @@ const NAV = [
 ]
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
+const PARAMETRES = {
+  path: 'parametres',
+  label: 'Paramètres',
+  ico: 'settings',
+  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/compte', 'Compte']],
+}
+const lirePref = (k) => {
+  try {
+    return JSON.parse(localStorage.getItem(k)) || []
+  } catch {
+    return []
+  }
+}
+// Ouvre ou ferme un élément du menu et s'en souvient sur cet appareil
+function basculer(set, k, x) {
+  set((l) => {
+    const n = l.includes(x) ? l.filter((y) => y !== x) : [...l, x]
+    try {
+      localStorage.setItem(k, JSON.stringify(n))
+    } catch {
+      /* stockage indisponible : le menu reste ouvert pour la session */
+    }
+    return n
+  })
+}
 PAGES.saisie = 'Saisir une action'
 // Barre du bas sur téléphone : 5 boutons, le reste dans « Plus »
 const BOTTOM = [
@@ -111,6 +165,14 @@ function Crm() {
   }, [])
   // Menu « Plus » du téléphone : se referme dès qu'on change de page
   const [plusSur, setPlusSur] = useState(null)
+  const [deplies, setDeplies] = useState(() => lirePref('crm-nav-deplies'))
+  // Un onglet changé dans une page met à jour le sous-menu surligné
+  const [, rafraichir] = useReducer((x) => x + 1, 0)
+  useEffect(() => {
+    window.addEventListener('crm-onglet', rafraichir)
+    return () => window.removeEventListener('crm-onglet', rafraichir)
+  }, [])
+  const [replies, setReplies] = useState(() => lirePref('crm-nav-replies'))
   const plus = plusSur === route
   const setPlus = (v) => setPlusSur(v ? route : null)
   const [toast, toastNode] = useToast()
@@ -278,14 +340,15 @@ function Crm() {
     openAction: (prefill) => setActionModal(prefill || {}),
   }
 
-  const [page, argFull = ''] = route.split(/\/(.*)/s)
-  const [arg, query = ''] = argFull.split('?')
+  const [chemin, query = ''] = route.split('?')
+  const [page, arg = ''] = chemin.split(/\/(.*)/s)
+  const q = new URLSearchParams(query)
   const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
   const current =
     page === 'prospect' ? (data.clients.some((c) => c.id === arg) ? 'clients' : 'prospects') : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
-  else if (page === 'prospects') content = <Prospects />
+  else if (page === 'prospects') content = <Prospects key={route} vue={q.get('vue')} etape={q.get('etape')} />
   else if (page === 'prospect')
     content = (
       <div className="split">
@@ -295,17 +358,17 @@ function Crm() {
         </div>
       </div>
     )
-  else if (page === 'journee') content = <Journee />
-  else if (page === 'clients') content = <Clients />
+  else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
+  else if (page === 'clients') content = <Clients key={route} filtre={q.get('filtre')} />
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
   else if (page === 'calendrier') content = <Calendrier />
-  else if (page === 'factures' || page === 'devis') content = <Factures key={page} type={page === 'devis' ? 'devis' : 'facture'} />
+  else if (page === 'factures' || page === 'devis') content = <Factures key={route} type={page === 'devis' ? 'devis' : 'facture'} filtre={q.get('filtre')} />
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else content = <Dashboard />
+  else content = <Dashboard key={route} onglet={q.get('onglet')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
@@ -324,13 +387,44 @@ function Crm() {
       </span>
     ) : null
   }
-  const navBtn = (n) => (
-    <button key={n.path} className={`nav-item ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-      <span className="ico"><Icon n={n.ico} size={17} /></span>
-      {n.label}
-      {pastille(n.path)}
-    </button>
-  )
+  // Sous-rubrique surlignée : le lien exact, sinon l'onglet affiché dans la page
+  const sousActif = (n, h, cible) => {
+    if (!n.memo) return route === cible
+    const val = (x) => new URLSearchParams(x.slice(1)).values().next().value
+    return current === n.path && (ongletActuel(n.memo) || val(n.sub[0][0])) === val(h)
+  }
+  // Sous-menus : ouverts sous la rubrique active, ou dépliés à la main (mémorisé)
+  const navBtn = (n) => {
+    const ouvert = n.sub && (current === n.path || deplies.includes(n.path))
+    return (
+      <div key={n.path} className={`nav-node ${ouvert ? 'open' : ''}`}>
+        <div className="nav-row">
+          <button className={`nav-item ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
+            <span className="ico"><Icon n={n.ico} size={17} /></span>
+            {n.label}
+            {pastille(n.path)}
+          </button>
+          {n.sub && current !== n.path && (
+            <button className="nav-caret" title={ouvert ? 'Replier' : 'Voir les sous-rubriques'} aria-expanded={!!ouvert} onClick={() => basculer(setDeplies, 'crm-nav-deplies', n.path)}>
+              <Icon n="chevron" size={13} />
+            </button>
+          )}
+        </div>
+        {ouvert && (
+          <div className="nav-sub">
+            {n.sub.map(([h, l]) => {
+              const cible = `${n.path}${h}`
+              return (
+                <button key={h} className={sousActif(n, h, cible) ? 'on' : ''} onClick={() => go(`/${cible}`)}>
+                  {l}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <AppCtx.Provider value={ctx}>
@@ -352,14 +446,22 @@ function Crm() {
             <Icon n="plus" size={17} /> Saisir une action
           </button>
           <nav className="nav-scroll">
-            {NAV.map((g, i) => (
-              <div key={i} className="nav-group">
-                {g.titre && <div className="nav-title">{g.titre}</div>}
-                {g.items.map(navBtn)}
-              </div>
-            ))}
+            {NAV.map((g, i) => {
+              const replie = g.titre && replies.includes(g.titre) && !g.items.some((n) => n.path === current)
+              return (
+                <div key={i} className={`nav-group ${replie ? 'replie' : ''}`}>
+                  {g.titre && (
+                    <button className="nav-title" aria-expanded={!replie} onClick={() => basculer(setReplies, 'crm-nav-replies', g.titre)}>
+                      {g.titre}
+                      <Icon n="chevron" size={11} />
+                    </button>
+                  )}
+                  {!replie && g.items.map(navBtn)}
+                </div>
+              )
+            })}
           </nav>
-          {navBtn({ path: 'parametres', label: 'Paramètres', ico: 'settings' })}
+          {navBtn(PARAMETRES)}
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
         <main className="main">
@@ -404,17 +506,28 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" onClick={(e) => e.stopPropagation()}>
-              {NAV.map((g) => ({ ...g, items: g.items.filter((n) => !BOTTOM.some((b) => b.path === n.path)) })).filter((g) => g.items.length).map((g) => (
+              {NAV.map((g) => ({ ...g, grille: g.items.filter((n) => !BOTTOM.some((b) => b.path === n.path)) })).map((g) => (
                 <div key={g.titre || 'pilotage'} className="sheet-group">
                   <div className="nav-title">{g.titre || 'Pilotage'}</div>
+                  {g.grille.length > 0 && (
                   <div className="sheet-grid">
-                    {g.items.map((n) => (
+                    {g.grille.map((n) => (
                       <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
                         <Icon n={n.ico} size={20} />
                         {n.label}
                         {pastille(n.path)}
                       </button>
                     ))}
+                  </div>
+                  )}
+                  <div className="sheet-chips">
+                    {g.items.flatMap((n) =>
+                      (n.sub || []).map(([h, l]) => (
+                        <button key={n.path + h} className={route === n.path + h ? 'on' : ''} onClick={() => go(`/${n.path}${h}`)}>
+                          <Icon n={n.ico} size={12} /> {l}
+                        </button>
+                      )),
+                    )}
                   </div>
                 </div>
               ))}

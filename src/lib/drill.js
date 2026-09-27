@@ -33,7 +33,12 @@ export function detail(data, settings, periode, canal, spec, debut = periode.deb
     case 'encaisse':
       return A(acts.filter((x) => x.action === 'Paiement reçu' && canalOk(pc(x))))
     case 'depenses':
-      return A(acts.filter((x) => x.action === 'Dépense'))
+      return A(acts.filter((x) => x.action === 'Dépense' && (!key || (x.categorie || 'Sans catégorie') === key)))
+    case 'cellule': {
+      // Une case de la carte de chaleur : jour de la semaine et heure
+      const [j, h] = key
+      return A(acts.filter((x) => isProspection(x, L) && canalOk(x.canal) && x.time && weekday(x.date) === j && Number(x.time.slice(0, 2)) === h))
+    }
     case 'jour':
       // Un point de la courbe d'activité (key = série)
       return A(
@@ -100,6 +105,10 @@ export function detail(data, settings, periode, canal, spec, debut = periode.deb
       return P(clients.filter((c) => canalOk(c.prospect.canal) && c.reste > 0).map((c) => c.prospect))
     case 'abonnes':
       return P(clients.filter((c) => c.statut === 'Actif' && c.abonnement > 0 && canalOk(c.prospect.canal)).map((c) => c.prospect))
+    case 'secteurClients':
+      return P(clients.filter((c) => (c.prospect.fiche?.secteur || 'Non renseigné') === key).map((c) => c.prospect))
+    case 'paiementClients':
+      return P(clients.filter((c) => c.statutPaiement === key).map((c) => c.prospect))
     default:
       return P([])
   }

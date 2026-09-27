@@ -5,6 +5,7 @@ import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { detail } from '../lib/drill'
 import Drill from './Drill'
+import { PipelineEtapes, CumulMois, Heatmap, ClientsVue, depensesParCategorie } from './DashPlus'
 import { RelanceBoutons } from './Insta'
 import { facturesImpayees } from './Factures'
 import { RelanceTag, go, LienProspect } from '../ui'
@@ -317,11 +318,11 @@ function AFaire() {
 
 let dernierePeriode = 'Cette semaine'
 
-export default function Dashboard() {
+export default function Dashboard({ onglet: ongletDemande }) {
   const { data, settings, actions } = useApp()
   const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
-  const [onglet, setOnglet] = useTab('dashboard', 'vue')
+  const [onglet, setOnglet] = useTab('dashboard', 'vue', ongletDemande)
   const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -410,6 +411,7 @@ export default function Dashboard() {
           ['vue', "Vue d'ensemble"],
           ['prospection', 'Prospection'],
           ['ventes', 'Ventes et CA'],
+          ['clients', 'Clients', data.clientsAlertes.length || undefined],
           ['marche', 'Ce qui marche'],
         ]}
         value={onglet}
@@ -465,6 +467,11 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="layers" size={16} /></span> Pipeline en cours, étape par étape</h2>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>Tous les prospects ouverts aujourd'hui. Clique une étape pour ouvrir la liste filtrée.</div>
+          <PipelineEtapes />
+        </div>
         </>
       )}
 
@@ -554,6 +561,10 @@ export default function Dashboard() {
             <Kpi onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} label="Revenu récurrent (MRR)" value={eur(st.mrr)} />
           </div>
         <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Ce mois-ci : CA cumulé face à l'objectif</h2>
+          <CumulMois />
+        </div>
+        <div className="card">
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
             <h2 className="section" style={{ margin: 0 }}>
               <span className="sec-ic"><Icon n="trend" size={16} /></span> CA mois par mois ({year})
@@ -615,6 +626,10 @@ export default function Dashboard() {
           <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> CA signé par offre</h2>
           <Donut items={st.repOffre} fmt={eur} total="CA signé" onPick={(l) => voir(`Ventes : ${l}`, { kind: 'offre', key: l })} />
+        </div>
+          <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Dépenses par catégorie</h2>
+          <Donut items={depensesParCategorie(data, periode)} fmt={eur} total="dépenses" onPick={(l) => voir(`Dépenses : ${l}`, { kind: 'depenses', key: l === 'Autres' ? '' : l })} />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Pipeline et trésorerie</h2>
@@ -682,7 +697,15 @@ export default function Dashboard() {
         </>
       )}
 
+      {onglet === 'clients' && <ClientsVue voir={voir} />}
+
       {onglet === 'marche' && (
+      <>
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Quand tu prospectes et quand ça répond</h2>
+        <div className="tiny muted" style={{ marginBottom: 10 }}>DM et appels de la période, par jour et par heure. Plus la case est foncée, plus tu as contacté ; le point doré signale des réponses.</div>
+        <Heatmap periode={periode} canal={canal} onPick={(key, l) => voir(`Contacts du ${l}`, { kind: 'cellule', key })} />
+      </div>
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
@@ -709,6 +732,7 @@ export default function Dashboard() {
           <HBars onPick={(r) => voir(`Appels du ${r.label.toLowerCase()}`, { kind: 'jourSemaine', key: r.key })} rows={st.jours.map((m, i) => ({ key: i + 1, label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
         </div>
       </div>
+      </>
       )}
     </div>
   )

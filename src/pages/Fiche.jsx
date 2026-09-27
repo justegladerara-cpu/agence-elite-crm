@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
-import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
-import { FicheInput, ActionForm, ActionLine } from './Saisie'
+import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
+import { ActionForm, ActionLine } from './Saisie'
+import FicheForm, { GROUPES_FICHE, TOUS_CHAMPS } from './FicheForm'
 import { ProcessBar, ProchaineEtape, ScriptsCard, QualifCard } from './Insta'
 import { ligne } from '../lib/insta'
-import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
 import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
@@ -302,12 +302,14 @@ export default function Fiche({ id }) {
       {tab === 'fiche' && (
         <div className="stack">
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
-            {GROUPES_FICHE.map(([titre, keys]) => {
-              const champs = FICHE_FIELDS.filter((x) => keys.includes(x.key) && (tousChamps || f[x.key] || f[x.key] === 0))
+            {GROUPES_FICHE.map(({ titre, keys, ico }) => {
+              const champs = keys.map((k) => TOUS_CHAMPS.find((x) => x.key === k)).filter((x) => x && (tousChamps || f[x.key] || f[x.key] === 0))
               if (!champs.length) return null
               return (
                 <div key={titre} className="card">
-                  <h2 className="section">{titre}</h2>
+                  <h2 className="section">
+                    <span className="sec-ic"><Icon n={ico} size={16} /></span> {titre}
+                  </h2>
                   <KV
                     rows={champs.map((x) => {
                       let v = f[x.key]
@@ -327,9 +329,9 @@ export default function Fiche({ id }) {
             <button className="btn sm" onClick={startEdit}>
               <Icon n="edit" size={14} /> Modifier la fiche
             </button>
-            {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
+            {TOUS_CHAMPS.some((x) => !f[x.key] && f[x.key] !== 0) && (
               <button className="toggle-link" onClick={() => setTousChamps((v) => !v)}>
-                {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
+                {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${TOUS_CHAMPS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
               </button>
             )}
           </div>
@@ -338,23 +340,12 @@ export default function Fiche({ id }) {
 
       {editing && (
         <Modal title="Modifier la fiche" onClose={() => setEditing(false)}>
-          <div className="card">
-            <Field label="Entreprise">
-              <input value={name} onChange={(e) => setName(e.target.value)} />
-            </Field>
-            {GROUPES_FICHE.map(([titre, keys]) => (
-              <div key={titre}>
-                <div className="kv-title">{titre}</div>
-                <div className="form-grid">
-                  {FICHE_FIELDS.filter((x) => keys.includes(x.key)).map((x) => (
-                    <Field key={x.key} label={x.label}>
-                      <FicheInput f={x} value={fiche[x.key]} onChange={(v) => setFiche((s) => ({ ...s, [x.key]: v }))} />
-                    </Field>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <button className="btn gold block" style={{ marginTop: 16 }} onClick={saveFiche}>
+          <FicheForm name={name} setName={setName} fiche={fiche} setFiche={setFiche} exceptId={p.id} ouvertes={['contact', 'entreprise', 'origine', 'offre']} />
+          <div className="ff-foot">
+            <button className="btn" onClick={() => setEditing(false)}>
+              Annuler
+            </button>
+            <button className="btn gold" onClick={saveFiche}>
               Enregistrer
             </button>
           </div>
@@ -398,13 +389,6 @@ function NoteRapide({ pid }) {
   )
 }
 
-// Rubriques de la fiche (onglet Informations et fenêtre « Modifier »)
-const GROUPES_FICHE = [
-  ['Contact', ['contact', 'fonction', 'telephone', 'whatsapp', 'instagram', 'site']],
-  ['Entreprise', ['secteur', 'ville', 'zone', 'taille', 'standard', 'concurrent']],
-  ['Origine et visibilité', ['source', 'recommande_par', 'pub_active', 'date_pub', 'budget_pub', 'presence_google', 'note_google', 'nb_avis']],
-  ['Offre et qualification', ['offre', 'abonnement', 'budget_ok', 'decideur', 'besoin', 'delai']],
-]
 
 const AUDIT = [
   ['site', 'Site internet (rapide, mobile, réservation / contact)'],

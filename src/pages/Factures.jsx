@@ -41,7 +41,7 @@ export function facturesImpayees(documents, actions) {
 }
 
 // ---------- Liste ----------
-export default function Factures({ type = 'facture' }) {
+export default function Factures({ type = 'facture', filtre: filtreDemande }) {
   const { documents, actions, data } = useApp()
   const [q, setQ] = useState('')
   const docs = useMemo(
@@ -80,7 +80,7 @@ export default function Factures({ type = 'facture' }) {
           ['acceptes', 'Acceptés', (d) => d.statut === 'Accepté'],
           ['refuses', 'Refusés ou expirés', (d) => d.statut === 'Refusé' || d.statut === 'Expiré'],
         ]
-  const [filtre, setFiltre] = useTab(`liste-${type}`, 'toutes')
+  const [filtre, setFiltre] = useTab(`liste-${type}`, 'toutes', filtreDemande)
   const fx = FILTRES.find(([k]) => k === filtre) || FILTRES[0]
   const vus = docs.filter(fx[2])
 

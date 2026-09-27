@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useApp, Kpi, Empty, Modal, Field, go, eur, nb, Tabs, useTab } from '../ui'
+import { useApp, Kpi, Empty, Modal, Field, go, eur, nb, Tabs, useTab, Menu } from '../ui'
+import { waLink } from '../lib/logic'
 import { PaiementForm } from './Finances'
 import { fmtDate, today, nowTime } from '../lib/dates'
 
@@ -82,8 +83,8 @@ export function AncienClient({ onClose }) {
   )
 }
 
-export default function Clients() {
-  const { data, openAction } = useApp()
+export default function Clients({ filtre: filtreDemande }) {
+  const { data, settings, openAction } = useApp()
   const [pay, setPay] = useState(null)
   const [ancien, setAncien] = useState(false)
   const cl = [...data.clients].sort((a, b) => (a.statut === b.statut ? (b.prospect.dateSignature || '').localeCompare(a.prospect.dateSignature || '') : a.statut === 'Actif' ? -1 : 1))
@@ -98,7 +99,7 @@ export default function Clients() {
     ['abonnes', 'Abonnés', (c) => c.abonnement > 0],
     ['alertes', 'À surveiller', (c) => !!c.alerte],
   ]
-  const [filtre, setFiltre] = useTab('clients', 'tous')
+  const [filtre, setFiltre] = useTab('clients', 'tous', filtreDemande)
   const fx = FILTRES.find(([k]) => k === filtre) || FILTRES[0]
   const vus = cl.filter(fx[2])
   const tone = { Payé: 'b-green', 'En retard': 'b-red', Partiel: 'b-orange', 'En attente': 'b-gold' }
@@ -138,6 +139,7 @@ export default function Clients() {
                   <th className="num">Reste</th>
                   <th className="num hide-m">Abonnement</th>
                   <th className="hide-m" />
+                  <th style={{ width: 40 }} />
                 </tr>
               </thead>
               <tbody>
@@ -171,12 +173,31 @@ export default function Clients() {
                         <button className="btn sm" onClick={() => setPay({ prospect_id: c.id, montant: c.reste ? String(c.reste) : '' })}>
                           + Paiement
                         </button>
-                        {!c.nbInterventions && c.onboarding < 1 && (
-                          <button className="btn sm" title={`Onboarding ${Math.round(c.onboarding * 100)} %`} onClick={() => openAction({ prospect_id: c.id, action: nextOnboarding(c) })}>
-                            + Suivi
-                          </button>
-                        )}
                       </div>
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <Menu
+                        label=""
+                        icon="menu"
+                        className="icon-btn"
+                        items={[
+                          { label: 'Nouvelle facture', icon: 'file', onClick: () => go(`/facture/new?type=facture&p=${c.id}`) },
+                          { label: 'Nouveau devis', icon: 'clipboard', onClick: () => go(`/facture/new?type=devis&p=${c.id}`) },
+                          '-',
+                          { label: 'Saisir une intervention', icon: 'bolt', onClick: () => openAction({ prospect_id: c.id, action: 'Intervention', canal: 'Appel' }) },
+                          { label: 'Paiement reçu', icon: 'coins', onClick: () => setPay({ prospect_id: c.id, montant: c.reste ? String(c.reste) : '' }) },
+                          !c.nbInterventions && c.onboarding < 1 && { label: `Suivi : ${nextOnboarding(c)}`, icon: 'check', onClick: () => openAction({ prospect_id: c.id, action: nextOnboarding(c) }) },
+                          { label: 'Autre action', icon: 'plus', onClick: () => openAction({ prospect_id: c.id }) },
+                          '-',
+                          c.prospect.fiche?.telephone && { label: 'Appeler', icon: 'phone', onClick: () => (window.location.href = `tel:${c.prospect.fiche.telephone}`) },
+                          waLink(c.prospect.fiche?.whatsapp || c.prospect.fiche?.telephone, settings.clients.indicatifWhatsApp) && {
+                            label: 'WhatsApp',
+                            icon: 'message',
+                            onClick: () => window.open(waLink(c.prospect.fiche?.whatsapp || c.prospect.fiche?.telephone, settings.clients.indicatifWhatsApp), '_blank'),
+                          },
+                          { label: 'Ouvrir la fiche', icon: 'eye', onClick: () => go(`/prospect/${c.id}`) },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))}

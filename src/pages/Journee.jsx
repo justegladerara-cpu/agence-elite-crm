@@ -33,12 +33,12 @@ function ProspectRow({ p, children, overdue, relance }) {
   )
 }
 
-export default function Journee() {
+export default function Journee({ onglet: ongletDemande }) {
   const { data, settings, prospects, api, toast, documents, actions } = useApp()
   const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
   const t = today()
   const { jour, update } = useJournee(t)
-  const [onglet, setOnglet] = useTab('journee', 'jour')
+  const [onglet, setOnglet] = useTab('journee', 'jour', ongletDemande)
   const tab = onglet === 'relances' ? 'jour' : onglet
   const h = new Date().getHours()
   const hello = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir'
