@@ -32,13 +32,8 @@ export default function Login() {
   return (
     <div className="login">
       <form className="card stack" onSubmit={submit}>
-        <div className="brand">
-          <Logo />
-          <div>
-            <div className="brand-name">AGENCE ELITE</div>
-            <div className="brand-sub">CRM de pilotage</div>
-          </div>
-        </div>
+        <Logo full />
+        <div className="login-sub">CRM de pilotage</div>
         <p className="login-tag">Chaque appel compte. Pilote ta prospection, du premier message à la signature.</p>
         <div className="field">
           <label>E-mail</label>

@@ -186,7 +186,7 @@ function Crm() {
       <div className="app">
         <aside className="sidebar">
           <div className="brand">
-            <Logo />
+            <Logo size={36} />
             <div>
               <div className="brand-name">AGENCE ELITE</div>
               <div className="brand-sub">CRM de pilotage</div>

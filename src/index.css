@@ -339,3 +339,10 @@ details.script p { margin: 10px 0; line-height: 1.55; }
   .list-item .li-side .row .icon-btn:not(:first-child) { display: none; }
   .list-item .li-title { font-size: 14.5px; }
 }
+
+/* Logo officiel */
+.logo { display: block; flex-shrink: 0; }
+.logo-full { display: block; width: 230px; max-width: 70%; height: auto; margin: 0 auto 6px; }
+.login-sub { text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-3); margin-bottom: 10px; }
+.sidebar .brand { gap: 10px; }
+.sidebar .brand-name { font-size: 13.5px; letter-spacing: .1em; white-space: nowrap; }

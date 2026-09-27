@@ -1,5 +1,3 @@
-import { useId } from 'react'
-
 // Icônes au trait (style Lucide), en SVG pour un rendu net et homogène
 const P = {
   sun: 'M12 3v2M12 19v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M3 12h2M19 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z',
@@ -71,23 +69,8 @@ export function withIcon(s) {
   )
 }
 
-// Monogramme de la marque : écusson or sur fond marine
-export function Logo({ size = 40 }) {
-  const id = `lg${useId().replace(/[^a-zA-Z0-9]/g, '')}`
-  return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" className="logo">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f3dca0" />
-          <stop offset=".5" stopColor="#d2a94f" />
-          <stop offset="1" stopColor="#a8792a" />
-        </linearGradient>
-      </defs>
-      <rect x="1" y="1" width="46" height="46" rx="13" fill="#0b1830" stroke={`url(#${id})`} strokeWidth="1.5" />
-      <path d="M24 7l3 5.5h-6z" fill={`url(#${id})`} />
-      <text x="24" y="34" textAnchor="middle" fontFamily="Fraunces, Georgia, serif" fontSize="22" fontWeight="600" fill={`url(#${id})`}>
-        AE
-      </text>
-    </svg>
-  )
+// Logo officiel Agence Elite (fichiers dans public/)
+export function Logo({ size = 40, full = false, dark = true }) {
+  if (full) return <img src="/logo-full.png" alt="Agence Elite" className="logo-full" />
+  return <img src={dark ? '/logo-mark-light.png' : '/logo-mark.png'} alt="Agence Elite" className="logo" style={{ width: size * 1.45, height: 'auto' }} />
 }
