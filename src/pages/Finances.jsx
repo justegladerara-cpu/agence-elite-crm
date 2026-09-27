@@ -1,7 +1,7 @@
 // Paiements reçus et dépenses (onglets du menu Factures)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, LienProspect, LienDoc } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { totals, paiementsDe, num } from '../lib/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
@@ -388,9 +388,16 @@ export function PaiementsTab() {
             {liste.map((a) => (
               <div key={a.id} className="list-item click" onClick={() => setModal({ edit: a })}>
                 <div className="li-main">
-                  <div className="li-title">{data.byId[a.prospect_id]?.name || a.notes || 'Paiement sans client'}</div>
+                  <div className="li-title">{a.prospect_id ? <LienProspect id={a.prospect_id} /> : a.notes || 'Paiement sans client'}</div>
                   <div className="li-sub">
-                    {[fmtDate(a.date), a.mode, a.facture && `Facture ${a.facture}`, a.reference && `Réf. ${a.reference}`].filter(Boolean).join(' · ')}
+                    {[fmtDate(a.date), a.mode].filter(Boolean).join(' · ')}
+                    {a.facture && (
+                      <>
+                        {' · Facture '}
+                        <LienDoc numero={a.facture} />
+                      </>
+                    )}
+                    {a.reference ? ` · Réf. ${a.reference}` : ''}
                   </div>
                 </div>
                 <div className="li-side">

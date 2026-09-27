@@ -3,7 +3,7 @@ import { Icon } from '../icons'
 import { RelanceBoutons } from './Insta'
 import BilanSemaine from './Bilan'
 import { RelanceFactureBtn, facturesImpayees } from './Factures'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Tabs, useTab } from '../ui'
+import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Tabs, useTab, LienProspect } from '../ui'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
 import { today, fmtDate, diffDays, weekday } from '../lib/dates'
@@ -187,7 +187,9 @@ export default function Journee() {
             {impayees.map((d) => (
               <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
                 <div className="li-main">
-                  <div className="li-title">{d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}</div>
+                  <div className="li-title">
+                    <LienProspect id={d.prospect_id}>{d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}</LienProspect>
+                  </div>
                   <div className="li-sub">
                     {d.numero} · reste {eur(d.reste)} · échéance {fmtDate(d.data?.echeance)}
                   </div>

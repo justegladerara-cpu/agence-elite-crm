@@ -1,5 +1,5 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useApp, Modal, Field, go, RelanceTag } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
@@ -211,8 +211,15 @@ function useProcess(p) {
 // Barre d'étapes façon Zoho (en haut de la fiche) : clic = enregistrer l'étape, clic sur une étape faite = l'annuler
 export function ProcessBar({ p }) {
   const { etats, courante, busy, cliquer } = useProcess(p)
+  const bar = useRef(null)
+  // Sur téléphone, la barre défile pour montrer l'étape en cours
+  useEffect(() => {
+    const el = bar.current
+    const cur = el?.querySelector('.stage.current')
+    if (el && cur && el.scrollWidth > el.clientWidth) el.scrollLeft = cur.offsetLeft - el.clientWidth / 2 + cur.offsetWidth / 2
+  }, [courante, p.id])
   return (
-    <div className="stagebar" role="list" aria-label="Process Instagram">
+    <div className="stagebar" role="list" aria-label="Process Instagram" ref={bar}>
       {etats.map((e, i) => {
         const cls = e.ok ? 'done' : i === courante ? 'current' : ''
         return (

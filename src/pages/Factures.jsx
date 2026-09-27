@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
@@ -150,7 +150,9 @@ export default function Factures({ type = 'facture' }) {
                   <tr key={d.id} className="click" onClick={() => go(`/facture/${d.id}`)}>
                     <td>{fmtDate(d.data?.date)}</td>
                     <td className="lnk">{d.numero}</td>
-                    <td className="bold ell">{d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}</td>
+                    <td className="bold ell">
+                      <LienProspect id={d.prospect_id}>{d.data?.client?.nom || data.byId[d.prospect_id]?.name || 'Sans client'}</LienProspect>
+                    </td>
                     <td className="muted ell hide-m">{d.data?.objet || ''}</td>
                     <td>
                       <span className={`badge ${STATUT_TONE[d.statut] || 'b-gold'}`}>{d.statut}</span>
@@ -392,8 +394,21 @@ export function DocEditor({ id, query }) {
           </h1>
           <div className="sub row" style={{ gap: 8 }}>
             {saved && <span className={`badge ${STATUT_TONE[statut] || 'b-gold'}`}>{statut}</span>}
-            {d.devisNumero && <span>Issue du devis {d.devisNumero}</span>}
-            {d.factureNumero && <span>Transformé en facture {d.factureNumero}</span>}
+            {saved && doc.prospect_id && (
+              <span>
+                Client : <LienProspect id={doc.prospect_id} />
+              </span>
+            )}
+            {d.devisNumero && (
+              <span>
+                Issue du devis <LienDoc id={d.devisId} numero={d.devisNumero} />
+              </span>
+            )}
+            {d.factureNumero && (
+              <span>
+                Transformé en facture <LienDoc numero={d.factureNumero} />
+              </span>
+            )}
           </div>
         </div>
         <div className="row">

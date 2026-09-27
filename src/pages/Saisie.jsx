@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Chips, Field, Select, StageBadge, eur, Empty, Modal } from '../ui'
+import { useApp, Chips, Field, Select, StageBadge, eur, Empty, Modal, LienDoc } from '../ui'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
 import { montantRetenu } from '../lib/logic'
@@ -498,6 +498,12 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
           {a.prochaine_action ? ` · ➜ ${a.prochaine_action}` : ''}
           {a.date_relance ? ` (${fmtDate(a.date_relance)}${a.heure_rappel ? ' ' + a.heure_rappel : ''})` : ''}
           {a.notes ? ` · « ${a.notes} »` : ''}
+          {a.facture && (
+            <>
+              {' · '}
+              <LienDoc numero={a.facture} />
+            </>
+          )}
         </div>
       </div>
       <div className="li-side">

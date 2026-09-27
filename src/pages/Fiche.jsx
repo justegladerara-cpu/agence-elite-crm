@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
-import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab, Menu, KV } from '../ui'
+import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
 import { ProcessBar, ProchaineEtape, ScriptsCard, QualifCard } from './Insta'
+import { ligne } from '../lib/insta'
 import { FICHE_FIELDS } from '../lib/defaults'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
@@ -53,6 +54,11 @@ export default function Fiche({ id }) {
   }
 
   const ig = f.instagram
+  // Relations : qui l'a recommandé, qui il a recommandé, ses factures
+  const memeNom = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase()
+  const parrain = f.recommande_par && data.list.find((x) => x.id !== p.id && memeNom(x.name, f.recommande_par))
+  const filleuls = data.list.filter((x) => x.id !== p.id && memeNom(x.fiche?.recommande_par, p.name))
+  const factures = documents.filter((d) => d.prospect_id === p.id && d.type === 'facture' && !d.data?.annulee)
   const lien = (href, txt) => (
     <a href={href} target="_blank" rel="noreferrer">
       {txt}
@@ -70,6 +76,20 @@ export default function Fiche({ id }) {
     ['Ville', [f.ville, f.zone].filter(Boolean).join(' · ')],
     ['Signal repéré', f.signal],
     ['Source', f.source],
+    ['Recommandé par', f.recommande_par && (parrain ? <LienProspect key="rp" id={parrain.id} /> : f.recommande_par)],
+    [
+      'A recommandé',
+      filleuls.length > 0 && (
+        <span key="fl">
+          {filleuls.map((x, i) => (
+            <span key={x.id}>
+              {i ? ', ' : ''}
+              <LienProspect id={x.id} />
+            </span>
+          ))}
+        </span>
+      ),
+    ],
   ])
   const detailsSuivi = [
     ['Étape', <StageBadge key="e" etape={p.etape} />],
@@ -90,6 +110,15 @@ export default function Fiche({ id }) {
     ['Dernière objection', p.objection],
     ['Temps passé', p.tempsPasse && `${p.tempsPasse} min`],
     ['Démo du secteur', p.demo && lien(siteLink(p.demo), 'Ouvrir')],
+    [
+      'Factures',
+      factures.length > 0 && (
+        <button key="fa" type="button" className="toggle-link" onClick={() => setOnglet('docs')}>
+          {factures.length} facture{factures.length > 1 ? 's' : ''}
+          {client?.reste > 0 ? `, reste ${eur(client.reste)}` : ''}
+        </button>
+      ),
+    ],
   ])
   const history = [...p.acts].reverse()
 
@@ -212,6 +241,7 @@ export default function Fiche({ id }) {
                   Tout voir ({p.acts.length})
                 </button>
               </h2>
+              <NoteRapide pid={p.id} />
               <div className="list">
                 {history.length === 0 && <Empty>Aucune action.</Empty>}
                 {history.slice(0, 5).map((a) => (
@@ -336,6 +366,35 @@ export default function Fiche({ id }) {
         </Modal>
       )}
     </div>
+  )
+}
+
+// Note rapide : une ligne « Note » dans l'historique, sans ouvrir le formulaire
+function NoteRapide({ pid }) {
+  const { api, toast } = useApp()
+  const [txt, setTxt] = useState('')
+  const [busy, setBusy] = useState(false)
+  const ajouter = async (e) => {
+    e.preventDefault()
+    const t = txt.trim()
+    if (!t) return
+    setBusy(true)
+    try {
+      await api.addActions([ligne(pid, { action: 'Note', notes: t })])
+      setTxt('')
+      toast('Note ajoutée ✓')
+    } catch {
+      // erreur déjà affichée
+    }
+    setBusy(false)
+  }
+  return (
+    <form className="note-rapide" onSubmit={ajouter}>
+      <input className="input" placeholder="Ajouter une note (appel, remarque, idée…)" value={txt} onChange={(e) => setTxt(e.target.value)} />
+      <button className="btn sm primary" disabled={busy || !txt.trim()}>
+        Ajouter
+      </button>
+    </form>
   )
 }
 

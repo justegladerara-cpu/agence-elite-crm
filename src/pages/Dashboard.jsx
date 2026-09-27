@@ -3,12 +3,17 @@ import { useApp, Kpi, eur, pct, nb, Tabs, useTab } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
+import { detail } from '../lib/drill'
+import Drill from './Drill'
+import { RelanceBoutons } from './Insta'
+import { facturesImpayees } from './Factures'
+import { RelanceTag, go, LienProspect } from '../ui'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
 const C_ENC = '#b8862b'
 
-function MonthChart({ series, objectif = 0 }) {
+function MonthChart({ series, objectif = 0, onPick }) {
   const [hover, setHover] = useState(null)
   const [box, W] = useWidth(640)
   const H = W < 500 ? 200 : 230
@@ -49,7 +54,7 @@ function MonthChart({ series, objectif = 0 }) {
         {series.map((m, i) => {
           const x0 = pad.l + i * gw + (gw - 2 * bw - 2) / 2
           return (
-            <g key={m.key} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+            <g key={m.key} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)} onClick={() => onPick && onPick(m.key)} style={onPick ? { cursor: 'pointer' } : undefined}>
               <rect x={pad.l + i * gw} y={pad.t} width={gw} height={ih} fill={hover === i ? '#f3f5f9' : 'transparent'} />
               {bar(x0, m.caSigne, C_SIGNE)}
               {bar(x0 + bw + 2, m.encaisse, C_ENC)}
@@ -85,6 +90,7 @@ function MonthChart({ series, objectif = 0 }) {
           </div>
           <div className="muted">Bénéfice : {eur(series[hover].benefice)}</div>
           {objectif > 0 && <div className="muted">Objectif : {eur(objectif)} ({Math.round((series[hover].caSigne / objectif) * 100)} %)</div>}
+          {onPick && <div className="tiny gold-ink">Clique pour voir ce mois</div>}
         </div>
       )}
     </div>
@@ -96,7 +102,7 @@ function niceStep(max) {
   return [1, 2, 2.5, 5, 10].map((k) => k * p).find((s) => s >= raw)
 }
 
-function RateTable({ title, rows, cols }) {
+function RateTable({ title, rows, cols, onPick }) {
   return (
     <div>
       <h2 className="section">{withIcon(title)}</h2>
@@ -113,7 +119,7 @@ function RateTable({ title, rows, cols }) {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={i}>
+              <tr key={i} className={onPick && r.canal !== 'Total' ? 'click' : ''} onClick={() => onPick && r.canal !== 'Total' && onPick(r)}>
                 {cols.map((c) => (
                   <td key={c[0]} className={c[2] ? 'num' : ''}>
                     {c[1](r)}
@@ -136,7 +142,7 @@ const SERIES = [
   ['appels', 'Appels', '#eda100'],
 ]
 const JOURS_COURTS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.']
-function ActivityChart({ buckets, parSemaine }) {
+function ActivityChart({ buckets, parSemaine, onPick }) {
   const [hover, setHover] = useState(null)
   const [off, setOff] = useState({})
   // Largeur réelle : textes lisibles aussi sur mobile
@@ -150,7 +156,7 @@ function ActivityChart({ buckets, parSemaine }) {
     return () => ro.disconnect()
   }, [])
   const H = W < 500 ? 220 : 250
-  const pad = { l: 34, r: 74, t: 14, b: 28 }
+  const pad = { l: 34, r: 92, t: 14, b: 28 }
   const iw = W - pad.l - pad.r
   const ih = H - pad.t - pad.b
   const vis = SERIES.filter(([k]) => !off[k])
@@ -195,7 +201,7 @@ function ActivityChart({ buckets, parSemaine }) {
         ))}
       </div>
       <div style={{ position: 'relative' }} ref={box}>
-        <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Activité par jour : DM, réponses, Looms et appels" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onTouchStart={(e) => onMove(e.touches[0] ? { currentTarget: e.currentTarget, clientX: e.touches[0].clientX } : e)}>
+        <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Activité par jour : DM, réponses, Looms et appels" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onClick={() => onPick && hover !== null && onPick(buckets[hover])} style={onPick ? { cursor: 'pointer' } : undefined} onTouchStart={(e) => onMove(e.touches[0] ? { currentTarget: e.currentTarget, clientX: e.touches[0].clientX } : e)}>
           {ticks.map((v) => (
             <g key={v}>
               <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="#eceae4" />
@@ -232,6 +238,7 @@ function ActivityChart({ buckets, parSemaine }) {
                 <b>{hb[k]}</b>
               </div>
             ))}
+            {onPick && <div className="tiny gold-ink">Clique pour voir le détail</div>}
           </div>
         )}
       </div>
@@ -240,14 +247,14 @@ function ActivityChart({ buckets, parSemaine }) {
 }
 
 // Chiffre clé en grand, avec l'évolution par rapport à la période précédente
-function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb }) {
+function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
   const comp = prev !== null && prev !== undefined
   const diff = comp ? cur - prev : 0
   const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
   const p = comp && prev ? Math.round((diff / prev) * 100) : null
   const pill = !comp ? null : diff === 0 ? '= stable' : `${diff > 0 ? '↑' : '↓'} ${p === null ? `+${fmt(diff)}` : `${Math.abs(p)} %`}`
   return (
-    <div className="bigkpi">
+    <div className={`bigkpi ${onClick ? 'pick' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}>
       <div className="bk-head">
         <span className="bk-ic"><Icon n={ico} size={16} /></span>
         {label}
@@ -258,6 +265,52 @@ function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb }) {
         {comp && <span className="bk-prev">{vs.charAt(0).toUpperCase() + vs.slice(1)} : {fmt(prev)}</span>}
       </div>
       {sub && <div className="bk-sub">{sub}</div>}
+      {onClick && <span className="bk-more">Voir <Icon n="chevron" size={12} /></span>}
+    </div>
+  )
+}
+
+// « À faire maintenant » : les relances du jour et les factures en retard, actionnables sans quitter le tableau de bord
+function AFaire() {
+  const { data, documents, actions } = useApp()
+  const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
+  const relances = data.aRelancer.slice(0, 5)
+  if (!relances.length && !impayees.length) return null
+  return (
+    <div className="card">
+      <h2 className="section">
+        <span className="sec-ic"><Icon n="bolt" size={16} /></span> À faire maintenant
+        <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => go('/journee')}>
+          Ma journée ({data.aRelancer.length})
+        </button>
+      </h2>
+      <div className="afaire">
+        {relances.map((p) => (
+          <div key={p.id} className="af-row">
+            <div className="li-main">
+              <div className="li-title">
+                <LienProspect id={p.id} />
+              </div>
+              <div className="li-sub">
+                <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction || ''}
+              </div>
+            </div>
+            <div className="af-btns">
+              <RelanceBoutons p={p} compact />
+            </div>
+          </div>
+        ))}
+        {impayees.length > 0 && (
+          <button type="button" className="af-row af-fact" onClick={() => go('/factures')}>
+            <Icon n="file" size={16} />
+            <span className="li-main">
+              <b>{impayees.length} facture{impayees.length > 1 ? 's' : ''} à relancer</b>
+              <span className="li-sub"> · reste {eur(impayees.reduce((m, d) => m + d.reste, 0))}</span>
+            </span>
+            <Icon n="chevron" size={14} />
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -269,6 +322,7 @@ export default function Dashboard() {
   const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
   const [onglet, setOnglet] = useTab('dashboard', 'vue')
+  const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
   dernierePeriode = mois
@@ -286,6 +340,7 @@ export default function Dashboard() {
   const dayN = t.getDate()
   const daysIn = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate()
   const om = settings.objectifsMois
+  const GAUGE_KIND = { Appels: 'appels', DM: 'dm', RDV: 'rdv', 'Clients signés': 'signes', 'CA signé': 'ventes' }
   const goals = [
     ['Appels', cm.appels, om.appels, nb],
     ['DM', cm.dm, om.dm, nb],
@@ -303,6 +358,16 @@ export default function Dashboard() {
   const act = activitySeries(data, periode, canal)
   const pvv = (k) => (pv ? pv[k] : null)
   const contacts = c.dm + c.appels
+  // Clic sur un chiffre : ouvre la liste de ce qui le compose
+  const voir = (titre, spec, opts = {}) => setDrill({ titre, spec, ...opts })
+  const moisCourant = periodeFor('Mois en cours')
+  const drillRes = drill
+    ? detail(data, settings, periode, drill.canal ?? canal, drill.spec, drill.debut ?? periode.debut, drill.fin ?? periode.fin)
+    : null
+  const choisirMois = (key) => {
+    setMois(key)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div className="stack">
@@ -335,6 +400,11 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {drill && <Drill titre={drill.titre} sous={drill.sous || titre} res={drillRes} onClose={() => setDrill(null)} />}
+      <div className="tiny muted dash-hint">
+        <Icon n="eye" size={13} /> Clique sur un chiffre, une barre ou une part de graphique pour voir les prospects et actions derrière.
+      </div>
+
       <Tabs
         items={[
           ['vue', "Vue d'ensemble"],
@@ -349,32 +419,46 @@ export default function Dashboard() {
       {onglet === 'vue' && (
         <>
         <div className="bigkpis">
-          <BigKpi ico="instagram" label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
-          <BigKpi ico="message" label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
-          <BigKpi ico="play" label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
-          <BigKpi ico="phone" label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
-          <BigKpi ico="handshake" label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
-          <BigKpi ico="coins" label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
+          <BigKpi ico="instagram" onClick={() => voir('DM envoyés', { kind: 'dm' })} label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
+          <BigKpi ico="message" onClick={() => voir('Réponses', { kind: 'reponses' })} label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
+          <BigKpi ico="play" onClick={() => voir('Looms et audits', { kind: 'looms' })} label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
+          <BigKpi ico="phone" onClick={() => voir('Appels', { kind: 'appels' })} label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
+          <BigKpi ico="handshake" onClick={() => voir('Clients signés', { kind: 'signes' })} label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
+          <BigKpi ico="coins" onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
         </div>
+
+        <AFaire />
 
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="trend" size={16} /></span> Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
-          <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} />
+          <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} onPick={(b) => voir(act.parSemaine ? `Activité de la semaine du ${fmtDate(b.date)}` : `Activité du ${fmtDate(b.date)}`, { kind: 'jour' }, { debut: b.date, fin: b.fin, sous: null })} />
         </div>
 
         <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir de ton process</h2>
             <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
-            <Funnel steps={st.process} />
-            {st.perdus > 0 && <div className="tiny muted" style={{ marginTop: 4 }}>{st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période.</div>}
+            <Funnel steps={st.process} onPick={(i) => voir(`Entonnoir : ${st.process[i].label}`, { kind: 'etapeProcess', key: i })} />
+            {st.perdus > 0 && (
+              <button className="toggle-link tiny" style={{ marginTop: 4 }} onClick={() => voir('Prospects perdus', { kind: 'perdus' })}>
+                {st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période
+              </button>
+            )}
           </div>
 
           <div className="card">
             <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
             <div className="gauges">
               {goals.map(([l, v, cible, fmt]) => (
-                <Gauge key={l} label={l} value={v} cible={cible} proj={dayN ? (v / dayN) * daysIn : 0} fmt={fmt} />
+                <Gauge
+                  key={l}
+                  label={l}
+                  value={v}
+                  cible={cible}
+                  proj={dayN ? (v / dayN) * daysIn : 0}
+                  fmt={fmt}
+                  onClick={() => voir(`${l} du mois`, { kind: GAUGE_KIND[l] }, { debut: moisCourant.debut, fin: moisCourant.fin, canal: 'Tous', sous: fmtMonth(moisCourant.key) })}
+                />
               ))}
             </div>
             <div className="tiny muted" style={{ marginTop: 10 }}>Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.</div>
@@ -387,24 +471,25 @@ export default function Dashboard() {
       {onglet === 'prospection' && (
         <>
           <div className="grid grid-4">
-            <Kpi label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} navy />
+            <Kpi onClick={() => voir('Prospects ajoutés', { kind: 'prospects' })} label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} navy />
             <Kpi label="Contacts (DM + appels)" value={nb(contacts)} delta={pv ? contacts - pv.dm - pv.appels : null} vs={vs} navy />
-            <Kpi label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
-            <Kpi label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
+            <Kpi onClick={() => voir('RDV obtenus', { kind: 'rdv' })} label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
+            <Kpi onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
           </div>
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="radio" size={16} /></span> D'où viennent tes prospects</h2>
-          <Donut items={st.repCanal} total="prospects" />
+          <Donut items={st.repCanal} total="prospects" onPick={(l) => voir(`Prospects du canal ${l}`, { kind: 'canal', key: l })} />
         </div>
           <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="tag" size={16} /></span> Secteurs prospectés</h2>
-          <Donut items={st.repSecteur} total="prospects" />
+          <Donut items={st.repSecteur} total="prospects" onPick={(l) => voir(`Secteur : ${l}`, { kind: 'secteur', key: l })} />
         </div>
           </div>
         <div className="card">
           <RateTable
             title="📡 Ce que produit chaque canal"
+            onPick={(r) => voir(`Prospects du canal ${r.canal}`, { kind: 'canal', key: r.canal })}
             rows={[
               ...st.parCanal,
               st.parCanal.reduce(
@@ -463,10 +548,10 @@ export default function Dashboard() {
       {onglet === 'ventes' && (
         <>
           <div className="grid grid-4">
-            <Kpi label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} vs={vs} navy />
+            <Kpi onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} vs={vs} navy />
             <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} navy />
             <Kpi label="Taux de closing" value={pct(c.closing)} />
-            <Kpi label="Revenu récurrent (MRR)" value={eur(st.mrr)} />
+            <Kpi onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} label="Revenu récurrent (MRR)" value={eur(st.mrr)} />
           </div>
         <div className="card">
           <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
@@ -489,7 +574,7 @@ export default function Dashboard() {
               {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
             </div>
           </div>
-          <MonthChart series={series} objectif={Number(om.ca) || 0} />
+          <MonthChart series={series} objectif={Number(om.ca) || 0} onPick={choisirMois} />
           <details style={{ marginTop: 10 }}>
             <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
               Voir le tableau mois par mois
@@ -507,7 +592,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {series.map((m) => (
-                    <tr key={m.key}>
+                    <tr key={m.key} className="click" onClick={() => choisirMois(m.key)}>
                       <td>{fmtMonth(m.key)}</td>
                       <td className="num">{m.prospects}</td>
                       <td className="num">{m.appels}</td>
@@ -529,29 +614,37 @@ export default function Dashboard() {
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> CA signé par offre</h2>
-          <Donut items={st.repOffre} fmt={eur} total="CA signé" />
+          <Donut items={st.repOffre} fmt={eur} total="CA signé" onPick={(l) => voir(`Ventes : ${l}`, { kind: 'offre', key: l })} />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Pipeline et trésorerie</h2>
           <div className="info-grid">
             {[
-              ['Pipeline pondéré', eur(st.pipelinePondere)],
-              ['Propositions en attente', eur(st.propositionsEnAttente)],
+              ['Pipeline pondéré', eur(st.pipelinePondere), { kind: 'pipeline' }],
+              ['Propositions en attente', eur(st.propositionsEnAttente), { kind: 'propositionsAttente' }],
               ['CA nouveaux clients', eur(c.caNouveaux)],
               ['CA clients fidèles', eur(c.caFideles)],
-              ['Interventions', nb(c.interventions)],
-              ['Reste à encaisser', eur(st.resteAEncaisser)],
-              ['Dépenses de la période', eur(c.depenses)],
+              ['Interventions', nb(c.interventions), { kind: 'interventions' }],
+              ['Reste à encaisser', eur(st.resteAEncaisser), { kind: 'resteClients' }],
+              ['Encaissé sur la période', eur(c.encaisse), { kind: 'encaisse' }],
+              ['Dépenses de la période', eur(c.depenses), { kind: 'depenses' }],
               ["Coût d'acquisition / client", c.cac === null ? '—' : eur(c.cac)],
               ['Heures de prospection', nb(c.tempsH, 1)],
               ['Valeur vie client moyenne', eur(st.vieMoy)],
               ['Taux de résiliation', pct(st.churn)],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <div className="k">{k}</div>
-                <div className="v">{v}</div>
-              </div>
-            ))}
+            ].map(([k, v, spec]) =>
+              spec ? (
+                <button key={k} type="button" className="info-pick" onClick={() => voir(k, spec)}>
+                  <div className="k">{k}</div>
+                  <div className="v">{v}</div>
+                </button>
+              ) : (
+                <div key={k}>
+                  <div className="k">{k}</div>
+                  <div className="v">{v}</div>
+                </div>
+              ),
+            )}
           </div>
           <div className="table-wrap" style={{ marginTop: 14 }}>
             <table className="t">
@@ -593,27 +686,27 @@ export default function Dashboard() {
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
-          <HBars rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
+          <HBars onPick={(r) => voir(`Script : ${r.label}`, { kind: 'modele', key: r.label })} rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="eye" size={16} /></span> Taux de réponse par signal repéré</h2>
-          <HBars rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
+          <HBars onPick={(r) => voir(`Signal : ${r.label}`, { kind: 'signal', key: r.label })} rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Secteurs qui signent le plus</h2>
-          <HBars rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
+          <HBars onPick={(r) => voir(`Secteur : ${r.label}`, { kind: 'secteurSignes', key: r.label })} rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="ban" size={16} /></span> Objections et motifs de perte</h2>
-          <HBars rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
+          <HBars onPick={(r) => voir(`Objection : ${r.label}`, { kind: 'objection', key: r.label })} rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Meilleurs créneaux d'appel</h2>
-          <HBars rows={st.creneaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+          <HBars onPick={(r) => voir(`Appels ${r.label}`, { kind: 'creneau', key: r.key })} rows={st.creneaux.map((m) => ({ key: m.label.match(/\d+/g).map(Number), label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
         </div>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Meilleurs jours d'appel</h2>
-          <HBars rows={st.jours.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+          <HBars onPick={(r) => voir(`Appels du ${r.label.toLowerCase()}`, { kind: 'jourSemaine', key: r.key })} rows={st.jours.map((m, i) => ({ key: i + 1, label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
         </div>
       </div>
       )}

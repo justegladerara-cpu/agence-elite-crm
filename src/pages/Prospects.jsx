@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Modal, Field } from '../ui'
+import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Modal, Field, Menu } from '../ui'
 import { FicheInput } from './Saisie'
 import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
@@ -144,8 +144,22 @@ export function MiniListe({ current }) {
   )
 }
 
+// Action à saisir pour faire passer un prospect à une étape (glisser-déposer dans le pipeline)
+const ACTION_ETAPE = ['Ajout prospect', 'Premier contact', 'Qualification', 'Loom envoyé', 'RDV', 'Proposition envoyée', 'Signature', 'Perdu']
+
 export default function Prospects() {
-  const { data, settings } = useApp()
+  const { data, settings, openAction, toast } = useApp()
+  const [survol, setSurvol] = useState(null)
+  const deplacer = (id, cible) => {
+    const p = data.byId[id]
+    if (!p || p.etape === cible) return
+    const i = settings.etapes.findIndex((e) => e.nom === cible)
+    const action = ACTION_ETAPE[i]
+    if (!action || i === 0) return toast('Un prospect ne revient pas à « Nouveau » : annule plutôt ses étapes dans sa fiche.', true)
+    if (cible !== 'Perdu' && p.etape !== 'Perdu' && i + 1 <= p.niveau)
+      return toast(`${p.name} a déjà passé cette étape. Pour revenir en arrière, annule l'étape dans sa fiche.`, true)
+    openAction({ prospect_id: p.id, action, canal: p.canal })
+  }
   const [q, setQ] = useFiltre('q')
   const [etape, setEtape] = useFiltre('etape')
   const [canal, setCanal] = useFiltre('canal')
@@ -280,6 +294,8 @@ export default function Prospects() {
           </div>
         )
       ) : (
+        <>
+        <div className="tiny muted" style={{ padding: '10px 16px 0' }}>Glisse une carte dans une autre colonne (ou utilise son menu) pour saisir l'étape correspondante.</div>
         <div className="kanban">
           {etapes.map((e) => {
             const col = data.list
@@ -288,7 +304,20 @@ export default function Prospects() {
               .sort((a, b) => b.score - a.score)
             const total = col.reduce((m, p) => m + (Number(p.montantPropose) || 0), 0)
             return (
-              <div className="kanban-col" key={e}>
+              <div
+                className={`kanban-col ${survol === e ? 'drop' : ''}`}
+                key={e}
+                onDragOver={(ev) => {
+                  ev.preventDefault()
+                  if (survol !== e) setSurvol(e)
+                }}
+                onDragLeave={(ev) => !ev.currentTarget.contains(ev.relatedTarget) && setSurvol(null)}
+                onDrop={(ev) => {
+                  ev.preventDefault()
+                  setSurvol(null)
+                  deplacer(ev.dataTransfer.getData('text/plain'), e)
+                }}
+              >
                 <h3>
                   <span>{e}</span>
                   <span className="muted">
@@ -297,10 +326,28 @@ export default function Prospects() {
                   </span>
                 </h3>
                 {col.slice(0, 60).map((p) => (
-                  <div className="kcard" key={p.id} onClick={() => go(`/prospect/${p.id}`)}>
-                    <div className="row" style={{ justifyContent: 'space-between' }}>
-                      <b style={{ fontSize: 14 }}>{p.name}</b>
-                      <Score v={p.score} />
+                  <div
+                    className="kcard"
+                    key={p.id}
+                    draggable
+                    onDragStart={(ev) => {
+                      ev.dataTransfer.setData('text/plain', p.id)
+                      ev.dataTransfer.effectAllowed = 'move'
+                    }}
+                    onClick={() => go(`/prospect/${p.id}`)}
+                    title="Glisse la carte dans une autre colonne pour changer d'étape"
+                  >
+                    <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+                      <b style={{ fontSize: 14 }} className="ell">{p.name}</b>
+                      <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }} onClick={(ev) => ev.stopPropagation()}>
+                        <Score v={p.score} />
+                        <Menu
+                          label=""
+                          icon="menu"
+                          className="icon-btn kmove"
+                          items={etapes.filter((x) => x !== e && x !== 'Nouveau').map((x) => ({ label: `Passer à « ${x} »`, onClick: () => deplacer(p.id, x) }))}
+                        />
+                      </div>
                     </div>
                     <div className="tiny muted" style={{ marginTop: 4 }}>
                       {[p.fiche?.contact, p.canal].filter(Boolean).join(' · ')}
@@ -316,6 +363,7 @@ export default function Prospects() {
             )
           })}
         </div>
+        </>
       )}
       </div>
       {adding && <NewProspect onClose={() => setAdding(false)} />}

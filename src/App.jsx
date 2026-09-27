@@ -14,7 +14,7 @@ import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
 import Session from './pages/Session'
-import Factures, { DocEditor } from './pages/Factures'
+import Factures, { DocEditor, facturesImpayees } from './pages/Factures'
 import { Paiements, Depenses } from './pages/Finances'
 import Scripts from './pages/Scripts'
 import Recherche from './pages/Recherche'
@@ -306,10 +306,29 @@ function Crm() {
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else content = <Dashboard />
+  // Pastilles du menu : ce qui attend une action dans chaque rubrique
+  const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
+  const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
+  const badges = {
+    journee: [data.aRelancer.length, 'hot', 'relances à faire'],
+    clients: [data.clientsAlertes.length, 'hot', 'clients à surveiller'],
+    factures: [retards, 'hot', 'factures en retard'],
+    devis: [devisAttente, '', 'devis en attente'],
+    prospects: [data.list.filter((p) => p.etape !== 'Gagné' && p.etape !== 'Perdu').length, '', 'prospects actifs'],
+  }
+  const pastille = (path) => {
+    const [n, cls, t] = badges[path] || []
+    return n ? (
+      <span className={`nav-badge ${cls}`} title={`${n} ${t}`}>
+        {n}
+      </span>
+    ) : null
+  }
   const navBtn = (n) => (
     <button key={n.path} className={`nav-item ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
       <span className="ico"><Icon n={n.ico} size={17} /></span>
       {n.label}
+      {pastille(n.path)}
     </button>
   )
 
@@ -374,6 +393,7 @@ function Crm() {
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
               {n.short}
+              {!n.cta && n.path === 'journee' && pastille('journee')}
             </button>
           ))}
           <button className={plus || !BOTTOM.some((n) => n.path === current) ? 'active' : ''} onClick={() => setPlus(!plus)}>
@@ -392,6 +412,7 @@ function Crm() {
                       <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
                         <Icon n={n.ico} size={20} />
                         {n.label}
+                        {pastille(n.path)}
                       </button>
                     ))}
                   </div>

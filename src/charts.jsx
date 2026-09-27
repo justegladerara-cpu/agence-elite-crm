@@ -20,7 +20,7 @@ export function useWidth(def = 600) {
 }
 
 // Anneau de répartition : 5 parts au plus, le reste regroupé dans « Autres »
-export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max = 5 }) {
+export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max = 5, onPick }) {
   const [hover, setHover] = useState(null)
   const sorted = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value)
   const parts = sorted.slice(0, max).map((x, i) => ({ ...x, color: COULEURS[i] }))
@@ -59,7 +59,8 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
             opacity={hover === null || hover === i ? 1 : 0.35}
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}
-            onClick={() => setHover(hover === i ? null : i)}
+            onClick={() => (onPick && p.label !== 'Autres' ? onPick(p.label) : setHover(hover === i ? null : i))}
+            style={onPick && p.label !== 'Autres' ? { cursor: 'pointer' } : undefined}
           />
         ))}
         <text x="70" y="66" textAnchor="middle" fontSize="17" fontWeight="700" fill="#16203a">
@@ -71,7 +72,13 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
       </svg>
       <div className="donut-legend">
         {parts.map((p, i) => (
-          <div key={p.label} className={hover === i ? 'on' : ''} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
+          <div
+            key={p.label}
+            className={`${hover === i ? 'on' : ''} ${onPick && p.label !== 'Autres' ? 'pick' : ''}`}
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => onPick && p.label !== 'Autres' && onPick(p.label)}
+          >
             <i style={{ background: p.color }} />
             <span className="dl-l">{p.label}</span>
             <b>{fmt(p.value)}</b>
@@ -84,7 +91,7 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
 }
 
 // Barres horizontales : une ligne par élément, valeur au bout de la barre
-export function HBars({ rows, fmt = (v) => v, color = COULEURS[0], empty = 'Pas encore de données sur la période.', best = true }) {
+export function HBars({ rows, fmt = (v) => v, color = COULEURS[0], empty = 'Pas encore de données sur la période.', best = true, onPick }) {
   const vis = rows.filter((r) => r.value !== null && r.value !== undefined)
   if (!vis.length || vis.every((r) => !r.value && !r.n)) return <div className="empty">{empty}</div>
   const max = Math.max(...vis.map((r) => r.value), 0) || 1
@@ -92,7 +99,13 @@ export function HBars({ rows, fmt = (v) => v, color = COULEURS[0], empty = 'Pas 
   return (
     <div className="hbars">
       {vis.map((r) => (
-        <div className="hb-row" key={r.label} title={r.title || ''}>
+        <div
+          className={`hb-row ${onPick ? 'pick' : ''}`}
+          key={r.label}
+          title={r.title || (onPick ? 'Voir le détail' : '')}
+          onClick={() => onPick && onPick(r)}
+          role={onPick ? 'button' : undefined}
+        >
           <div className="hb-l">
             {r.label}
             {r.sub && <span className="hb-sub">{r.sub}</span>}
@@ -108,7 +121,7 @@ export function HBars({ rows, fmt = (v) => v, color = COULEURS[0], empty = 'Pas 
 }
 
 // Entonnoir : largeur = nombre de prospects, taux de passage entre les étapes, plus grosse fuite en rouge
-export function Funnel({ steps }) {
+export function Funnel({ steps, onPick }) {
   const [ref, W] = useWidth(560)
   const top = steps[0]?.n || 0
   if (!top) return <div ref={ref} className="empty">Aucun prospect ajouté sur la période.</div>
@@ -140,7 +153,8 @@ export function Funnel({ steps }) {
           const next = steps[i + 1]
           const win = i === steps.length - 1
           return (
-            <g key={s.label}>
+            <g key={s.label} onClick={() => onPick && onPick(i)} style={onPick ? { cursor: 'pointer' } : undefined}>
+              {onPick && <title>{`Voir les ${s.n} prospects « ${s.label} »`}</title>}
               <text x={0} y={y + rowH / 2 + 4} fontSize="12.5" fontWeight="600" fill="#16203a">
                 {s.label}
               </text>
@@ -174,7 +188,7 @@ export function Funnel({ steps }) {
 }
 
 // Jauge d'objectif : anneau rempli selon l'avancement, projection de fin de mois
-export function Gauge({ label, value, cible, proj, fmt = (v) => v }) {
+export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick }) {
   const r = 34
   const c = 2 * Math.PI * r
   const p = cible ? Math.min(1, value / cible) : 0
@@ -182,7 +196,7 @@ export function Gauge({ label, value, cible, proj, fmt = (v) => v }) {
   const done = value >= cible && cible > 0
   const col = done ? '#1d8a61' : ok ? 'var(--gold)' : '#c8423f'
   return (
-    <div className="gauge">
+    <div className={`gauge ${onClick ? 'pick' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined}>
       <svg viewBox="0 0 84 84" role="img" aria-label={`${label} : ${fmt(value)} sur ${fmt(cible)}`}>
         <circle cx="42" cy="42" r={r} fill="none" stroke="#eceae4" strokeWidth="8" />
         <circle cx="42" cy="42" r={r} fill="none" style={{ stroke: col }} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${c * p} ${c}`} transform="rotate(-90 42 42)" />

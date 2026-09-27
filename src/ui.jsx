@@ -165,7 +165,7 @@ export function Bar({ value, max = 1, tone }) {
   )
 }
 
-export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.' }) {
+export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.', onClick }) {
   let cls = 'flat'
   let txt = ''
   if (delta !== undefined && delta !== null) {
@@ -174,7 +174,13 @@ export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.' }) {
     txt = `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${delta > 0 ? '+' : ''}${typeof delta === 'number' ? delta.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : delta} vs ${vs}`
   }
   return (
-    <div className={`kpi ${navy ? 'navy' : ''}`}>
+    <div
+      className={`kpi ${navy ? 'navy' : ''} ${onClick ? 'pick' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
+    >
       <div className="kpi-label">{label}</div>
       <div className="kpi-value">{value}</div>
       {txt && <div className={`kpi-delta ${cls}`}>{txt}</div>}
@@ -223,48 +229,67 @@ export function Tabs({ items, value, onChange }) {
 
 // Menu déroulant (bouton « Plus » façon Zoho) : se ferme au clic dehors ou sur un choix
 export function Menu({ label, icon = 'chevron', items, className = 'btn sm', align = 'right' }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(null)
   const ref = useRef()
+  const pop = useRef()
+  const dedans = (t) => t instanceof Node && (ref.current?.contains(t) || pop.current?.contains(t))
   useEffect(() => {
     if (!open) return
-    const close = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false)
-    const k = (e) => e.key === 'Escape' && setOpen(false)
+    const close = (e) => !dedans(e.target) && setOpen(null)
+    const k = (e) => e.key === 'Escape' && setOpen(null)
+    const fermer = (e) => !dedans(e?.target) && setOpen(null)
     document.addEventListener('mousedown', close)
     window.addEventListener('keydown', k)
+    window.addEventListener('scroll', fermer, true)
+    window.addEventListener('resize', fermer)
     return () => {
       document.removeEventListener('mousedown', close)
       window.removeEventListener('keydown', k)
+      window.removeEventListener('scroll', fermer, true)
+      window.removeEventListener('resize', fermer)
     }
   }, [open])
+  // Position fixe calculée à l'ouverture : le menu n'est jamais coupé par un bloc qui défile
+  const ouvrir = (e) => {
+    if (open) return setOpen(null)
+    const r = e.currentTarget.getBoundingClientRect()
+    const bas = window.innerHeight - r.bottom
+    const haut = bas < 240 && r.top > bas
+    const pos = haut ? { bottom: window.innerHeight - r.top + 6, maxHeight: r.top - 14 } : { top: r.bottom + 6, maxHeight: bas - 14 }
+    const cote = align === 'left' || r.right < 220 ? { left: Math.max(8, r.left) } : { right: Math.max(8, window.innerWidth - r.right) }
+    setOpen({ ...pos, ...cote })
+  }
   return (
     <div className="menu" ref={ref}>
-      <button type="button" className={className} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button type="button" className={className} aria-expanded={!!open} onClick={ouvrir}>
         {label}
         {icon && <Icon n={icon} size={14} />}
       </button>
-      {open && (
-        <div className={`menu-pop ${align}`} role="menu">
-          {items.filter(Boolean).map((it, i) =>
-            it === '-' ? (
-              <div key={i} className="menu-sep" />
-            ) : (
-              <button
-                key={it.label}
-                type="button"
-                role="menuitem"
-                className={`menu-item ${it.danger ? 'danger' : ''}`}
-                onClick={() => {
-                  setOpen(false)
-                  it.onClick()
-                }}
-              >
-                {it.icon && <Icon n={it.icon} size={15} />}
-                {it.label}
-              </button>
-            ),
-          )}
-        </div>
-      )}
+      {open &&
+        createPortal(
+          <div className="menu-pop" role="menu" style={open} ref={pop}>
+            {items.filter(Boolean).map((it, i) =>
+              it === '-' ? (
+                <div key={i} className="menu-sep" />
+              ) : (
+                <button
+                  key={it.label}
+                  type="button"
+                  role="menuitem"
+                  className={`menu-item ${it.danger ? 'danger' : ''}`}
+                  onClick={() => {
+                    setOpen(null)
+                    it.onClick()
+                  }}
+                >
+                  {it.icon && <Icon n={it.icon} size={15} />}
+                  {it.label}
+                </button>
+              ),
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }
@@ -280,5 +305,27 @@ export function KV({ rows }) {
         </div>
       ))}
     </dl>
+  )
+}
+
+// Liens entre fiches : vers un prospect / client, ou vers une facture / un devis par son numéro
+export function LienProspect({ id, children }) {
+  const { data } = useApp()
+  const p = id && data.byId[id]
+  if (!p) return children || null
+  return (
+    <a className="rlink" href={`#/prospect/${p.id}`} onClick={(e) => e.stopPropagation()}>
+      {children || p.name}
+    </a>
+  )
+}
+export function LienDoc({ numero, id, children }) {
+  const { documents } = useApp()
+  const d = id ? documents.find((x) => x.id === id) : numero && documents.find((x) => x.numero === numero)
+  if (!d) return children || numero || null
+  return (
+    <a className="rlink" href={`#/facture/${d.id}`} onClick={(e) => e.stopPropagation()}>
+      {children || d.numero}
+    </a>
   )
 }
