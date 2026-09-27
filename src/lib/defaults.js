@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS = {
     recontacterPerdu: 90,
     avisGoogle: 30,
     renouvellement: 30,
+    relanceClient: 60,
   },
   clients: { engagementMois: 12, dureeVieMois: 18, indicatifWhatsApp: '33' },
   score: {
@@ -51,6 +52,7 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Signature', rang: 7, prospection: false },
     { nom: 'Paiement reçu', rang: 0, prospection: false },
     { nom: 'Vente additionnelle', rang: 0, prospection: false },
+    { nom: 'Intervention', rang: 7, prospection: false },
     { nom: 'Onboarding - Contrat', rang: 0, prospection: false },
     { nom: 'Onboarding - Accès', rang: 0, prospection: false },
     { nom: 'Onboarding - Contenus', rang: 0, prospection: false },

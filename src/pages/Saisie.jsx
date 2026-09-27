@@ -8,10 +8,10 @@ import { montantRetenu } from '../lib/logic'
 const GROUPS = [
   ['Prospection', ['Premier contact', 'Relance', 'Échange / suivi', 'Qualification']],
   ['Vente', ['Audit réalisé', 'Loom envoyé', 'Démo présentée', 'RDV', 'Proposition envoyée', 'Signature', 'Perdu']],
-  ['Client', ['Paiement reçu', 'Vente additionnelle', 'Onboarding - Contrat', 'Onboarding - Accès', 'Onboarding - Contenus', 'Onboarding - Lancement', "Demande d'avis Google", 'Satisfaction client', 'Résiliation']],
+  ['Client', ['Intervention', 'Paiement reçu', 'Vente additionnelle', 'Onboarding - Contrat', 'Onboarding - Accès', 'Onboarding - Contenus', 'Onboarding - Lancement', "Demande d'avis Google", 'Satisfaction client', 'Résiliation']],
   ['Autre', ['Ajout prospect', 'Note', 'Dépense']],
 ]
-const MONEY = ['Proposition envoyée', 'Signature', 'Paiement reçu', 'Vente additionnelle', 'Dépense']
+const MONEY = ['Proposition envoyée', 'Signature', 'Paiement reçu', 'Vente additionnelle', 'Intervention', 'Dépense']
 const MAIN_FICHE = ['secteur', 'ville', 'contact', 'telephone', 'instagram', 'site', 'source', 'pub_active', 'presence_google', 'taille']
 const UPDATE_FICHE = ['offre', 'abonnement', 'budget_ok', 'decideur', 'besoin', 'delai']
 const PROCHAINES = ['Rappeler', 'Relancer en DM', 'Envoyer le Loom', 'Faire l’audit', 'Préparer la démo', 'Envoyer la proposition', 'Relancer la proposition', 'Signature', 'Demander le paiement']
@@ -150,7 +150,7 @@ export function ActionForm({ prefill = {}, onDone }) {
   const editing = prefill.edit
   const init = editing
     ? Object.fromEntries(Object.entries(blank(editing)).map(([k, v]) => [k, v === null || v === undefined ? '' : v]))
-    : blank({ canal: prefill.canal || '', action: prefill.action || '' })
+    : blank({ canal: prefill.canal || '', action: prefill.action || '', montant: prefill.montant ?? '' })
   const [f, setF] = useState(init)
   const [pid, setPid] = useState(editing ? editing.prospect_id : prefill.prospect_id || null)
   const [newName, setNewName] = useState(null)
@@ -180,7 +180,7 @@ export function ActionForm({ prefill = {}, onDone }) {
   const showObjection = f.resultat === 'Pas intéressé' || f.action === 'Perdu' || !!f.objection
   const showModele = prospection && f.canal !== 'Appel'
   const showNote = f.action === 'Audit réalisé' || f.action === 'Satisfaction client' || f.note !== ''
-  const showFacture = ['Paiement reçu', 'Signature', 'Vente additionnelle'].includes(f.action) || f.facture !== ''
+  const showFacture = ['Paiement reçu', 'Signature', 'Vente additionnelle', 'Intervention'].includes(f.action) || f.facture !== ''
   const needsProspect = f.action !== 'Dépense' && f.action !== 'Note'
 
   const relanceAuto = () => {

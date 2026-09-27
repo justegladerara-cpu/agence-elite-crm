@@ -10,7 +10,7 @@ const NUM_GROUPS = [
   ['🎯 Objectifs du jour', 'objectifsJour', [['prospects', 'Nouveaux prospects / jour'], ['appels', 'Appels / jour'], ['dm', 'DM / jour']]],
   ['🎯 Objectifs du mois', 'objectifsMois', [['appels', 'Appels / mois'], ['dm', 'DM / mois'], ['rdv', 'RDV / mois'], ['clients', 'Clients signés / mois'], ['ca', 'CA signé / mois (€)']]],
   ['🔁 Séquence de relance', 'relance', [['j1', 'Après la 1re tentative (jours)'], ['j2', 'Après la 2e tentative (jours)'], ['j3', 'Après la 3e et + (jours)'], ['stop', 'Arrêt conseillé après X tentatives sans réponse']]],
-  ['🟠 Alertes', 'alertes', [['sansAction', 'Prospect sans action depuis (jours)'], ['propositionSansReponse', 'Proposition sans réponse depuis (jours)'], ['validiteProposition', "Validité d'une proposition (jours)"], ['delaiPaiement', 'Délai de paiement avant retard (jours)'], ['recontacterPerdu', 'Recontacter un perdu après (jours)'], ['avisGoogle', 'Demander un avis Google après (jours)'], ['renouvellement', 'Alerte renouvellement (jours avant)']]],
+  ['🟠 Alertes', 'alertes', [['sansAction', 'Prospect sans action depuis (jours)'], ['propositionSansReponse', 'Proposition sans réponse depuis (jours)'], ['validiteProposition', "Validité d'une proposition (jours)"], ['delaiPaiement', 'Délai de paiement avant retard (jours)'], ['recontacterPerdu', 'Recontacter un perdu après (jours)'], ['avisGoogle', 'Demander un avis Google après (jours)'], ['renouvellement', 'Alerte renouvellement (jours avant)'], ['relanceClient', 'Client fidèle à recontacter après (jours sans intervention)']]],
   ['🤝 Clients', 'clients', [['engagementMois', "Durée d'engagement (mois)"], ['dureeVieMois', "Durée de vie moyenne d'un client (mois)"], ['indicatifWhatsApp', 'Indicatif pays WhatsApp', 'text']]],
   ['🔥 Score de priorité (points)', 'score', [['pubActive', 'Pub Instagram active'], ['pubReguliere', 'Pub régulière'], ['pubRecente', 'Pub repérée il y a moins de 30 jours'], ['pasDeSite', 'Pas de site internet'], ['googleAbsente', 'Présence Google absente'], ['googleFaible', 'Présence Google faible'], ['noteGoogleBasse', 'Note Google inférieure à 4'], ['entrepriseMoyenne', 'Entreprise moyenne'], ['grandeEntreprise', 'Grande entreprise'], ['recommande', "Recommandé par quelqu'un"]]],
 ]
@@ -302,7 +302,7 @@ export default function Parametres() {
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="flask" size={16} /></span> Données d'exemple</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
-          7 prospects fictifs marqués « (EXEMPLE) » pour voir le CRM rempli. Supprime-les avant de commencer pour de vrai.
+          8 prospects et clients fictifs marqués « (EXEMPLE) » pour voir le CRM rempli. Supprime-les avant de commencer pour de vrai.
         </p>
         <div className="row">
           <button className="btn" disabled={!!busy || prospects.some(isExample)} onClick={async () => { setBusy('seed'); try { await api.loadSeed(); toast('Exemples chargés ✓') } catch { /* toast */ } setBusy('') }}>
@@ -353,7 +353,7 @@ export default function Parametres() {
             {key === 'actions' && (
               <div className="tiny muted" style={{ marginTop: 6 }}>
                 Étape atteinte : 1 Nouveau, 2 Contacté, 3 Qualifié, 4 Audit/Démo, 5 RDV, 6 Proposition, 7 Gagné. Garde les noms des actions de vente
-                (Proposition envoyée, Signature, Paiement reçu…) : les calculs s'appuient dessus.
+                (Proposition envoyée, Signature, Intervention, Paiement reçu…) : les calculs s'appuient dessus.
               </div>
             )}
           </div>

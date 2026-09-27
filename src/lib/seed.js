@@ -46,6 +46,13 @@ export function buildSeed() {
     { date: d(-4), time: '12:30', canal: 'WhatsApp', action: 'Premier contact', resultat: 'Intéressé' },
     { date: d(-2), time: '17:00', canal: 'Appel', action: 'Qualification', resultat: 'Intéressé', duree: 12, prochaine_action: "Faire l’audit", date_relance: d(1) },
   ])
+  // Client de longue date, payé à l'intervention
+  P('Cabinet Traoré & Associés', { secteur: 'Services', ville: 'Lyon', contact: 'M. Traoré', fonction: 'Dirigeant', telephone: '06 45 67 89 01', source: 'Recommandation', taille: 'Moyenne' }, [
+    { date: d(-160), canal: 'Appel', action: 'Intervention', montant: 150, notes: 'Mise à jour du site sur place' },
+    { date: d(-158), canal: 'Autre', action: 'Paiement reçu', montant: 150 },
+    { date: d(-70), time: '09:30', canal: 'Appel', action: 'Intervention', montant: 150, notes: 'Formation Instagram au bureau' },
+    { date: d(-70), canal: 'Autre', action: 'Paiement reçu', montant: 150 },
+  ])
   // Prospects sans action : on leur donne une ligne « Ajout prospect »
   prospects.forEach((p) => {
     if (!actions.some((a) => a.prospect_id === p.id)) actions.push({ prospect_id: p.id, date: t, action: 'Ajout prospect' })

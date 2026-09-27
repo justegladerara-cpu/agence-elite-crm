@@ -26,7 +26,13 @@ export function cleanAction(a) {
 }
 
 export function mergeSettings(s) {
-  return { ...DEFAULT_SETTINGS, ...(s || {}) }
+  const m = { ...DEFAULT_SETTINGS, ...(s || {}) }
+  m.alertes = { ...DEFAULT_SETTINGS.alertes, ...(m.alertes || {}) }
+  // Actions ajoutées après coup : on les complète dans les réglages déjà enregistrés
+  const noms = new Set(m.actions.map((a) => a.nom))
+  const manquantes = DEFAULT_SETTINGS.actions.filter((a) => a.nom === 'Intervention' && !noms.has(a.nom))
+  if (manquantes.length) m.actions = [...m.actions, ...manquantes]
+  return m
 }
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()))

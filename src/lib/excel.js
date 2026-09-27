@@ -148,6 +148,7 @@ async function sheetPaths(zip) {
 
 // ---------- Export ----------
 export const SAISIE_ROWS = 2000
+const INTERV = 'Intervention : '
 
 export async function buildExcel(templateBuffer, prospects, actions, settings) {
   const zip = await JSZip.loadAsync(templateBuffer)
@@ -167,6 +168,15 @@ export async function buildExcel(templateBuffer, prospects, actions, settings) {
   const inputCols = [...Object.values(ACTION_COLS), ...FICHE_FIELDS.map((f) => f.col)]
   for (let r = 5; r < 5 + SAISIE_ROWS; r++) inputCols.forEach((c) => (edits[`${c}${r}`] = null))
   const seen = new Set()
+  // « Intervention » n'existe que dans le CRM : exportée en Signature (la 1re, si le client n'en a pas)
+  // ou en Vente additionnelle, avec le repère « Intervention : » dans les notes pour la réimporter.
+  const signes = new Set(ordered.filter((a) => a.action === 'Signature').map((a) => a.prospect_id))
+  ordered.forEach((a, k) => {
+    if (a.action !== 'Intervention') return
+    const action = signes.has(a.prospect_id) ? 'Vente additionnelle' : 'Signature'
+    signes.add(a.prospect_id)
+    ordered[k] = { ...a, action, notes: `${INTERV}${a.notes || ''}` }
+  })
   ordered.forEach((a, i) => {
     const r = 5 + i
     const p = byId[a.prospect_id]
@@ -304,6 +314,9 @@ export function parseExcel(buffer, { skipExamples = true } = {}) {
       facture: s('O'),
       remise: g('P'),
       notes: s('Q'),
+      ...(String(g('Q') || '').startsWith(INTERV) && ['Signature', 'Vente additionnelle'].includes(String(action))
+        ? { action: 'Intervention', notes: String(g('Q')).slice(INTERV.length) || null }
+        : {}),
     })
   }
 

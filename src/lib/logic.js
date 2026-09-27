@@ -25,6 +25,8 @@ function lookups(s) {
 export const actionRank = (a, L) => Math.max(num(L.act[a.action]?.rang), num(L.res[a.resultat]?.rang))
 export const isProspection = (a, L) => !!L.act[a.action]?.prospection
 export const isReponse = (a, L) => !!L.res[a.resultat]?.reponse
+// Actions qui comptent dans le CA signé
+export const VENTES = ['Signature', 'Vente additionnelle', 'Intervention']
 
 // Montant retenu (colonne AW de la Saisie) : montant saisi, sinon prix de l'offre
 // pour une proposition ou une signature, moins la remise.
@@ -131,7 +133,7 @@ export function computeAll(prospects, actions, settings) {
     const dateProposition = props.length ? props.map((a) => a.date).sort().pop() : ''
     const expiration = dateProposition ? addDays(dateProposition, s.alertes.validiteProposition) : ''
     const pipelinePondere = closed ? 0 : num(montantPropose) * num(L.proba[etape])
-    const sigs = acts.filter((a) => a.action === 'Signature').map((a) => a.date).sort()
+    const sigs = acts.filter((a) => a.action === 'Signature' || a.action === 'Intervention').map((a) => a.date).sort()
     const dateSignature = sigs[0] || ''
     const cycle = dateSignature && dateAjout ? diffDays(dateSignature, dateAjout) : null
     const objection = lastWith('objection')?.objection || ''
@@ -199,7 +201,13 @@ export function computeAll(prospects, actions, settings) {
       const has = (name) => p.acts.some((a) => a.action === name)
       const montantSigne = sumOf('Signature')
       const ventesAdd = sumOf('Vente additionnelle')
-      const total = montantSigne + ventesAdd
+      const interventions = p.acts.filter((a) => a.action === 'Intervention')
+      const montantInterventions = sumOf('Intervention')
+      const total = montantSigne + ventesAdd + montantInterventions
+      const datesVentes = p.acts.filter((a) => VENTES.includes(a.action)).map((a) => a.date).sort()
+      const derniereVente = datesVentes[datesVentes.length - 1] || p.dateSignature
+      const derniereIntervention = interventions.map((a) => a.date).sort().pop() || ''
+      const joursSansVente = derniereVente ? diffDays(t, derniereVente) : null
       const encaisse = sumOf('Paiement reçu')
       const reste = Math.max(0, total - encaisse)
       const resil = p.acts.filter((a) => a.action === 'Résiliation').map((a) => a.date).sort().pop() || ''
@@ -207,11 +215,11 @@ export function computeAll(prospects, actions, settings) {
       let statutPaiement = ''
       if (total > 0) {
         if (reste <= 0) statutPaiement = 'Payé'
-        else if (p.dateSignature && diffDays(t, p.dateSignature) > s.alertes.delaiPaiement) statutPaiement = 'En retard'
+        else if (derniereVente && diffDays(t, derniereVente) > s.alertes.delaiPaiement) statutPaiement = 'En retard'
         else if (encaisse > 0) statutPaiement = 'Partiel'
         else statutPaiement = 'En attente'
       }
-      const renouvellement = p.dateSignature ? addMonths(p.dateSignature, s.clients.engagementMois) : ''
+      const renouvellement = has('Signature') && p.dateSignature ? addMonths(p.dateSignature, s.clients.engagementMois) : ''
       const joursRenouv = renouvellement ? diffDays(renouvellement, t) : null
       const onboarding =
         (has('Onboarding - Contrat') + has('Onboarding - Accès') + has('Onboarding - Contenus') + has('Onboarding - Lancement')) / 4
@@ -224,9 +232,11 @@ export function computeAll(prospects, actions, settings) {
         if (statutPaiement === 'En retard') alerte = 'Paiement en retard'
         else if (joursRenouv !== null && joursRenouv <= s.alertes.renouvellement && joursRenouv >= 0)
           alerte = `Renouvellement dans ${joursRenouv} j`
+        else if (interventions.length && joursSansVente !== null && joursSansVente >= num(s.alertes.relanceClient))
+          alerte = `À recontacter (${joursSansVente} j sans intervention)`
         else if (!avisDemande && p.dateSignature && diffDays(t, p.dateSignature) >= s.alertes.avisGoogle)
           alerte = 'Demander un avis Google'
-        else if (onboarding < 1) alerte = 'Onboarding à terminer'
+        else if (onboarding < 1 && !interventions.length) alerte = 'Onboarding à terminer'
       }
       return {
         prospect: p,
@@ -236,6 +246,10 @@ export function computeAll(prospects, actions, settings) {
         alerte,
         montantSigne,
         ventesAdd,
+        montantInterventions,
+        nbInterventions: interventions.length,
+        derniereIntervention,
+        derniereVente,
         total,
         encaisse,
         reste,
@@ -281,6 +295,18 @@ export function computeStats(data, settings, periode, canal) {
   const canalOk = (c) => canal === 'Tous' || c === canal
   const fixes = settings.depensesFixes.reduce((m, d) => m + num(d.montant), 0)
 
+  // CA des nouveaux clients (gagnés dans la période) et des clients fidèles (gagnés avant)
+  const caParType = (ventes, debut) => {
+    let caNouveaux = 0
+    let caFideles = 0
+    ventes.forEach((x) => {
+      const p = byId[x.prospect_id]
+      const m = montantRetenu(x, p, L)
+      if (p?.stageDates[5] && p.stageDates[5] < debut) caFideles += m
+      else caNouveaux += m
+    })
+    return { caNouveaux, caFideles }
+  }
   const calc = (a, b, withFixes = true) => {
     const acts = sorted.filter((x) => inP(x.date, a, b))
     const pc = (x) => byId[x.prospect_id]?.canal || ''
@@ -300,7 +326,9 @@ export function computeStats(data, settings, periode, canal) {
       propositions,
       signes,
       closing: propositions ? signes / propositions : 0,
-      caSigne: sumAct('Signature') + sumAct('Vente additionnelle'),
+      caSigne: sumAct('Signature') + sumAct('Vente additionnelle') + sumAct('Intervention'),
+      ...caParType(acts.filter((x) => VENTES.includes(x.action) && canalOk(pc(x))), a),
+      interventions: acts.filter((x) => x.action === 'Intervention' && canalOk(pc(x))).length,
       encaisse,
       depenses,
       benefice: encaisse - depenses,
@@ -332,7 +360,7 @@ export function computeStats(data, settings, periode, canal) {
     const rdv = ps.filter((p) => inP(p.stageDates[3], periode.debut, periode.fin)).length
     const cl = ps.filter((p) => inP(p.stageDates[5], periode.debut, periode.fin)).length
     const ca = acts
-      .filter((x) => (x.action === 'Signature' || x.action === 'Vente additionnelle') && byId[x.prospect_id]?.canal === c)
+      .filter((x) => VENTES.includes(x.action) && byId[x.prospect_id]?.canal === c)
       .reduce((m, x) => m + montantRetenu(x, byId[x.prospect_id], L), 0)
     const appels = a.filter((x) => isProspection(x, L) && c === 'Appel').length
     return {

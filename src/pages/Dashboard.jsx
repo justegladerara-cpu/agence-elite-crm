@@ -351,6 +351,9 @@ export default function Dashboard() {
             {[
               ['Pipeline pondéré', eur(st.pipelinePondere)],
               ['Propositions en attente', eur(st.propositionsEnAttente)],
+              ['CA nouveaux clients', eur(c.caNouveaux)],
+              ['CA clients fidèles', eur(c.caFideles)],
+              ['Interventions', nb(c.interventions)],
               ['Reste à encaisser', eur(st.resteAEncaisser)],
               ['Dépenses de la période', eur(c.depenses)],
               ["Coût d'acquisition / client", c.cac === null ? '—' : eur(c.cac)],

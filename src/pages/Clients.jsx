@@ -14,13 +14,13 @@ export default function Clients() {
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div>
           <h1>Clients</h1>
-          <div className="sub">Un prospect devient client dès que tu saisis l'action « Signature ».</div>
+          <div className="sub">Un prospect devient client dès que tu saisis « Signature » ou « Intervention ». Chaque intervention payée se saisit avec son montant.</div>
         </div>
       </div>
       <div className="grid grid-4">
         <Kpi label="Clients actifs" value={nb(actifs.length)} navy />
         <Kpi label="Revenu récurrent (MRR)" value={eur(mrr)} navy />
-        <Kpi label="Total signé" value={eur(total)} />
+        <Kpi label="Total facturé" value={eur(total)} />
         <Kpi label="Reste à encaisser" value={eur(reste)} />
       </div>
       <div className="card">
@@ -36,15 +36,17 @@ export default function Clients() {
                   {c.alerte && <span className="badge b-red">{c.alerte}</span>}
                 </div>
                 <div className="li-sub" style={{ whiteSpace: 'normal' }}>
-                  {[c.prospect.fiche?.offre, c.prospect.fiche?.contact, `signé le ${fmtDate(c.prospect.dateSignature)}`].filter(Boolean).join(' · ')}
+                  {[c.prospect.fiche?.offre, c.prospect.fiche?.contact, `client depuis le ${fmtDate(c.prospect.dateSignature)}`].filter(Boolean).join(' · ')}
                 </div>
                 <div className="info-grid" style={{ marginTop: 10 }}>
                   {[
-                    ['Total signé', eur(c.total)],
+                    ['Total facturé', eur(c.total)],
+                    ['Interventions', c.nbInterventions ? `${c.nbInterventions} · ${eur(c.montantInterventions)}` : '—'],
+                    ['Dernière intervention', c.derniereIntervention ? fmtDate(c.derniereIntervention) : '—'],
                     ['Encaissé', eur(c.encaisse)],
                     ['Reste', eur(c.reste)],
                     ['Abonnement', c.abonnement ? `${eur(c.abonnement)}/mois` : '—'],
-                    ['Renouvellement', c.renouvellement ? fmtDate(c.renouvellement) : '—'],
+                    ...(c.nbInterventions ? [] : [['Renouvellement', c.renouvellement ? fmtDate(c.renouvellement) : '—']]),
                     ['Marge', eur(c.marge)],
                   ].map(([k, v]) => (
                     <div key={k}>
@@ -53,17 +55,20 @@ export default function Clients() {
                     </div>
                   ))}
                 </div>
-                <div className="row" style={{ marginTop: 10 }}>
+                {!c.nbInterventions && <div className="row" style={{ marginTop: 10 }}>
                   <span className="tiny muted" style={{ width: 90 }}>
                     Onboarding {Math.round(c.onboarding * 100)} %
                   </span>
                   <div style={{ flex: 1, maxWidth: 240 }}>
                     <Bar value={c.onboarding} tone={c.onboarding >= 1 ? 'green' : ''} />
                   </div>
-                </div>
+                </div>}
               </div>
               <div className="li-side" style={{ flexDirection: 'column', alignItems: 'stretch' }} onClick={(e) => e.stopPropagation()}>
-                <button className="btn sm gold" onClick={() => openAction({ prospect_id: c.id, action: 'Paiement reçu' })}>
+                <button className="btn sm gold" onClick={() => openAction({ prospect_id: c.id, action: 'Intervention', canal: 'Appel' })}>
+                  + Intervention
+                </button>
+                <button className="btn sm" onClick={() => openAction({ prospect_id: c.id, action: 'Paiement reçu', montant: c.reste ? String(c.reste) : '' })}>
                   + Paiement
                 </button>
                 <button className="btn sm" onClick={() => openAction({ prospect_id: c.id, action: nextOnboarding(c) })}>
