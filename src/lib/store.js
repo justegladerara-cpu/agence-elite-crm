@@ -30,6 +30,14 @@ export function mergeSettings(s) {
   const m = { ...DEFAULT_SETTINGS, ...(s || {}) }
   m.alertes = { ...DEFAULT_SETTINGS.alertes, ...(m.alertes || {}) }
   m.facturation = { ...DEFAULT_SETTINGS.facturation, ...(m.facturation || {}) }
+  // Objectifs quotidiens : créés à partir des anciens objectifs du jour s'ils n'existent pas encore
+  if (!s?.objectifsQuotidiens && s?.objectifsJour) {
+    const oj = s.objectifsJour
+    const base = { dm: oj.dm, appels: oj.appels, prospects: oj.prospects }
+    // Anciennes valeurs par défaut (20/20) : on passe à la « Rule of 100 »
+    if (Number(oj.dm) === 20 && Number(oj.appels) === 20) Object.assign(base, { dm: 100, appels: 100 })
+    m.objectifsQuotidiens = DEFAULT_SETTINGS.objectifsQuotidiens.map((o) => (base[o.source] !== undefined ? { ...o, cible: Number(base[o.source]) || o.cible } : o))
+  }
   // Actions ajoutées après coup : on les complète dans les réglages déjà enregistrés
   const noms = new Set(m.actions.map((a) => a.nom))
   const manquantes = DEFAULT_SETTINGS.actions.filter((a) => a.nom === 'Intervention' && !noms.has(a.nom))

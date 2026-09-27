@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { Icon } from '../icons'
 import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Bar, Empty, go, eur, nb } from '../ui'
-import { todayCounts, computeStats } from '../lib/logic'
+import { computeStats } from '../lib/logic'
+import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
 import { today, fmtDate, addDays, diffDays, weekday } from '../lib/dates'
 
@@ -32,13 +33,7 @@ function ProspectRow({ p, children, overdue }) {
 export default function Journee() {
   const { data, settings, prospects, api, toast } = useApp()
   const t = today()
-  const counts = todayCounts(data)
-  const obj = settings.objectifsJour
-  const goals = [
-    ['Nouveaux prospects', counts.prospects, obj.prospects],
-    ['Appels', counts.appels, obj.appels],
-    ['DM', counts.dm, obj.dm],
-  ]
+  const { jour, update } = useJournee(t)
   const semaine = useMemo(() => {
     const debut = addDays(t, -(weekday(t) - 1) - 7)
     const fin = addDays(debut, 6)
@@ -71,24 +66,12 @@ export default function Journee() {
           {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
           {data.alertes.length > 1 ? 's' : ''}
         </div>
-        <button className="btn gold" style={{ marginTop: 14 }} onClick={() => go('/session')}>
-          <Icon n="play" size={14} /> Lancer une session d'appels
-        </button>
-        <div className="grid grid-3" style={{ marginTop: 16, gap: 10 }}>
-          {goals.map(([l, v, c]) => (
-            <div className="goal-mini" key={l}>
-              <div className="l">{l}</div>
-              <div className="v">
-                {v} <span style={{ fontSize: 14, color: '#c4cde0', fontWeight: 600 }}>/ {c}</span>
-              </div>
-              <Bar value={v} max={c} />
-            </div>
-          ))}
-        </div>
+        <ObjectifsJour jour={jour} update={update} />
       </div>
 
       <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="stack">
+          <TodoJour jour={jour} update={update} />
           <div className="card">
             <h2 className="section">
               <span className="sec-ic"><Icon n="alert" size={16} /></span> À relancer aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
@@ -119,6 +102,7 @@ export default function Journee() {
         </div>
 
         <div className="stack">
+          <HistoriqueJours />
           <div className="card">
             <h2 className="section">
               <span className="sec-ic"><Icon n="bell" size={16} /></span> Alertes prospects <span className="count">{data.alertes.length}</span>

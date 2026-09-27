@@ -20,7 +20,18 @@ export const DEFAULT_SETTINGS = {
     notes: 'Merci de votre confiance. Le règlement est payable à réception de la présente facture.',
     cgv: 'La présente facture est soumise aux Conditions Générales de Vente d’Agence Elite disponibles sur www.agence-elite.fr/cgv. Toute validation de commande implique l’acceptation desdites conditions.',
   },
-  objectifsJour: { prospects: 10, appels: 20, dm: 20 },
+  objectifsJour: { prospects: 10, appels: 100, dm: 100 },
+  // Objectifs quotidiens façon « Rule of 100 » (modifiables jour par jour dans Ma journée)
+  objectifsQuotidiens: [
+    { nom: 'DM envoyés', cible: 100, source: 'dm' },
+    { nom: 'Appels', cible: 100, source: 'appels' },
+    { nom: 'Nouveaux prospects', cible: 10, source: 'prospects' },
+    { nom: 'Relances', cible: 20, source: 'relances' },
+    { nom: 'Looms / audits', cible: 2, source: 'looms' },
+    { nom: 'Contenu publié', cible: 1, source: 'manuel' },
+  ],
+  routine: ['Publier 1 story ou 1 post', 'Répondre à tous les DM et messages', 'Faire toutes mes relances du jour', 'Mettre le CRM à jour'],
+  joursOff: [7],
   objectifsMois: { appels: 400, dm: 300, rdv: 10, clients: 3, ca: 6000 },
   relance: { j1: 2, j2: 5, j3: 10, stop: 5 },
   alertes: {
@@ -210,6 +221,6 @@ export const ACTION_COLS = {
 export const LIST_CAPACITY = {
   canaux: 5, etapes: 8, actions: 28, resultats: 12, offres: 10, secteurs: 15,
   objections: 12, modeles: 9, sources: 11, zones: 8, depensesFixes: 7,
-  categoriesDepenses: 20, modesPaiement: 10,
+  categoriesDepenses: 20, modesPaiement: 10, objectifsQuotidiens: 12, routine: 15,
 }
 export const MAX_PROSPECTS = 500

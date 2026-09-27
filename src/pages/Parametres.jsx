@@ -3,11 +3,11 @@ import { useApp, Field, eur, lbl, DEVISES } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
+import { SOURCES } from '../lib/journee'
 import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
 
 const NUM_GROUPS = [
-  ['🎯 Objectifs du jour', 'objectifsJour', [['prospects', 'Nouveaux prospects / jour'], ['appels', 'Appels / jour'], ['dm', 'DM / jour']]],
   ['🎯 Objectifs du mois', 'objectifsMois', [['appels', 'Appels / mois'], ['dm', 'DM / mois'], ['rdv', 'RDV / mois'], ['clients', 'Clients signés / mois'], ['ca', 'CA signé / mois (€)']]],
   ['🔁 Séquence de relance', 'relance', [['j1', 'Après la 1re tentative (jours)'], ['j2', 'Après la 2e tentative (jours)'], ['j3', 'Après la 3e et + (jours)'], ['stop', 'Arrêt conseillé après X tentatives sans réponse']]],
   ['🟠 Alertes', 'alertes', [['sansAction', 'Prospect sans action depuis (jours)'], ['propositionSansReponse', 'Proposition sans réponse depuis (jours)'], ['validiteProposition', "Validité d'une proposition (jours)"], ['delaiPaiement', 'Délai de paiement avant retard (jours)'], ['recontacterPerdu', 'Recontacter un perdu après (jours)'], ['avisGoogle', 'Demander un avis Google après (jours)'], ['renouvellement', 'Alerte renouvellement (jours avant)'], ['relanceClient', 'Client fidèle à recontacter après (jours sans intervention)']]],
@@ -24,6 +24,8 @@ const LIST_DEFS = [
   ['sources', 'Sources', null],
   ['zones', 'Zones', null],
   ['depensesFixes', 'Dépenses fixes / mois', [['nom', 'Poste'], ['montant', 'Montant (€)', 'num']]],
+  ['objectifsQuotidiens', '🎯 Objectifs du jour (par défaut)', [['nom', 'Objectif'], ['cible', 'Cible / jour', 'num'], ['source', 'Compté automatiquement', 'select', SOURCES]]],
+  ['routine', 'Routine quotidienne (to-do de chaque matin)', null],
   ['categoriesDepenses', 'Catégories de dépenses', null],
   ['modesPaiement', 'Modes de paiement', null],
   ['actions', 'Actions', [['nom', 'Action'], ['rang', 'Étape atteinte (n°)', 'num'], ['prospection', 'Prospection ?', 'bool']]],
@@ -71,8 +73,16 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
           {!cols ? (
             <input style={{ flex: 1 }} value={item} onChange={(e) => upd(i, e.target.value)} />
           ) : (
-            cols.map(([k, , type]) =>
-              type === 'bool' ? (
+            cols.map(([k, , type, opts]) =>
+              type === 'select' ? (
+                <select key={k} style={{ flex: 1.4 }} value={item[k] || ''} onChange={(e) => upd(i, { ...item, [k]: e.target.value })}>
+                  {opts.map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+              ) : type === 'bool' ? (
                 <select key={k} style={{ flex: 1 }} value={item[k] ? 'Oui' : 'Non'} onChange={(e) => upd(i, { ...item, [k]: e.target.value === 'Oui' })}>
                   <option>Oui</option>
                   <option>Non</option>
@@ -97,7 +107,7 @@ function ListEditor({ value, cols, onChange, max, fixedLength }) {
         </div>
       ))}
       {!fixedLength && value.length < max && (
-        <button className="btn sm" onClick={() => onChange([...value, cols ? Object.fromEntries(cols.map(([k, , t]) => [k, t === 'num' ? 0 : t === 'bool' ? false : ''])) : ''])}>
+        <button className="btn sm" onClick={() => onChange([...value, cols ? Object.fromEntries(cols.map(([k, , t, o]) => [k, t === 'num' ? 0 : t === 'bool' ? false : t === 'select' ? o[o.length - 1][0] : ''])) : ''])}>
           + Ajouter
         </button>
       )}
@@ -128,6 +138,11 @@ const FACT_FIELDS = [
 
 function normalize(s) {
   const out = JSON.parse(JSON.stringify(s))
+  // Garde les objectifs du fichier Excel alignés sur les objectifs quotidiens
+  ;['dm', 'appels', 'prospects'].forEach((src) => {
+    const o = (out.objectifsQuotidiens || []).find((x) => x.source === src)
+    if (o) out.objectifsJour = { ...out.objectifsJour, [src]: Number(o.cible) || 0 }
+  })
   if (out.facturation) FACT_FIELDS.forEach(([k, , , t]) => t === 'num' && (out.facturation[k] = Number(String(out.facturation[k]).replace(',', '.')) || 0))
   NUM_GROUPS.forEach(([, g, fields]) => fields.forEach(([k, , t]) => t !== 'text' && (out[g][k] = Number(String(out[g][k]).replace(',', '.')) || 0)))
   LIST_DEFS.forEach(([key, , cols]) => {
