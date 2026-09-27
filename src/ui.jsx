@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { waLink, instaLink, siteLink } from './lib/logic'
 import { fmtDate, today } from './lib/dates'
 import { Icon } from './icons'
@@ -138,7 +139,8 @@ export function Modal({ title, onClose, children }) {
       document.body.style.overflow = ''
     }
   }, [onClose])
-  return (
+  // Rendue à la racine de la page : la fenêtre ne dépend pas du style de l'endroit où on l'ouvre
+  return createPortal(
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-head">
@@ -149,7 +151,8 @@ export function Modal({ title, onClose, children }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

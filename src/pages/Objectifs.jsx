@@ -174,6 +174,12 @@ function ObjectifsForm({ jour, defaut, onSave }) {
         Objectifs chiffrés d'aujourd'hui
       </div>
       <div className="stack" style={{ gap: 8 }}>
+        <div className="obj-edit obj-edit-head">
+          <span>Objectif</span>
+          <span>Cible</span>
+          <span>Compté automatiquement</span>
+          <span />
+        </div>
         {objs.map((o, i) => (
           <div className="obj-edit" key={i}>
             <input className="input" placeholder="Objectif" value={o.nom} onChange={(e) => set(i, { nom: e.target.value })} />

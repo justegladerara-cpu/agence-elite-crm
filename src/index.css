@@ -437,7 +437,7 @@ details.script p { margin: 10px 0; line-height: 1.55; }
   .obj-head { gap: 14px; }
   .obj-big { font-size: 20px; }
   .obj-edit { grid-template-columns: 1fr 70px 36px; }
-  .obj-edit select { grid-column: 1 / 3; grid-row: 2; }
+  .obj-edit select { grid-column: 1 / -1; grid-row: 2; }
 }
 
 /* ---------- Finitions visuelles (mobile surtout) ---------- */
@@ -462,4 +462,9 @@ details.script p { margin: 10px 0; line-height: 1.55; }
   .client-item .li-side .btn { flex: 1 1 40%; }
   .le-row.has-select > input:first-child { flex: 1 1 60% !important; }
   .le-row.has-select > select { flex: 1 1 100% !important; order: 3; }
+}
+.obj-edit-head span { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+@media (max-width: 720px) {
+  .obj-edit-head { display: none; }
+  .obj-edit { padding-bottom: 10px; border-bottom: 1px solid var(--line-2); }
 }
