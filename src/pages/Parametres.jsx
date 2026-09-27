@@ -115,8 +115,8 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
             )
           )}
           {!fixedLength && (
-            <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => onChange(value.filter((_, j) => j !== i))} title="Retirer">
-              ✕
+            <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => onChange(value.filter((_, j) => j !== i))} title="Retirer" aria-label="Retirer">
+              <Icon n="x" size={14} />
             </button>
           )}
         </div>
@@ -673,8 +673,8 @@ export default function Parametres({ section }) {
         <div key={i} style={{ marginBottom: 12 }}>
           <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
             <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
-            <button className="icon-btn" title="Retirer" onClick={() => change({ ...s, [key]: s[key].filter((_, j) => j !== i) })}>
-              ✕
+            <button className="icon-btn" title="Retirer" aria-label="Retirer" onClick={() => change({ ...s, [key]: s[key].filter((_, j) => j !== i) })}>
+              <Icon n="x" size={14} />
             </button>
           </div>
           <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />

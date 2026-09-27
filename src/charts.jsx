@@ -1,5 +1,6 @@
 // Graphiques du tableau de bord (SVG, sans bibliothèque) : anneau, barres, entonnoir, jauge.
 import { useEffect, useRef, useState } from 'react'
+import { Icon } from './icons'
 
 // Couleurs des séries, toujours dans le même ordre (lisibles aussi pour les daltoniens)
 export const COULEURS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
@@ -208,7 +209,9 @@ export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick }) {
       <div className="g-v">
         <b>{fmt(value)}</b> / {fmt(cible)}
       </div>
-      <div className={`g-p ${done ? 'green' : ok ? '' : 'red'}`}>{done ? '✔ Atteint' : `${ok ? '✔' : '✖'} Projection : ${fmt(Math.round(proj))}`}</div>
+      <div className={`g-p ${done ? 'green' : ok ? '' : 'red'}`}>
+        <Icon n={done || ok ? 'check' : 'x'} size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> {done ? 'Atteint' : `Projection : ${fmt(Math.round(proj))}`}
+      </div>
     </div>
   )
 }

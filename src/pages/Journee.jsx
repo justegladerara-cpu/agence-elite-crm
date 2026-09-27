@@ -183,7 +183,7 @@ export default function Journee({ onglet: ongletDemande }) {
             <span className="sec-ic"><Icon n="file" size={16} /></span> Factures à relancer <span className="count">{impayees.length}</span>
           </h2>
           <div className="list">
-            {impayees.length === 0 && <Empty>Aucune facture en retard. 👌</Empty>}
+            {impayees.length === 0 && <Empty>Aucune facture en retard.</Empty>}
             {impayees.map((d) => (
               <div key={d.id} className="list-item click" onClick={() => go(`/facture/${d.id}`)}>
                 <div className="li-main">

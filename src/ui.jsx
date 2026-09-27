@@ -209,7 +209,10 @@ export function Choix({ value, onChange, options, placeholder = 'Choisir…', li
   )
 }
 
-export function Modal({ title, onClose, children }) {
+let modalN = 0
+export function Modal({ title, onClose, children, large }) {
+  const boite = useRef(null)
+  const [id] = useState(() => `modal-${++modalN}`)
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', k)
@@ -219,14 +222,19 @@ export function Modal({ title, onClose, children }) {
       document.body.style.overflow = ''
     }
   }, [onClose])
+  // Au clavier, le focus entre dans la fenêtre (sauf si un champ a déjà pris le focus)
+  useEffect(() => {
+    const b = boite.current
+    if (b && !b.contains(document.activeElement)) b.focus()
+  }, [])
   // Rendue à la racine de la page : la fenêtre ne dépend pas du style de l'endroit où on l'ouvre
   return createPortal(
     <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className={`modal ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={boite}>
         <div className="modal-head">
-          <h2>{title}</h2>
+          <h2 id={id}>{title}</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">
-            ✕
+            <Icon n="x" size={16} />
           </button>
         </div>
         {children}
@@ -273,10 +281,18 @@ export function useToast() {
   const timer = useRef()
   const show = (msg, err) => {
     clearTimeout(timer.current)
-    setToast({ msg, err })
+    setToast({ msg, err, n: Date.now() })
     timer.current = setTimeout(() => setToast(null), err ? 5000 : 2200)
   }
-  const node = toast ? <div className={`toast ${toast.err ? 'err' : ''}`}>{toast.msg}</div> : null
+  // Le ✓ final du message devient l'icône de succès
+  const node = toast ? (
+    <div className={`toast ${toast.err ? 'err' : 'ok'}`} role={toast.err ? 'alert' : 'status'} key={toast.n}>
+      <span className="toast-ic">
+        <Icon n={toast.err ? 'alert-circle' : 'check'} size={15} />
+      </span>
+      {String(toast.msg).replace(/\s*✓\s*/g, ' ').trim()}
+    </div>
+  ) : null
   return [show, node]
 }
 

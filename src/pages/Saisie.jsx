@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Chips, Field, Select, StageBadge, eur, Empty, Modal, LienDoc } from '../ui'
+import { useApp, Field, Select, StageBadge, eur, Empty, Modal, LienDoc } from '../ui'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
 import { montantRetenu } from '../lib/logic'
@@ -241,16 +241,20 @@ export function ActionForm({ prefill = {}, onDone }) {
     setBusy(false)
   }
 
+  const resultats = settings.resultats || []
+  const suiteOk = needsProspect && f.action !== 'Signature' && f.action !== 'Perdu'
+
   return (
-    <div className="card" ref={topRef}>
-      <div className="form-block">
-        <div className="form-label">Prospect</div>
+    <div className="af" ref={topRef}>
+      <Section n={1} titre="Prospect" aide={editing ? null : 'Cherche une fiche ou tape un nouveau nom'}>
         {newName ? (
           <div className="stack" style={{ gap: 12 }}>
             <div className="selected-prospect">
               <div className="li-main">
-                <div className="li-title">＋ {newName}</div>
-                <div className="li-sub">Nouveau prospect : remplis sa fiche</div>
+                <div className="li-title">
+                  <Icon n="user-plus" size={15} /> {newName}
+                </div>
+                <div className="li-sub">Nouveau prospect : remplis l'essentiel de sa fiche</div>
               </div>
               <button type="button" className="btn sm" onClick={() => setNewName(null)}>
                 Annuler
@@ -263,9 +267,11 @@ export function ActionForm({ prefill = {}, onDone }) {
                 </Field>
               ))}
             </div>
-            <button type="button" className="toggle-link" onClick={() => setMoreFiche(!moreFiche)}>
-              {moreFiche ? '− Moins de champs' : '+ Tous les champs (pub, Google, qualification, offre…)'}
-            </button>
+            <div>
+              <button type="button" className="btn sm" onClick={() => setMoreFiche(!moreFiche)}>
+                <Icon n={moreFiche ? 'x' : 'plus'} size={14} /> {moreFiche ? 'Moins de champs' : 'Tous les champs (pub, Google, qualification, offre…)'}
+              </button>
+            </div>
           </div>
         ) : editing ? (
           <div className="selected-prospect">
@@ -276,56 +282,47 @@ export function ActionForm({ prefill = {}, onDone }) {
         ) : (
           <ProspectPicker value={pid} onPick={setPid} onNew={setNewName} />
         )}
-      </div>
-
-      <div className="form-block">
-        <div className="form-grid tight">
-          <Field label="Date">
-            <input type="date" value={f.date} onChange={setE('date')} />
-          </Field>
-          <Field label="Heure">
-            <input type="time" value={f.time} onChange={setE('time')} />
-          </Field>
+        <div className="af-when">
+          <label>
+            <span>Le</span>
+            <input className="input" type="date" value={f.date} onChange={setE('date')} aria-label="Date de l'action" />
+          </label>
+          <label>
+            <span>à</span>
+            <input className="input" type="time" value={f.time} onChange={setE('time')} aria-label="Heure de l'action" />
+          </label>
         </div>
-      </div>
+      </Section>
 
-      <div className="form-block">
-        <div className="form-label">Canal</div>
-        <Chips options={settings.canaux} value={f.canal} onChange={set('canal')} />
-      </div>
+      <Section n={2} titre="Canal" aide={prospection ? 'Obligatoire pour une prise de contact' : 'Facultatif'}>
+        <div className="tiles canaux" role="radiogroup" aria-label="Canal">
+          {settings.canaux.map((c) => (
+            <Tuile key={c} on={f.canal === c} ico={ICO_CANAL[c] || 'radio'} label={c} onClick={() => set('canal')(f.canal === c ? '' : c)} grand />
+          ))}
+        </div>
+      </Section>
 
-      <div className="form-block">
-        <div className="form-label">Action</div>
-        <div className="stack" style={{ gap: 10 }}>
+      <Section n={3} titre="Action">
+        <div className="af-groups">
           {groups.map(([g, list]) => (
-            <div key={g}>
-              <div className="tiny muted" style={{ marginBottom: 5 }}>
+            <div key={g} className="af-group">
+              <div className="af-glabel">
+                <i style={{ background: COUL_GROUPE[g] || COUL_GROUPE.Autre }} />
                 {g}
               </div>
-              <Chips options={list} value={f.action} onChange={set('action')} small={g !== 'Prospection'} />
+              <div className="tiles" role="radiogroup" aria-label={`Actions : ${g}`}>
+                {list.map((a) => (
+                  <Tuile key={a} on={f.action === a} ico={ICO_ACTION[a] || (a.startsWith('Onboarding') ? 'clipboard' : 'tag')} label={a.replace('Onboarding - ', 'Onboarding · ')} onClick={() => set('action')(f.action === a ? '' : a)} ton={COUL_GROUPE[g] || COUL_GROUPE.Autre} />
+                ))}
+              </div>
             </div>
           ))}
         </div>
-      </div>
-
-      {showResult && (
-        <div className="form-block">
-          <div className="form-label">Résultat</div>
-          <Chips options={settings.resultats.map((r) => r.nom)} value={f.resultat} onChange={set('resultat')} />
-        </div>
-      )}
-
-      {(showMoney || showObjection || showModele || showNote || showFacture) && (
-        <div className="form-block">
-          <div className="form-grid">
+        {(showMoney || showObjection || showModele || showNote || showFacture) && (
+          <div className="af-details form-grid">
             {showMoney && (
               <Field label="Montant (€)">
-                <input
-                  inputMode="decimal"
-                  value={f.montant}
-                  onChange={setE('montant')}
-                  placeholder={autoPrice ? `Auto : ${eur(autoPrice)}` : ''}
-                />
+                <input inputMode="decimal" value={f.montant} onChange={setE('montant')} placeholder={autoPrice ? `Auto : ${eur(autoPrice)}` : ''} />
               </Field>
             )}
             {(f.action === 'Proposition envoyée' || f.action === 'Signature' || f.remise !== '') && (
@@ -354,53 +351,79 @@ export function ActionForm({ prefill = {}, onDone }) {
               </Field>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </Section>
 
-      {needsProspect && f.action !== 'Signature' && f.action !== 'Perdu' && (
-        <div className="form-block">
-          <div className="form-label">Suite</div>
-          <div className="form-grid">
-            <Field label="Prochaine action">
-              <input list="prochaines" value={f.prochaine_action} onChange={setE('prochaine_action')} />
-              <datalist id="prochaines">
-                {PROCHAINES.map((x) => (
-                  <option key={x} value={x} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="Date de relance">
-              <input type="date" value={f.date_relance} onChange={setE('date_relance')} />
-            </Field>
-            <Field label="Heure de rappel">
-              <input type="time" value={f.heure_rappel} onChange={setE('heure_rappel')} />
-            </Field>
-          </div>
-          <div className="row" style={{ marginTop: 8 }}>
-            {[
-              ['Demain', 1],
-              ['J+2', 2],
-              ['J+5', 5],
-              ['J+10', 10],
-              ['1 mois', 30],
-            ].map(([l, d]) => (
-              <button key={l} type="button" className="chip sm" onClick={() => set('date_relance')(addDays(f.date || today(), d))}>
-                {l}
-              </button>
-            ))}
-            {!f.date_relance && relanceAuto() && <span className="tiny muted">Vide = relance auto le {fmtDate(relanceAuto())}</span>}
-          </div>
+      <Section n={4} titre="Résultat" aide={showResult ? 'Comment ça s’est passé' : 'Facultatif pour cette action'}>
+        <div className="tiles resultats" role="radiogroup" aria-label="Résultat">
+          {resultats.map((r) => {
+            const ton = /pas int[ée]ress/i.test(r.nom) ? 'neg' : Number(r.rang) > 0 || r.nom === 'Loom vu' ? 'pos' : ''
+            return (
+              <Tuile
+                key={r.nom}
+                on={f.resultat === r.nom}
+                ico={ton === 'pos' ? 'check-circle' : ton === 'neg' ? 'x' : ICO_RESULTAT[r.nom] || 'message'}
+                label={r.nom}
+                classe={ton}
+                onClick={() => set('resultat')(f.resultat === r.nom ? '' : r.nom)}
+              />
+            )
+          })}
         </div>
-      )}
+      </Section>
 
-      <div className="form-block">
-        {!more ? (
-          <button type="button" className="toggle-link" onClick={() => setMore(true)}>
-            + Notes, durée{!showObjection ? ', objection' : ''}
-            {!showModele ? ', modèle' : ''}
-          </button>
+      <Section n={5} titre="Suite">
+        {suiteOk ? (
+          <>
+            <div className="form-grid">
+              <Field label="Prochaine action">
+                <input list="prochaines" value={f.prochaine_action} onChange={setE('prochaine_action')} placeholder="Rappeler, envoyer le Loom…" />
+                <datalist id="prochaines">
+                  {PROCHAINES.map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
+              </Field>
+              <Field label="Date de relance">
+                <input type="date" value={f.date_relance} onChange={setE('date_relance')} />
+              </Field>
+              <Field label="Heure de rappel">
+                <input type="time" value={f.heure_rappel} onChange={setE('heure_rappel')} />
+              </Field>
+            </div>
+            <div className="af-quick" role="group" aria-label="Relance rapide">
+              {[
+                ['Demain', 1],
+                ['J+2', 2],
+                ['J+5', 5],
+                ['J+10', 10],
+                ['1 mois', 30],
+              ].map(([l, d]) => {
+                const v = addDays(f.date || today(), d)
+                return (
+                  <button key={l} type="button" className={f.date_relance === v ? 'on' : ''} aria-pressed={f.date_relance === v} onClick={() => set('date_relance')(f.date_relance === v ? '' : v)}>
+                    {l}
+                  </button>
+                )
+              })}
+              {!f.date_relance && relanceAuto() && <span className="tiny muted">Vide : relance automatique le {fmtDate(relanceAuto())}</span>}
+            </div>
+          </>
         ) : (
-          <div className="form-grid">
+          <div className="tiny muted">{needsProspect ? 'Rien à planifier après cette action.' : 'Pas de suite pour une note ou une dépense.'}</div>
+        )}
+        <div className="af-more">
+          <button type="button" className={`btn sm ${more ? 'on' : ''}`} aria-expanded={more} onClick={() => setMore(!more)}>
+            <Icon n="note" size={14} /> Notes et durée
+          </button>
+          {p && !editing && (
+            <button type="button" className={`btn sm ${showUpd ? 'on' : ''}`} aria-expanded={showUpd} onClick={() => setShowUpd(!showUpd)}>
+              <Icon n="edit" size={14} /> Mettre à jour la fiche
+            </button>
+          )}
+        </div>
+        {more && (
+          <div className="form-grid af-block">
             <Field label="Durée (min)">
               <input inputMode="decimal" value={f.duree} onChange={setE('duree')} />
             </Field>
@@ -419,41 +442,90 @@ export function ActionForm({ prefill = {}, onDone }) {
             </Field>
           </div>
         )}
-      </div>
+        {p && !editing && showUpd && (
+          <div className="form-grid af-block">
+            {FICHE_FIELDS.filter((x) => UPDATE_FICHE.includes(x.key)).map((x) => (
+              <Field key={x.key} label={x.label}>
+                <FicheInput f={x} value={ficheUpd[x.key] ?? p.fiche?.[x.key]} onChange={(v) => setFicheUpd((s) => ({ ...s, [x.key]: v }))} />
+              </Field>
+            ))}
+          </div>
+        )}
+      </Section>
 
-      {p && !editing && (
-        <div className="form-block">
-          {!showUpd ? (
-            <button type="button" className="toggle-link" onClick={() => setShowUpd(true)}>
-              + Mettre à jour la fiche (offre, qualification…)
-            </button>
-          ) : (
-            <div className="form-grid">
-              {FICHE_FIELDS.filter((x) => UPDATE_FICHE.includes(x.key)).map((x) => (
-                <Field key={x.key} label={x.label}>
-                  <FicheInput
-                    f={x}
-                    value={ficheUpd[x.key] ?? p.fiche?.[x.key]}
-                    onChange={(v) => setFicheUpd((s) => ({ ...s, [x.key]: v }))}
-                  />
-                </Field>
-              ))}
-            </div>
-          )}
+      <div className="af-save">
+        <div className="af-recap">
+          {[p?.name || newName, f.canal, f.action || (newName ? 'Ajout prospect' : ''), f.resultat].filter(Boolean).join(' · ') || 'Choisis un prospect et une action'}
         </div>
-      )}
-
-      <div className="form-block row">
-        <button className="btn gold" style={{ flex: 1, padding: '12px' }} disabled={busy} onClick={() => save(false)}>
-          {editing ? 'Enregistrer les modifications' : 'Enregistrer'}
-        </button>
         {!editing && !onDone && (
           <button className="btn" disabled={busy} onClick={() => save(true)} title="Enregistrer et saisir une autre action pour ce prospect">
-            + Autre action
+            <Icon n="plus" size={15} /> Autre action
           </button>
         )}
+        <button className="btn gold lg" disabled={busy} onClick={() => save(false)}>
+          <Icon n={busy ? 'clock' : 'check'} size={16} /> {busy ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Enregistrer'}
+        </button>
       </div>
     </div>
+  )
+}
+
+const COUL_GROUPE = { Prospection: '#2F5BD3', Vente: '#B8903F', Client: '#0F7B55', Autre: '#8A93A6', Personnalisé: '#8A93A6' }
+const ICO_CANAL = { DM: 'instagram', Appel: 'phone', WhatsApp: 'message', Facebook: 'facebook', Autre: 'more' }
+const ICO_ACTION = {
+  'Premier contact': 'send',
+  Relance: 'repeat',
+  'Échange / suivi': 'message',
+  Qualification: 'target',
+  'Audit réalisé': 'search',
+  'Loom envoyé': 'play',
+  'Démo présentée': 'eye',
+  RDV: 'calendar',
+  'Proposition envoyée': 'file',
+  Signature: 'handshake',
+  Perdu: 'ban',
+  Intervention: 'bolt',
+  'Paiement reçu': 'coins',
+  'Vente additionnelle': 'trend',
+  "Demande d'avis Google": 'star',
+  'Satisfaction client': 'sparkles',
+  Résiliation: 'x',
+  'Ajout prospect': 'user-plus',
+  Note: 'note',
+  Dépense: 'wallet',
+}
+const ICO_RESULTAT = { 'Pas de réponse': 'clock', 'Messagerie - vocal laissé': 'phone', 'Messagerie - sans vocal': 'phone', Rappeler: 'repeat', 'A répondu': 'message', Autre: 'more' }
+
+// Bloc numéroté du formulaire
+function Section({ n, titre, aide, children }) {
+  return (
+    <section className="af-sec" aria-labelledby={`af-${n}`}>
+      <div className="af-sec-h">
+        <span className="af-n" aria-hidden="true">
+          {n}
+        </span>
+        <h3 id={`af-${n}`}>{titre}</h3>
+        {aide && <span className="af-aide">{aide}</span>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+// Tuile de choix (canal, action, résultat) : fond bleu nuit, liseré or et coche quand elle est choisie
+function Tuile({ on, ico, label, onClick, grand, ton, classe = '' }) {
+  return (
+    <button type="button" role="radio" aria-checked={on} className={`tile ${grand ? 'big' : ''} ${classe} ${on ? 'on' : ''}`} style={ton ? { '--t': ton } : undefined} onClick={onClick}>
+      <span className="tile-ic">
+        <Icon n={ico} size={grand ? 20 : 16} />
+      </span>
+      <span className="tile-l">{label}</span>
+      {on && (
+        <span className="tile-ok" aria-hidden="true">
+          <Icon n="check" size={12} />
+        </span>
+      )}
+    </button>
   )
 }
 
@@ -534,17 +606,22 @@ export default function Saisie({ prospectId }) {
     [actions, n],
   )
   return (
-    <div>
+    <div className="page-saisie">
       <div className="page-head">
         <div>
-          <h1>Saisir une action</h1>
-          <div className="sub">Appel, DM, relance, audit, RDV, proposition, signature, paiement… une ligne par action.</div>
+          <h1>Nouvelle action</h1>
+          <div className="sub">Appel, DM, relance, audit, RDV, proposition, signature, paiement : une ligne par action. Raccourci : touche N.</div>
         </div>
       </div>
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
+      <div className="saisie-grid">
         <ActionForm prefill={{ prospect_id: prospectId }} />
         <div className="card">
-          <h2 className="section">Dernières saisies</h2>
+          <h2 className="section">
+            <span className="sec-ic">
+              <Icon n="clock" size={16} />
+            </span>
+            Dernières saisies
+          </h2>
           <div className="list">
             {recent.length === 0 && <Empty>Rien pour l'instant. Ta première action apparaîtra ici.</Empty>}
             {recent.map((a) => (
@@ -558,13 +635,13 @@ export default function Saisie({ prospectId }) {
           )}
           {data.list.length > 0 && (
             <div className="tiny muted" style={{ marginTop: 10 }}>
-              {actions.length} actions · {data.list.length} prospects
+              {actions.length} actions · {data.list.length} fiches
             </div>
           )}
         </div>
       </div>
       {edit && (
-        <Modal title="Modifier l'action" onClose={() => setEdit(null)}>
+        <Modal title="Modifier l'action" onClose={() => setEdit(null)} large>
           <ActionForm prefill={{ edit }} onDone={() => setEdit(null)} />
         </Modal>
       )}

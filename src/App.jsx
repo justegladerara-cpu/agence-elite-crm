@@ -8,10 +8,11 @@ import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
-import Prospects, { MiniListe } from './pages/Prospects'
+import { MiniListe } from './pages/Prospects'
+import Hub from './pages/Hub'
+import { lienHub } from './lib/hub'
 import Fiche from './pages/Fiche'
 import Dashboard from './pages/Dashboard'
-import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
 import Session from './pages/Session'
 import Factures, { DocEditor, facturesImpayees } from './pages/Factures'
@@ -21,17 +22,11 @@ import Recherche from './pages/Recherche'
 import Calendrier from './pages/Calendrier'
 import { syncRappels } from './lib/rappels'
 
-// Menu groupé (façon Zoho) : le tableau de bord d'abord
+// Menu groupé : piloter, vendre, facturer, régler
 const NAV = [
   {
+    titre: 'Pilotage',
     items: [
-      {
-        path: 'dashboard',
-        memo: 'dashboard',
-        label: 'Tableau de bord',
-        ico: 'chart',
-        sub: [['?onglet=vue', "Vue d'ensemble"], ['?onglet=prospection', 'Prospection'], ['?onglet=ventes', 'Ventes et CA'], ['?onglet=clients', 'Clients'], ['?onglet=marche', 'Ce qui marche']],
-      },
       {
         path: 'journee',
         memo: 'journee',
@@ -39,32 +34,33 @@ const NAV = [
         ico: 'sun',
         sub: [['?onglet=jour', "Aujourd'hui"], ['?onglet=chauds', 'Prospects chauds'], ['?onglet=alertes', 'Alertes'], ['?onglet=routine', 'Ma routine'], ['?onglet=historique', 'Bilan de la semaine']],
       },
+      {
+        path: 'dashboard',
+        memo: 'dashboard',
+        label: 'Tableau de bord',
+        ico: 'chart',
+        sub: [['?onglet=vue', "Vue d'ensemble"], ['?onglet=acquisition', 'Acquisition'], ['?onglet=conversion', 'Conversion'], ['?onglet=finances', 'Finances']],
+      },
       { path: 'calendrier', label: 'Calendrier', ico: 'calendar' },
     ],
   },
   {
-    titre: 'Prospection',
+    titre: 'Commercial',
     items: [
       {
-        path: 'prospects',
-        label: 'Prospects',
-        ico: 'users',
-        sub: [['?etape=Actifs&vue=liste', 'En cours'], ['?vue=pipeline', 'Pipeline'], ['?etape=Proposition&vue=liste', 'Propositions'], ['?etape=Gagné&vue=liste', 'Gagnés'], ['?etape=Perdu&vue=liste', 'Perdus'], ['?etape=Tous&vue=liste', 'Tous']],
+        path: 'clients',
+        memo: 'hub',
+        label: 'Clients',
+        ico: 'briefcase',
+        sub: [['?onglet=potentiels', 'Potentiels'], ['?onglet=nouveaux', 'Nouveaux clients'], ['?onglet=actifs', 'Clients actifs'], ['?onglet=anciens', 'Anciens clients'], ['?onglet=perdus', 'Perdus'], ['?onglet=tous', 'Tous']],
       },
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
     ],
   },
   {
-    titre: 'Ventes',
+    titre: 'Finances',
     items: [
-      {
-        path: 'clients',
-        memo: 'clients',
-        label: 'Clients',
-        ico: 'handshake',
-        sub: [['?filtre=tous', 'Tous'], ['?filtre=actifs', 'Actifs'], ['?filtre=encaisser', 'À encaisser'], ['?filtre=abonnes', 'Abonnés'], ['?filtre=alertes', 'À surveiller']],
-      },
       { path: 'devis', memo: 'liste-devis', label: 'Devis', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
       {
         path: 'factures',
@@ -74,10 +70,11 @@ const NAV = [
         sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
       },
       { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
+      { path: 'depenses', label: 'Dépenses', ico: 'wallet' },
     ],
   },
-  { titre: 'Achats', items: [{ path: 'depenses', label: 'Dépenses', ico: 'wallet' }] },
 ]
+const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
 const PARAMETRES = {
@@ -105,14 +102,20 @@ function basculer(set, k, x) {
     return n
   })
 }
-PAGES.saisie = 'Saisir une action'
-// Barre du bas sur téléphone : 5 boutons, le reste dans « Plus »
+PAGES.saisie = 'Nouvelle action'
+// Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
 const BOTTOM = [
-  { path: 'dashboard', short: 'Accueil', ico: 'chart' },
   { path: 'journee', short: 'Journée', ico: 'sun' },
+  { path: 'clients', short: 'Clients', ico: 'briefcase' },
   { path: 'saisie', short: 'Saisir', ico: 'plus', cta: true },
-  { path: 'prospects', short: 'Prospects', ico: 'users' },
+  { path: 'dashboard', short: 'Stats', ico: 'chart' },
+  { path: 'parametres', short: 'Réglages', ico: 'settings' },
 ]
+// Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
+const enSaisie = (e) => {
+  const t = e.target
+  return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
+}
 
 function useRoute() {
   const get = () => window.location.hash.replace(/^#\/?/, '') || 'dashboard'
@@ -148,16 +151,31 @@ export default function App() {
 
 function Crm() {
   const route = useRoute()
+  // Anciens liens (page Prospects, filtres Clients) : redirigés vers le hub Clients
+  useEffect(() => {
+    const [chemin, query = ''] = route.split('?')
+    const q = new URLSearchParams(query)
+    if (chemin === 'prospects' || (chemin === 'clients' && q.get('filtre') && !q.get('onglet'))) window.location.replace(`#/${lienHub(chemin, q)}`)
+  }, [route])
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
   const [recherche, setRecherche] = useState(false)
-  // Ctrl + K (ou Cmd + K) : recherche globale
+  // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action
   useEffect(() => {
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setRecherche(true)
+        return
+      }
+      if (e.ctrlKey || e.metaKey || e.altKey || enSaisie(e) || document.querySelector('.modal-bg')) return
+      if (e.key === '/') {
+        e.preventDefault()
+        setRecherche(true)
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault()
+        setActionModal({})
       }
     }
     window.addEventListener('keydown', k)
@@ -344,11 +362,10 @@ function Crm() {
   const [page, arg = ''] = chemin.split(/\/(.*)/s)
   const q = new URLSearchParams(query)
   const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
-  const current =
-    page === 'prospect' ? (data.clients.some((c) => c.id === arg) ? 'clients' : 'prospects') : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
+  const current = page === 'prospect' || page === 'prospects' ? 'clients' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
-  else if (page === 'prospects') content = <Prospects key={route} vue={q.get('vue')} etape={q.get('etape')} />
+  else if (page === 'prospects') content = null
   else if (page === 'prospect')
     content = (
       <div className="split">
@@ -359,7 +376,7 @@ function Crm() {
       </div>
     )
   else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
-  else if (page === 'clients') content = <Clients key={route} filtre={q.get('filtre')} />
+  else if (page === 'clients') content = <Hub key={route} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} />
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
@@ -374,10 +391,9 @@ function Crm() {
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
   const badges = {
     journee: [data.aRelancer.length, 'hot', 'relances à faire'],
-    clients: [data.clientsAlertes.length, 'hot', 'clients à surveiller'],
+    clients: [data.clientsAlertes.length, '', 'clients à surveiller'],
     factures: [retards, 'hot', 'factures en retard'],
     devis: [devisAttente, '', 'devis en attente'],
-    prospects: [data.list.filter((p) => p.etape !== 'Gagné' && p.etape !== 'Perdu').length, '', 'prospects actifs'],
   }
   const pastille = (path) => {
     const [n, cls, t] = badges[path] || []
@@ -439,11 +455,11 @@ function Crm() {
               </div>
             )}
           </div>
-          <button className="nav-search" onClick={() => setRecherche(true)}>
-            <Icon n="search" size={15} /> Rechercher… <kbd>Ctrl K</kbd>
+          <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
+            <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          <button className="nav-new" onClick={() => go('/saisie')}>
-            <Icon n="plus" size={17} /> Saisir une action
+          <button className="nav-new" onClick={() => setActionModal({})} aria-keyshortcuts="N">
+            <Icon n="plus" size={17} /> Nouvelle action <kbd>N</kbd>
           </button>
           <nav className="nav-scroll">
             {NAV.map((g, i) => {
@@ -461,7 +477,10 @@ function Crm() {
               )
             })}
           </nav>
-          {navBtn(PARAMETRES)}
+          <div className="nav-group nav-admin">
+            <div className="nav-title">Administration</div>
+            {navBtn(PARAMETRES)}
+          </div>
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
         <main className="main">
@@ -471,11 +490,11 @@ function Crm() {
               {avecNom && <div className="brand-name">{brand.nom}</div>}
               <div className="brand-sub">{PAGES[current] || brand.sousTitre}</div>
             </div>
-            <button className="icon-btn mobile-settings" title="Rechercher" onClick={() => setRecherche(true)}>
+            <button className="icon-btn mobile-settings" aria-label="Rechercher" onClick={() => setRecherche(true)}>
               <Icon n="search" size={18} />
             </button>
-            <button className={`icon-btn mobile-settings mobile-gear ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
-              <Icon n="settings" size={18} />
+            <button className={`icon-btn mobile-settings mobile-gear ${plus ? 'on' : ''}`} aria-label="Toutes les pages" aria-expanded={plus} onClick={() => setPlus(!plus)}>
+              <Icon n="grid" size={18} />
             </button>
           </header>
           {!isLocal && (!sync.online || sync.pending > 0 || sync.error) && (
@@ -490,28 +509,23 @@ function Crm() {
           )}
           {content}
         </main>
-        <nav className="bottom-nav">
+        <nav className="bottom-nav" aria-label="Navigation principale">
           {BOTTOM.map((n) => (
-            <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-              <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
+            <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => go(`/${n.path}`)}>
+              <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
               {n.short}
-              {!n.cta && n.path === 'journee' && pastille('journee')}
+              {!n.cta && pastille(n.path)}
             </button>
           ))}
-          <button className={plus || !BOTTOM.some((n) => n.path === current) ? 'active' : ''} onClick={() => setPlus(!plus)}>
-            <span className="ico"><Icon n="menu" size={19} /></span>
-            Plus
-          </button>
         </nav>
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
-            <div className="sheet" onClick={(e) => e.stopPropagation()}>
-              {NAV.map((g) => ({ ...g, grille: g.items.filter((n) => !BOTTOM.some((b) => b.path === n.path)) })).map((g) => (
-                <div key={g.titre || 'pilotage'} className="sheet-group">
-                  <div className="nav-title">{g.titre || 'Pilotage'}</div>
-                  {g.grille.length > 0 && (
+            <div className="sheet" role="dialog" aria-label="Toutes les pages" onClick={(e) => e.stopPropagation()}>
+              {[...NAV, { titre: 'Administration', items: [PARAMETRES] }].map((g) => (
+                <div key={g.titre} className="sheet-group">
+                  <div className="nav-title">{g.titre}</div>
                   <div className="sheet-grid">
-                    {g.grille.map((n) => (
+                    {g.items.map((n) => (
                       <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
                         <Icon n={n.ico} size={20} />
                         {n.label}
@@ -519,36 +533,18 @@ function Crm() {
                       </button>
                     ))}
                   </div>
-                  )}
-                  <div className="sheet-chips">
-                    {g.items.flatMap((n) =>
-                      (n.sub || []).map(([h, l]) => (
-                        <button key={n.path + h} className={route === n.path + h ? 'on' : ''} onClick={() => go(`/${n.path}${h}`)}>
-                          <Icon n={n.ico} size={12} /> {l}
-                        </button>
-                      )),
-                    )}
-                  </div>
                 </div>
               ))}
-              <div className="sheet-group">
-                <div className="sheet-grid">
-                  <button className={current === 'parametres' ? 'on' : ''} onClick={() => go('/parametres')}>
-                    <Icon n="settings" size={20} />
-                    Paramètres
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
       </div>
       {actionModal && (
-        <Modal title="Saisir une action" onClose={() => setActionModal(null)}>
+        <Modal title={actionModal.edit ? "Modifier l'action" : 'Nouvelle action'} onClose={() => setActionModal(null)} large>
           <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
         </Modal>
       )}
-      {recherche && <Recherche onClose={() => setRecherche(false)} />}
+      {recherche && <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES]} />}
       {toastNode}
     </AppCtx.Provider>
   )

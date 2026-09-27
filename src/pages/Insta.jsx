@@ -278,7 +278,7 @@ export function ProchaineEtape({ p }) {
       <div className="row" style={{ gap: 6, marginTop: 12 }}>
         {suivante && (
           <button type="button" className="btn sm gold" disabled={busy} onClick={() => cliquer(suivante)}>
-            ✓ {suivante.label}
+            <Icon n="check" size={14} /> {suivante.label}
           </button>
         )}
         {p.tentatives > 0 && <RelanceBoutons p={p} />}
@@ -427,7 +427,7 @@ export function RelanceBoutons({ p, compact }) {
         {compact ? '' : ' Message'}
       </button>
       <button type="button" className="btn sm primary" disabled={busy} title="Noter la relance et programmer la suivante" onClick={relance}>
-        ✓ Relancé
+        <Icon n="check" size={14} /> Relancé
       </button>
     </>
   )

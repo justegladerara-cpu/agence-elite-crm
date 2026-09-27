@@ -89,7 +89,13 @@ export function ObjectifsJour({ jour, update }) {
             {nb(av.volume)} action{av.volume > 1 ? 's' : ''} <span>/ {nb(av.cible)}</span>
           </div>
           <div className="obj-streak">
-            {hist.serie > 0 ? `🔥 ${hist.serie} jour${hist.serie > 1 ? 's' : ''} d'affilée` : 'Atteins 100 pour lancer ta série'}
+            {hist.serie > 0 ? (
+              <>
+                <Icon n="flame" size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> {hist.serie} jour{hist.serie > 1 ? 's' : ''} d'affilée
+              </>
+            ) : (
+              'Atteins 100 pour lancer ta série'
+            )}
           </div>
         </div>
       </div>
@@ -197,7 +203,7 @@ function ObjectifsForm({ jour, defaut, onSave }) {
                 </option>
               ))}
             </select>
-            <button className="icon-btn" title="Retirer" onClick={() => setObjs((l) => l.filter((_, j) => j !== i))}>
+            <button className="icon-btn" title="Retirer" aria-label="Retirer" onClick={() => setObjs((l) => l.filter((_, j) => j !== i))}>
               <Icon n="trash" size={14} />
             </button>
           </div>
@@ -255,8 +261,8 @@ export function TodoJour({ jour, update }) {
             {x.routine && <span className="todo-tag">routine</span>}
             {x.report > 0 && <span className="todo-tag orange">reportée</span>}
             {!x.routine && (
-              <button className="todo-del" title="Supprimer" onClick={() => suppr(x.id)}>
-                ✕
+              <button className="todo-del" title="Supprimer" aria-label="Supprimer" onClick={() => suppr(x.id)}>
+                <Icon n="x" size={14} />
               </button>
             )}
           </div>
@@ -299,7 +305,9 @@ export function HistoriqueJours() {
       <div className="info-grid" style={{ marginTop: 12 }}>
         <div>
           <div className="k">Série en cours</div>
-          <div className="v">🔥 {h.serie} j</div>
+          <div className="v">
+            <Icon n="flame" size={16} style={{ display: 'inline', verticalAlign: '-2px' }} /> {h.serie} j
+          </div>
         </div>
         <div>
           <div className="k">Jours réussis</div>

@@ -12,7 +12,7 @@ export function conseilsSemaine(st, { settings, data, impayees }) {
   const contacts = c.dm + c.appels
   const cibleDm = Number(settings.objectifsQuotidiens?.find((o) => o.source === 'dm')?.cible || 0) * 5
   const retard = data.aRelancer.filter((p) => p.relance < today()).length
-  if (retard) out.push(['alert', `${retard} relance${retard > 1 ? 's' : ''} en retard : commence ta journée par elles avec le bouton « ✓ Relancé » dans Ma journée.`])
+  if (retard) out.push(['alert', `${retard} relance${retard > 1 ? 's' : ''} en retard : commence ta journée par elles avec le bouton « Relancé » dans Ma journée.`])
   if (cibleDm && c.dm < cibleDm * 0.7)
     out.push(['target', `${nb(c.dm)} DM envoyés pour ${nb(cibleDm)} visés (${pct(c.dm / cibleDm)}). Bloque deux créneaux fixes de prospection chaque jour.`])
   if (contacts >= 10 && c.reponses / contacts < 0.15) {

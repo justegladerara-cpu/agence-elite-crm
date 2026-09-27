@@ -1,4 +1,4 @@
-// Recherche globale : prospects, clients, factures et devis dans une seule barre (Ctrl + K)
+// Recherche globale (Ctrl/⌘ + K ou « / ») : potentiels, clients, perdus, factures et devis, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp, go, eur, StageBadge } from '../ui'
@@ -6,6 +6,7 @@ import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../lib/invoice'
 import { fmtDate } from '../lib/dates'
 import { handleInsta } from '../lib/logic'
+import { fichesHub } from '../lib/hub'
 
 const norm = (v) =>
   String(v || '')
@@ -13,8 +14,8 @@ const norm = (v) =>
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
 
-export default function Recherche({ onClose }) {
-  const { data, documents, actions } = useApp()
+export default function Recherche({ onClose, pages = [] }) {
+  const { data, documents, actions, openAction } = useApp()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const input = useRef(null)
@@ -27,24 +28,35 @@ export default function Recherche({ onClose }) {
 
   const res = useMemo(() => {
     const s = norm(q.trim()).replace(/^@/, '')
-    if (!s) return []
+    // Actions rapides et pages : toujours proposées, filtrées par le texte tapé
+    const rapides = [
+      { key: 'a-action', groupe: 'Actions rapides', titre: 'Nouvelle action', sous: 'Appel, DM, relance, RDV, signature… (touche N)', ico: 'plus', run: () => openAction() },
+      { key: 'a-client', groupe: 'Actions rapides', titre: 'Nouveau client', sous: 'Ajouter un client existant', ico: 'user-plus', path: '/clients?onglet=nouveaux&nouveau=client' },
+      { key: 'a-insta', groupe: 'Actions rapides', titre: 'Prospect Instagram', sous: 'Ajout express depuis un @', ico: 'instagram', path: '/clients?onglet=potentiels&nouveau=insta' },
+      { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
+    ]
+    const pagesRes = pages.flatMap((n) => [
+      { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: '', ico: n.ico, path: `/${n.path}` },
+      ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
+    ])
+    if (!s) return [...rapides, ...pagesRes.filter((r) => !r.sousPage)]
     const chiffres = s.replace(/\D/g, '')
-    const clients = new Set(data.clients.map((c) => c.id))
-    const pros = data.list
-      .filter((p) => {
+    const GROUPE = { potentiels: 'Potentiels', perdus: 'Perdus' }
+    const fiches = fichesHub(data)
+      .filter(({ p }) => {
         const f = p.fiche || {}
-        if ([p.name, f.contact, f.ville, f.secteur, handleInsta(f.instagram)].some((x) => norm(x).includes(s))) return true
+        if ([p.name, f.contact, f.ville, f.secteur, f.offre, handleInsta(f.instagram)].some((x) => norm(x).includes(s))) return true
         return chiffres.length >= 4 && [f.telephone, f.whatsapp].some((x) => String(x || '').replace(/\D/g, '').includes(chiffres))
       })
-      .sort((a, b) => (norm(a.name).startsWith(s) ? 0 : 1) - (norm(b.name).startsWith(s) ? 0 : 1) || b.score - a.score)
-      .slice(0, 8)
-      .map((p) => ({
+      .sort((a, b) => (norm(a.p.name).startsWith(s) ? 0 : 1) - (norm(b.p.name).startsWith(s) ? 0 : 1) || b.p.score - a.p.score)
+      .slice(0, 10)
+      .map(({ p, c, cat }) => ({
         key: p.id,
-        groupe: clients.has(p.id) ? 'Clients' : 'Prospects',
+        groupe: GROUPE[cat] || 'Clients',
         titre: p.name,
         sous: [p.fiche?.contact, p.fiche?.instagram, p.fiche?.ville].filter(Boolean).join(' · '),
-        badge: <StageBadge etape={p.etape} />,
-        ico: clients.has(p.id) ? 'handshake' : 'users',
+        badge: c ? <span className={`badge ${cat === 'anciens' ? 'b-Perdu' : 'b-green'}`}>{cat === 'anciens' ? 'Ancien client' : 'Client'}</span> : <StageBadge etape={p.etape} />,
+        ico: c ? 'briefcase' : cat === 'perdus' ? 'ban' : 'target',
         path: `/prospect/${p.id}`,
       }))
     const docs = documents
@@ -64,12 +76,20 @@ export default function Recherche({ onClose }) {
           path: `/facture/${d.id}`,
         }
       })
-    return [...pros.filter((r) => r.groupe === 'Prospects'), ...pros.filter((r) => r.groupe === 'Clients'), ...docs]
-  }, [q, data, documents, actions])
+    const parGroupe = (g) => fiches.filter((r) => r.groupe === g)
+    const texte = (r) => norm(`${r.titre} ${r.sous}`).includes(s)
+    return [...parGroupe('Potentiels'), ...parGroupe('Clients'), ...parGroupe('Perdus'), ...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
+  }, [q, data, documents, actions, pages, openAction])
+
+  // Le résultat choisi au clavier reste visible dans la liste
+  useEffect(() => {
+    document.getElementById(`sr-${sel}`)?.scrollIntoView({ block: 'nearest' })
+  }, [sel])
 
   const ouvrir = (r) => {
     onClose()
-    go(r.path)
+    if (r.run) r.run()
+    else go(r.path)
   }
   const onKey = (e) => {
     if (e.key === 'ArrowDown') {
@@ -88,7 +108,12 @@ export default function Recherche({ onClose }) {
           <Icon n="search" size={18} />
           <input
             ref={input}
-            placeholder="Rechercher un prospect, un client, une facture, un @…"
+            placeholder="Rechercher un prospect, un client, une page, une action…"
+            aria-label="Recherche globale"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="search-res"
+            aria-activedescendant={res[sel] ? `sr-${sel}` : undefined}
             value={q}
             onChange={(e) => {
               setQ(e.target.value)
@@ -97,16 +122,16 @@ export default function Recherche({ onClose }) {
             onKeyDown={onKey}
           />
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">
-            ✕
+            <Icon n="x" size={16} />
           </button>
         </div>
-        <div className="search-res">
+        <div className="search-res" id="search-res" role="listbox">
           {q.trim() && res.length === 0 && <div className="empty">Aucun résultat pour « {q.trim()} ».</div>}
-          {!q.trim() && <div className="tiny muted" style={{ padding: 14 }}>Nom, contact, @Instagram, téléphone, ville, numéro de facture…</div>}
+          {!q.trim() && <div className="tiny muted" style={{ padding: '12px 16px 0' }}>Nom, contact, @Instagram, téléphone, ville, offre, numéro de facture… · ↑ ↓ pour choisir, Entrée pour ouvrir, Échap pour fermer</div>}
           {res.map((r, i) => (
             <div key={r.key}>
               {(i === 0 || res[i - 1].groupe !== r.groupe) && <div className="search-grp">{r.groupe}</div>}
-              <button className={`search-item ${i === sel ? 'on' : ''}`} onMouseEnter={() => setSel(i)} onClick={() => ouvrir(r)}>
+              <button id={`sr-${i}`} role="option" aria-selected={i === sel} tabIndex={-1} className={`search-item ${i === sel ? 'on' : ''}`} onMouseEnter={() => setSel(i)} onClick={() => ouvrir(r)}>
                 <Icon n={r.ico} size={16} />
                 <span className="si-main">
                   <span className="si-t">{r.titre}</span>

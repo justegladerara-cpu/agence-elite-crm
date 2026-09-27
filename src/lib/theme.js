@@ -2,7 +2,7 @@
 // Gardées aussi sur l'appareil pour l'écran de connexion, affiché avant le chargement des réglages.
 
 export const THEMES = [
-  { id: 'marine-or', label: 'Marine & or', principal: '#0b1830', accent: '#c9a24e' },
+  { id: 'marine-or', label: 'Marine & or', principal: '#0c1833', accent: '#b8903f' },
   { id: 'noir-rouge', label: 'Noir & rouge (logo)', principal: '#121212', accent: '#e10600' },
   { id: 'noir-or', label: 'Noir & or', principal: '#141414', accent: '#c9a24e' },
   { id: 'vert-or', label: 'Vert & or', principal: '#0e2a22', accent: '#c9a24e' },
@@ -19,8 +19,8 @@ export const APPARENCE_DEFAUT = {
   logo: '',
   logoSombre: '',
   theme: 'marine-or',
-  principal: '#0b1830',
-  accent: '#c9a24e',
+  principal: '#0c1833',
+  accent: '#b8903f',
 }
 
 const KEY = 'aecrm-brand'
@@ -46,7 +46,7 @@ const lum = (c) => {
 
 export const couleursDe = (a = {}) => {
   const t = THEMES.find((x) => x.id === a.theme)
-  return t && t.id !== 'perso' ? { principal: t.principal, accent: t.accent } : { principal: a.principal || '#0b1830', accent: a.accent || '#c9a24e' }
+  return t && t.id !== 'perso' ? { principal: t.principal, accent: t.accent } : { principal: a.principal || '#0c1833', accent: a.accent || '#b8903f' }
 }
 
 // Palette complète à partir de 2 couleurs (le fond du menu doit rester foncé pour que le texte blanc se lise)
@@ -73,9 +73,9 @@ export function palette(principal, accent) {
     '--on-dark': toHex(mix(p, W, 0.76)),
     '--on-dark-2': toHex(mix(p, W, 0.6)),
     '--on-accent': lum(a) > 0.3 ? toHex(p) : '#ffffff',
-    '--bg': toHex(mix(mix(p, a, 0.25), W, 0.955)),
-    '--line': toHex(mix(p, W, 0.9)),
-    '--line-2': toHex(mix(p, W, 0.945)),
+    '--bg': '#f5f6f8',
+    '--line': '#e4e7ec',
+    '--line-2': '#eef0f3',
   }
 }
 
@@ -93,7 +93,7 @@ export function applyTheme(a) {
       appliquees.push(k)
     })
   }
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', origine ? '#0b1830' : toHex(hex(palette(c.principal, c.accent)['--navy'])))
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', origine ? '#0c1833' : toHex(hex(palette(c.principal, c.accent)['--navy'])))
 }
 
 // ---------- Identité ----------

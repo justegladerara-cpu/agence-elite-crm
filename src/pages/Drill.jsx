@@ -37,7 +37,7 @@ export default function Drill({ titre, sous, res, onClose }) {
             </div>
           </div>
           <button className="icon-btn" onClick={onClose} aria-label="Fermer">
-            ✕
+            <Icon n="x" size={14} />
           </button>
         </div>
         <div className="drawer-body">

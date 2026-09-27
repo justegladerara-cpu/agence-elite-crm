@@ -7,6 +7,7 @@ import { ProcessBar, ProchaineEtape, ScriptsCard, QualifCard } from './Insta'
 import { ligne } from '../lib/insta'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
+import { categorie } from '../lib/hub'
 import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
 
 export default function Fiche({ id }) {
@@ -21,9 +22,9 @@ export default function Fiche({ id }) {
   if (!p)
     return (
       <div className="card">
-        <Empty>Prospect introuvable.</Empty>
-        <button className="btn" onClick={() => go('/prospects')}>
-          ← Retour aux prospects
+        <Empty>Cette fiche est introuvable : elle a peut-être été supprimée.</Empty>
+        <button className="btn" onClick={() => go('/clients')}>
+          <Icon n="arrow-right" size={14} style={{ transform: 'rotate(180deg)' }} /> Retour aux clients
         </button>
       </div>
     )
@@ -49,8 +50,8 @@ export default function Fiche({ id }) {
   const remove = async () => {
     if (!window.confirm(`Supprimer « ${p.name} » et tout son historique (${p.acts.length} actions) ?`)) return
     await api.deleteProspect(p.id)
-    toast('Prospect supprimé')
-    go('/prospects')
+    toast('Fiche supprimée')
+    go('/clients')
   }
 
   const ig = f.instagram
@@ -152,8 +153,8 @@ export default function Fiche({ id }) {
     <div className="stack fiche">
       <div className="rec-head">
         <div className="rec-top">
-          <button className="icon-btn back-btn" title="Retour" onClick={() => go(client ? '/clients' : '/prospects')}>
-            ←
+          <button className="icon-btn back-btn" title="Retour" aria-label="Retour au hub Clients" onClick={() => go(`/clients?onglet=${categorie(p, client)}`)}>
+            <Icon n="arrow-right" size={16} style={{ transform: 'rotate(180deg)' }} />
           </button>
           <div className={`rec-avatar ${ig ? 'ig' : ''}`}>{ig ? <Icon n="instagram" size={20} /> : initiales || '?'}</div>
           <div className="li-main">
@@ -352,7 +353,7 @@ export default function Fiche({ id }) {
         </Modal>
       )}
       {editAction && (
-        <Modal title="Modifier l'action" onClose={() => setEditAction(null)}>
+        <Modal title="Modifier l'action" onClose={() => setEditAction(null)} large>
           <ActionForm prefill={{ edit: editAction }} onDone={() => setEditAction(null)} />
         </Modal>
       )}

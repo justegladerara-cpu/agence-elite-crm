@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useApp, Kpi, Empty, Modal, Field, go, eur, nb, Tabs, useTab, Menu } from '../ui'
-import { waLink } from '../lib/logic'
-import { PaiementForm } from './Finances'
-import { fmtDate, today, nowTime } from '../lib/dates'
+import { useApp, Modal, Field, Select, go } from '../ui'
+import { today, nowTime } from '../lib/dates'
 
 // Ajouter un client que tu avais déjà avant le CRM, sans refaire tout le process de prospection
 export function AncienClient({ onClose }) {
@@ -35,9 +33,9 @@ export function AncienClient({ onClose }) {
     }
   }
   return (
-    <Modal title="Ajouter un ancien client" onClose={onClose}>
+    <Modal title="Nouveau client" onClose={onClose}>
       <div className="card stack" style={{ gap: 12 }}>
-        <div className="tiny muted">Pour un client que tu avais déjà : il arrive directement dans Clients, sans passer par la prospection.</div>
+        <div className="tiny muted">Pour un client déjà signé : il arrive directement dans le hub Clients, sans passer par la prospection.</div>
         <Field label="Entreprise">
           <input autoFocus value={f.name} onChange={set('name')} />
         </Field>
@@ -49,12 +47,7 @@ export function AncienClient({ onClose }) {
             <input type="tel" value={f.telephone} onChange={set('telephone')} />
           </Field>
           <Field label="Secteur">
-            <select value={f.secteur} onChange={set('secteur')}>
-              <option value="">—</option>
-              {settings.secteurs.map((x) => (
-                <option key={x.nom}>{x.nom}</option>
-              ))}
-            </select>
+            <Select value={f.secteur} onChange={(v) => setF({ ...f, secteur: v })} options={settings.secteurs.map((x) => x.nom)} libre />
           </Field>
           <Field label="Ville">
             <input value={f.ville} onChange={set('ville')} />
@@ -75,147 +68,21 @@ export function AncienClient({ onClose }) {
         <Field label="Note (facultatif)">
           <input placeholder="Ce que tu as fait pour lui" value={f.notes} onChange={set('notes')} />
         </Field>
-        <button className="btn gold block" disabled={busy} onClick={save}>
-          Ajouter le client
-        </button>
+        <div className="ff-foot">
+          <button className="btn" onClick={onClose}>
+            Annuler
+          </button>
+          <button className="btn gold" disabled={busy || !f.name.trim()} onClick={save}>
+            Ajouter le client
+          </button>
+        </div>
       </div>
     </Modal>
   )
 }
 
-export default function Clients({ filtre: filtreDemande }) {
-  const { data, settings, openAction } = useApp()
-  const [pay, setPay] = useState(null)
-  const [ancien, setAncien] = useState(false)
-  const cl = [...data.clients].sort((a, b) => (a.statut === b.statut ? (b.prospect.dateSignature || '').localeCompare(a.prospect.dateSignature || '') : a.statut === 'Actif' ? -1 : 1))
-  const actifs = cl.filter((c) => c.statut === 'Actif')
-  const mrr = actifs.reduce((m, c) => m + c.abonnement, 0)
-  const reste = cl.reduce((m, c) => m + c.reste, 0)
-  const total = cl.reduce((m, c) => m + c.total, 0)
-  const FILTRES = [
-    ['tous', 'Tous', () => true],
-    ['actifs', 'Actifs', (c) => c.statut === 'Actif'],
-    ['encaisser', 'À encaisser', (c) => c.reste > 0],
-    ['abonnes', 'Abonnés', (c) => c.abonnement > 0],
-    ['alertes', 'À surveiller', (c) => !!c.alerte],
-  ]
-  const [filtre, setFiltre] = useTab('clients', 'tous', filtreDemande)
-  const fx = FILTRES.find(([k]) => k === filtre) || FILTRES[0]
-  const vus = cl.filter(fx[2])
-  const tone = { Payé: 'b-green', 'En retard': 'b-red', Partiel: 'b-orange', 'En attente': 'b-gold' }
-  return (
-    <div className="stack">
-      <div className="page-head" style={{ marginBottom: 0 }}>
-        <div>
-          <h1>Clients</h1>
-          <div className="sub">Un prospect devient client dès que tu saisis « Signature » ou « Intervention ». Chaque intervention payée se saisit avec son montant.</div>
-        </div>
-        <div className="row">
-          <button className="btn gold" onClick={() => setAncien(true)}>
-            + Ancien client
-          </button>
-        </div>
-      </div>
-      {ancien && <AncienClient onClose={() => setAncien(false)} />}
-      <div className="grid grid-4">
-        <Kpi label="Clients actifs" value={nb(actifs.length)} navy />
-        <Kpi label="Revenu récurrent (MRR)" value={eur(mrr)} navy />
-        <Kpi label="Total facturé" value={eur(total)} />
-        <Kpi label="Reste à encaisser" value={eur(reste)} />
-      </div>
-      <Tabs items={FILTRES.map(([k, l, fn]) => [k, l, k === 'tous' ? cl.length : cl.filter(fn).length])} value={fx[0]} onChange={setFiltre} />
-      <div className="card flush">
-        {vus.length === 0 ? (
-          <Empty>{cl.length ? 'Aucun client dans ce filtre.' : 'Pas encore de client. Ta première signature arrivera vite, ou ajoute un ancien client.'}</Empty>
-        ) : (
-          <div className="table-wrap">
-            <table className="t zt">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>Statut</th>
-                  <th className="hide-m">Dernière prestation</th>
-                  <th className="num hide-m">Total facturé</th>
-                  <th className="num">Reste</th>
-                  <th className="num hide-m">Abonnement</th>
-                  <th className="hide-m" />
-                  <th style={{ width: 40 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {vus.map((c) => (
-                  <tr key={c.id} className="click" onClick={() => go(`/prospect/${c.id}`)}>
-                    <td className="ell-cell">
-                      <div className="bold ell">{c.name}</div>
-                      <div className="tiny muted ell">
-                        {[c.prospect.fiche?.contact, c.prospect.fiche?.offre, c.prospect.dateSignature && `depuis le ${fmtDate(c.prospect.dateSignature)}`].filter(Boolean).join(' · ')}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 4 }}>
-                        <span className={`badge ${c.statut === 'Actif' ? 'b-green' : 'b-Perdu'}`}>{c.statut}</span>
-                        {c.statutPaiement && <span className={`badge ${tone[c.statutPaiement]}`}>{c.statutPaiement}</span>}
-                        {c.alerte && <span className="badge b-red">{c.alerte}</span>}
-                      </div>
-                    </td>
-                    <td className="hide-m">
-                      {c.derniereIntervention ? fmtDate(c.derniereIntervention) : '—'}
-                      {c.nbInterventions ? <span className="tiny muted"> · {c.nbInterventions} au total</span> : null}
-                    </td>
-                    <td className="num hide-m">{eur(c.total)}</td>
-                    <td className={`num ${c.reste > 0 ? 'bold red' : ''}`}>{c.reste > 0 ? eur(c.reste) : '—'}</td>
-                    <td className="num hide-m">{c.abonnement ? `${eur(c.abonnement)}/mois` : '—'}</td>
-                    <td className="hide-m" onClick={(e) => e.stopPropagation()}>
-                      <div className="row" style={{ gap: 4, flexWrap: 'nowrap' }}>
-                        <button className="btn sm gold" onClick={() => openAction({ prospect_id: c.id, action: 'Intervention', canal: 'Appel' })}>
-                          + Intervention
-                        </button>
-                        <button className="btn sm" onClick={() => setPay({ prospect_id: c.id, montant: c.reste ? String(c.reste) : '' })}>
-                          + Paiement
-                        </button>
-                      </div>
-                    </td>
-                    <td onClick={(e) => e.stopPropagation()}>
-                      <Menu
-                        label=""
-                        icon="menu"
-                        className="icon-btn"
-                        items={[
-                          { label: 'Nouvelle facture', icon: 'file', onClick: () => go(`/facture/new?type=facture&p=${c.id}`) },
-                          { label: 'Nouveau devis', icon: 'clipboard', onClick: () => go(`/facture/new?type=devis&p=${c.id}`) },
-                          '-',
-                          { label: 'Saisir une intervention', icon: 'bolt', onClick: () => openAction({ prospect_id: c.id, action: 'Intervention', canal: 'Appel' }) },
-                          { label: 'Paiement reçu', icon: 'coins', onClick: () => setPay({ prospect_id: c.id, montant: c.reste ? String(c.reste) : '' }) },
-                          !c.nbInterventions && c.onboarding < 1 && { label: `Suivi : ${nextOnboarding(c)}`, icon: 'check', onClick: () => openAction({ prospect_id: c.id, action: nextOnboarding(c) }) },
-                          { label: 'Autre action', icon: 'plus', onClick: () => openAction({ prospect_id: c.id }) },
-                          '-',
-                          c.prospect.fiche?.telephone && { label: 'Appeler', icon: 'phone', onClick: () => (window.location.href = `tel:${c.prospect.fiche.telephone}`) },
-                          waLink(c.prospect.fiche?.whatsapp || c.prospect.fiche?.telephone, settings.clients.indicatifWhatsApp) && {
-                            label: 'WhatsApp',
-                            icon: 'message',
-                            onClick: () => window.open(waLink(c.prospect.fiche?.whatsapp || c.prospect.fiche?.telephone, settings.clients.indicatifWhatsApp), '_blank'),
-                          },
-                          { label: 'Ouvrir la fiche', icon: 'eye', onClick: () => go(`/prospect/${c.id}`) },
-                        ]}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-      {pay && (
-        <Modal title="Paiement reçu" onClose={() => setPay(null)}>
-          <PaiementForm prefill={pay} onDone={() => setPay(null)} />
-        </Modal>
-      )}
-    </div>
-  )
-}
-
-function nextOnboarding(c) {
+// Prochaine étape de suivi d'un nouveau client (onboarding, puis avis et satisfaction)
+export function nextOnboarding(c) {
   const done = new Set(c.prospect.acts.map((a) => a.action))
   return (
     ['Onboarding - Contrat', 'Onboarding - Accès', 'Onboarding - Contenus', 'Onboarding - Lancement', "Demande d'avis Google"].find((x) => !done.has(x)) ||

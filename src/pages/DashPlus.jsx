@@ -1,26 +1,26 @@
-// Vues supplémentaires du tableau de bord : pipeline par étape, CA cumulé du mois, carte de chaleur
-// des contacts, dépenses par catégorie et vue Clients. Tout est cliquable et relié aux fiches.
+// Vues supplémentaires du tableau de bord : pipeline par étape, CA cumulé du mois, carte de chaleur,
+// dépenses par catégorie et meilleurs clients. Tout est cliquable et relié aux fiches.
 import { useMemo, useState } from 'react'
-import { useApp, Kpi, eur, pct, nb, go, LienProspect } from '../ui'
+import { useApp, eur, pct, go } from '../ui'
 import { Icon } from '../icons'
-import { Donut, HBars, COULEURS, useWidth } from '../charts'
+import { HBars, COULEURS, useWidth } from '../charts'
 import { isProspection, isReponse, VENTES, montantRetenu } from '../lib/logic'
 import { today, fmtDate, fmtMonth, weekday } from '../lib/dates'
 
 const COUL_ETAPE = { Nouveau: '#8a93a6', Contacté: '#2a78d6', Qualifié: '#6c46bb', 'Audit/Démo': '#11788a', RDV: '#b8862b', Proposition: '#eb6834', Gagné: '#1baf7a' }
 
 // Pipeline : combien de prospects à chaque étape et ce qu'ils pèsent
-export function PipelineEtapes() {
+export function PipelineEtapes({ canal = 'Tous' }) {
   const { data, settings } = useApp()
   const etapes = settings.etapes.map((e) => e.nom).filter((e) => e !== 'Perdu' && e !== 'Gagné')
   const lignes = etapes.map((e) => {
-    const ps = data.list.filter((p) => p.etape === e)
+    const ps = data.list.filter((p) => p.etape === e && (canal === 'Tous' || p.canal === canal))
     return { e, n: ps.length, propose: ps.reduce((m, p) => m + (Number(p.montantPropose) || 0), 0), pondere: ps.reduce((m, p) => m + p.pipelinePondere, 0) }
   })
   const total = lignes.reduce((m, l) => m + l.n, 0)
   const [hover, setHover] = useState(null)
   if (!total) return <div className="empty">Aucun prospect en cours : ajoute tes premiers prospects.</div>
-  const lien = (e) => go(`/prospects?etape=${encodeURIComponent(e)}&vue=liste`)
+  const lien = (e) => go(`/clients?onglet=potentiels&etape=${encodeURIComponent(e)}&vue=liste`)
   return (
     <div className="pipe">
       <div className="pipe-bar" role="img" aria-label={lignes.map((l) => `${l.e} ${l.n}`).join(', ')}>
@@ -65,7 +65,7 @@ export function PipelineEtapes() {
 }
 
 // CA signé et encaissé cumulés jour après jour, face à l'objectif du mois
-export function CumulMois() {
+export function CumulMois({ canal = 'Tous' }) {
   const { data, settings } = useApp()
   const [ref, W] = useWidth(640)
   const [hover, setHover] = useState(null)
@@ -79,6 +79,7 @@ export function CumulMois() {
     const enc = Array(nbJours + 1).fill(0)
     data.sorted.forEach((a) => {
       if (!a.date || a.date.slice(0, 7) !== key) return
+      if (canal !== 'Tous' && data.byId[a.prospect_id]?.canal !== canal) return
       const j = Number(a.date.slice(8, 10))
       if (VENTES.includes(a.action)) sig[j] += montantRetenu(a, data.byId[a.prospect_id], data.L)
       else if (a.action === 'Paiement reçu') enc[j] += montantRetenu(a, data.byId[a.prospect_id], data.L)
@@ -92,7 +93,7 @@ export function CumulMois() {
       out.push({ j, s, e })
     }
     return out
-  }, [data, key, nbJours, jourAuj])
+  }, [data, key, nbJours, jourAuj, canal])
   const H = W < 500 ? 200 : 230
   const pad = { l: 8, r: 12, t: 16, b: 24 }
   const iw = W - pad.l - pad.r
@@ -254,112 +255,20 @@ export function depensesParCategorie(data, periode) {
   return Object.entries(m).map(([label, value]) => ({ label, value }))
 }
 
-// Onglet Clients : chiffre d'affaires, encaissements, abonnements et clients à suivre
-export function ClientsVue({ voir }) {
+// Meilleurs clients par chiffre signé, cliquables vers leur fiche
+export function MeilleursClients({ canal = 'Tous' }) {
   const { data } = useApp()
-  const cl = data.clients
-  const actifs = cl.filter((c) => c.statut === 'Actif')
-  const caTotal = cl.reduce((m, c) => m + c.total, 0)
-  const reste = cl.reduce((m, c) => m + c.reste, 0)
-  const mrr = actifs.reduce((m, c) => m + c.abonnement, 0)
-  const top = [...cl].sort((a, b) => b.total - a.total).slice(0, 8)
-  const secteurs = {}
-  cl.forEach((c) => {
-    const s = c.prospect.fiche?.secteur || 'Non renseigné'
-    secteurs[s] = (secteurs[s] || 0) + c.total
-  })
-  const paiement = {}
-  cl.filter((c) => c.statutPaiement).forEach((c) => (paiement[c.statutPaiement] = (paiement[c.statutPaiement] || 0) + 1))
-  const renouv = actifs.filter((c) => c.joursRenouv !== null && c.joursRenouv >= 0 && c.joursRenouv <= 60).sort((a, b) => a.joursRenouv - b.joursRenouv)
-  if (!cl.length)
-    return (
-      <div className="card empty">
-        Pas encore de client. Un prospect devient client dès que tu saisis sa signature.
-      </div>
-    )
+  const top = data.clients
+    .filter((c) => canal === 'Tous' || c.prospect.canal === canal)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8)
   return (
-    <>
-      <div className="grid grid-4">
-        <Kpi label="Clients actifs" value={nb(actifs.length)} navy onClick={() => go('/clients?filtre=actifs')} />
-        <Kpi label="CA total clients" value={eur(caTotal)} navy />
-        <Kpi label="Reste à encaisser" value={eur(reste)} onClick={() => voir('Reste à encaisser', { kind: 'resteClients' })} />
-        <Kpi label="Revenu récurrent (MRR)" value={eur(mrr)} onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} />
-      </div>
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Meilleurs clients</h2>
-          <HBars rows={top.map((c) => ({ id: c.id, label: c.name, value: c.total, sub: c.reste > 0 ? `reste ${eur(c.reste)}` : c.nbInterventions ? `${c.nbInterventions} intervention${c.nbInterventions > 1 ? 's' : ''}` : '' }))} fmt={eur} color={COULEURS[2]} onPick={(r) => go(`/prospect/${r.id}`)} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="tag" size={16} /></span> CA par secteur</h2>
-          <Donut items={Object.entries(secteurs).map(([label, value]) => ({ label, value }))} fmt={eur} total="CA clients" onPick={(l) => voir(`Clients du secteur ${l}`, { kind: 'secteurClients', key: l })} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> État des paiements</h2>
-          <Donut items={Object.entries(paiement).map(([label, value]) => ({ label, value }))} total="clients" onPick={(l) => voir(`Paiement : ${l}`, { kind: 'paiementClients', key: l })} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="alert" size={16} /></span> Clients à suivre</h2>
-          {data.clientsAlertes.length || renouv.length ? (
-            <div className="suivi">
-              {data.clientsAlertes.slice(0, 6).map((c) => (
-                <div key={c.id} className="suivi-l">
-                  <LienProspect id={c.id}>{c.name}</LienProspect>
-                  <span className="badge b-red">{c.alerte}</span>
-                </div>
-              ))}
-              {renouv
-                .filter((c) => !c.alerte)
-                .slice(0, 4)
-                .map((c) => (
-                  <div key={c.id} className="suivi-l">
-                    <LienProspect id={c.id}>{c.name}</LienProspect>
-                    <span className="badge b-orange">Renouvellement dans {c.joursRenouv} j</span>
-                  </div>
-                ))}
-              <button className="toggle-link tiny" onClick={() => go('/clients?filtre=alertes')}>
-                Voir tous les clients à surveiller
-              </button>
-            </div>
-          ) : (
-            <div className="empty">Tout est à jour, aucun client à relancer.</div>
-          )}
-        </div>
-      </div>
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="handshake" size={16} /></span> Tous les clients</h2>
-        <div className="table-wrap">
-          <table className="t">
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Statut</th>
-                <th className="num">CA</th>
-                <th className="num">Encaissé</th>
-                <th className="num">Reste</th>
-                <th className="num">Abonnement</th>
-                <th>Dernière vente</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...cl]
-                .sort((a, b) => b.total - a.total)
-                .map((c) => (
-                  <tr key={c.id} className="click" onClick={() => go(`/prospect/${c.id}`)}>
-                    <td className="bold">{c.name}</td>
-                    <td><span className={`badge ${c.statut === 'Actif' ? 'b-green' : 'b-Perdu'}`}>{c.statut}</span></td>
-                    <td className="num">{eur(c.total)}</td>
-                    <td className="num">{eur(c.encaisse)}</td>
-                    <td className={`num ${c.reste > 0 ? 'red' : ''}`}>{c.reste ? eur(c.reste) : '—'}</td>
-                    <td className="num">{c.abonnement ? eur(c.abonnement) : '—'}</td>
-                    <td>{c.derniereVente ? fmtDate(c.derniereVente) : '—'}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
+    <HBars
+      rows={top.map((c) => ({ id: c.id, label: c.name, value: c.total, sub: c.reste > 0 ? `reste ${eur(c.reste)}` : '' }))}
+      fmt={eur}
+      color={COULEURS[2]}
+      empty="Pas encore de client sur ce canal."
+      onPick={(r) => go(`/prospect/${r.id}`)}
+    />
   )
 }
-

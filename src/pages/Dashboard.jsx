@@ -5,7 +5,7 @@ import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { detail } from '../lib/drill'
 import Drill from './Drill'
-import { PipelineEtapes, CumulMois, Heatmap, ClientsVue, depensesParCategorie } from './DashPlus'
+import { PipelineEtapes, CumulMois, Heatmap, MeilleursClients, depensesParCategorie } from './DashPlus'
 import { RelanceBoutons } from './Insta'
 import { facturesImpayees } from './Factures'
 import { RelanceTag, go, LienProspect } from '../ui'
@@ -322,7 +322,12 @@ export default function Dashboard({ onglet: ongletDemande }) {
   const { data, settings, actions } = useApp()
   const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
-  const [onglet, setOnglet] = useTab('dashboard', 'vue', ongletDemande)
+  // Onglet mémorisé sur l'appareil ; les anciens noms d'onglets mènent au nouvel équivalent
+  const [onglet, setOngletBrut] = useTab('dashboard', lireOnglet(), ANCIENS[ongletDemande] || ongletDemande)
+  const setOnglet = (v) => {
+    setOngletBrut(v)
+    ecrireOnglet(v)
+  }
   const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -370,8 +375,15 @@ export default function Dashboard({ onglet: ongletDemande }) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const secIc = (n) => (
+    <span className="sec-ic">
+      <Icon n={n} size={16} />
+    </span>
+  )
+  const tauxRep = contacts ? c.reponses / contacts : null
+
   return (
-    <div className="stack">
+    <div className="stack dash">
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div>
           <h1>Tableau de bord</h1>
@@ -380,8 +392,11 @@ export default function Dashboard({ onglet: ongletDemande }) {
             {canal !== 'Tous' ? `, canal ${canal}` : ', tous canaux'}
           </div>
         </div>
-        <div className="row">
-          <select className="input" style={{ width: 'auto' }} value={mois} onChange={(e) => setMois(e.target.value)}>
+        <div className="row dash-filters">
+          <label className="sr-only" htmlFor="dash-periode">
+            Période
+          </label>
+          <select id="dash-periode" className="input" value={mois} onChange={(e) => setMois(e.target.value)}>
             <option value="Cette semaine">Cette semaine</option>
             <option value="Semaine dernière">Semaine dernière</option>
             <option value="Mois en cours">Mois en cours</option>
@@ -392,7 +407,10 @@ export default function Dashboard({ onglet: ongletDemande }) {
               </option>
             ))}
           </select>
-          <select className="input" style={{ width: 'auto' }} value={canal} onChange={(e) => setCanal(e.target.value)}>
+          <label className="sr-only" htmlFor="dash-canal">
+            Canal
+          </label>
+          <select id="dash-canal" className="input" value={canal} onChange={(e) => setCanal(e.target.value)}>
             <option value="Tous">Tous les canaux</option>
             {settings.canaux.map((x) => (
               <option key={x}>{x}</option>
@@ -402,17 +420,13 @@ export default function Dashboard({ onglet: ongletDemande }) {
       </div>
 
       {drill && <Drill titre={drill.titre} sous={drill.sous || titre} res={drillRes} onClose={() => setDrill(null)} />}
-      <div className="tiny muted dash-hint">
-        <Icon n="eye" size={13} /> Clique sur un chiffre, une barre ou une part de graphique pour voir les prospects et actions derrière.
-      </div>
 
       <Tabs
         items={[
           ['vue', "Vue d'ensemble"],
-          ['prospection', 'Prospection'],
-          ['ventes', 'Ventes et CA'],
-          ['clients', 'Clients', data.clientsAlertes.length || undefined],
-          ['marche', 'Ce qui marche'],
+          ['acquisition', 'Acquisition'],
+          ['conversion', 'Conversion'],
+          ['finances', 'Finances'],
         ]}
         value={onglet}
         onChange={setOnglet}
@@ -420,320 +434,371 @@ export default function Dashboard({ onglet: ongletDemande }) {
 
       {onglet === 'vue' && (
         <>
-        <div className="bigkpis">
-          <BigKpi ico="instagram" onClick={() => voir('DM envoyés', { kind: 'dm' })} label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
-          <BigKpi ico="message" onClick={() => voir('Réponses', { kind: 'reponses' })} label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
-          <BigKpi ico="play" onClick={() => voir('Looms et audits', { kind: 'looms' })} label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
-          <BigKpi ico="phone" onClick={() => voir('Appels', { kind: 'appels' })} label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
-          <BigKpi ico="handshake" onClick={() => voir('Clients signés', { kind: 'signes' })} label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
-          <BigKpi ico="coins" onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
-        </div>
-
-        <AFaire />
-
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="trend" size={16} /></span> Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
-          <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} onPick={(b) => voir(act.parSemaine ? `Activité de la semaine du ${fmtDate(b.date)}` : `Activité du ${fmtDate(b.date)}`, { kind: 'jour' }, { debut: b.date, fin: b.fin, sous: null })} />
-        </div>
-
-        <div className="grid grid-2" style={{ alignItems: 'start' }}>
-          <div className="card">
-            <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir de ton process</h2>
-            <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
-            <Funnel steps={st.process} onPick={(i) => voir(`Entonnoir : ${st.process[i].label}`, { kind: 'etapeProcess', key: i })} />
-            {st.perdus > 0 && (
-              <button className="toggle-link tiny" style={{ marginTop: 4 }} onClick={() => voir('Prospects perdus', { kind: 'perdus' })}>
-                {st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période
-              </button>
-            )}
+          <div className="bigkpis four">
+            <BigKpi ico="coins" onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
+            <BigKpi ico="handshake" onClick={() => voir('Clients signés', { kind: 'signes' })} label="Clients signés" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} />
+            <BigKpi ico="calendar" onClick={() => voir('RDV obtenus', { kind: 'rdv' })} label="RDV obtenus" value={nb(c.rdv)} cur={c.rdv} prev={pvv('rdv')} vs={vs} />
+            <BigKpi ico="target" onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} label="Taux de closing" value={c.propositions ? pct(c.closing) : '—'} cur={Math.round(c.closing * 100)} prev={pv ? Math.round(pv.closing * 100) : null} vs={vs} fmt={(v) => `${v} pts`} sub={`${nb(c.signes)} signé${c.signes > 1 ? 's' : ''} sur ${nb(c.propositions)} proposition${c.propositions > 1 ? 's' : ''}`} />
           </div>
 
-          <div className="card">
-            <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
-            <div className="gauges">
-              {goals.map(([l, v, cible, fmt]) => (
-                <Gauge
-                  key={l}
-                  label={l}
-                  value={v}
-                  cible={cible}
-                  proj={dayN ? (v / dayN) * daysIn : 0}
-                  fmt={fmt}
-                  onClick={() => voir(`${l} du mois`, { kind: GAUGE_KIND[l] }, { debut: moisCourant.debut, fin: moisCourant.fin, canal: 'Tous', sous: fmtMonth(moisCourant.key) })}
-                />
-              ))}
+          <div className="mini-stats" role="list">
+            <Mini label="Prospects ajoutés" v={c.prospects} d={d('prospects')} onClick={() => voir('Prospects ajoutés', { kind: 'prospects' })} />
+            <Mini label="Appels" v={c.appels} d={d('appels')} onClick={() => voir('Appels', { kind: 'appels' })} />
+            <Mini label="DM" v={c.dm} d={d('dm')} onClick={() => voir('DM envoyés', { kind: 'dm' })} />
+            <Mini label="Réponses" v={c.reponses} d={d('reponses')} sub={tauxRep !== null ? `${pct(tauxRep)} de réponse` : null} onClick={() => voir('Réponses', { kind: 'reponses' })} />
+            <Mini label="Propositions" v={c.propositions} d={d('propositions')} onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} />
+          </div>
+
+          <AFaire />
+
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            <div className="card">
+              <h2 className="section">{secIc('target')} Objectifs du mois en cours</h2>
+              <div className="gauges">
+                {goals.map(([l, v, cible, fmt]) => (
+                  <Gauge
+                    key={l}
+                    label={l}
+                    value={v}
+                    cible={cible}
+                    proj={dayN ? (v / dayN) * daysIn : 0}
+                    fmt={fmt}
+                    onClick={() => voir(`${l} du mois`, { kind: GAUGE_KIND[l] }, { debut: moisCourant.debut, fin: moisCourant.fin, canal: 'Tous', sous: fmtMonth(moisCourant.key) })}
+                  />
+                ))}
+              </div>
+              <div className="tiny muted" style={{ marginTop: 10 }}>
+                {fmtMonth(moisCourant.key)}, tous canaux. Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.
+              </div>
             </div>
-            <div className="tiny muted" style={{ marginTop: 10 }}>Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.</div>
+            <div className="card">
+              <h2 className="section">{secIc('funnel')} Entonnoir du pipeline</h2>
+              <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
+              <Funnel steps={st.process} onPick={(i) => voir(`Entonnoir : ${st.process[i].label}`, { kind: 'etapeProcess', key: i })} />
+              {st.perdus > 0 && (
+                <button className="toggle-link tiny" style={{ marginTop: 4 }} onClick={() => voir('Prospects perdus', { kind: 'perdus' })}>
+                  {st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="layers" size={16} /></span> Pipeline en cours, étape par étape</h2>
-          <div className="tiny muted" style={{ marginBottom: 10 }}>Tous les prospects ouverts aujourd'hui. Clique une étape pour ouvrir la liste filtrée.</div>
-          <PipelineEtapes />
-        </div>
+          <CaMois series={series} year={year} om={om} best={best} choisirMois={choisirMois} canal={canal} />
         </>
       )}
 
-      {onglet === 'prospection' && (
+      {onglet === 'acquisition' && (
         <>
-          <div className="grid grid-4">
-            <Kpi onClick={() => voir('Prospects ajoutés', { kind: 'prospects' })} label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} navy />
-            <Kpi label="Contacts (DM + appels)" value={nb(contacts)} delta={pv ? contacts - pv.dm - pv.appels : null} vs={vs} navy />
-            <Kpi onClick={() => voir('RDV obtenus', { kind: 'rdv' })} label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
-            <Kpi onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
+          <div className="card">
+            <h2 className="section">{secIc('trend')} Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
+            <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} onPick={(b) => voir(act.parSemaine ? `Activité de la semaine du ${fmtDate(b.date)}` : `Activité du ${fmtDate(b.date)}`, { kind: 'jour' }, { debut: b.date, fin: b.fin, sous: null })} />
+          </div>
+          <div className="card">
+            <RateTable
+              title="📡 Ce que produit chaque canal"
+              onPick={(r) => voir(`Prospects du canal ${r.canal}`, { kind: 'canal', key: r.canal })}
+              rows={[
+                ...st.parCanal,
+                st.parCanal.reduce(
+                  (m, r) => ({
+                    canal: 'Total',
+                    actions: m.actions + r.actions,
+                    reponses: m.reponses + r.reponses,
+                    temps: m.temps + r.temps,
+                    rdv: m.rdv + r.rdv,
+                    clients: m.clients + r.clients,
+                    ca: m.ca + r.ca,
+                  }),
+                  { actions: 0, reponses: 0, temps: 0, rdv: 0, clients: 0, ca: 0 },
+                ),
+              ].map((r) => ({
+                ...r,
+                taux: r.actions ? r.reponses / r.actions : 0,
+                caHeure: r.temps ? r.ca / r.temps : 0,
+                heuresClient: r.clients ? r.temps / r.clients : 0,
+              }))}
+              cols={[
+                ['Canal', (r) => (r.canal === 'Total' ? <b>Total</b> : r.canal)],
+                ['Actions', (r) => r.actions, 1],
+                ['Réponses', (r) => r.reponses, 1],
+                ['Taux', (r) => pct(r.taux), 1],
+                ['Temps (h)', (r) => nb(r.temps, 1), 1],
+                ['RDV', (r) => r.rdv, 1],
+                ['Clients', (r) => r.clients, 1],
+                ['CA signé', (r) => eur(r.ca), 1],
+                ['CA / heure', (r) => (r.caHeure ? eur(r.caHeure) : '—'), 1],
+              ]}
+            />
+          </div>
+          <div className="card">
+            <h2 className="section">{secIc('clock')} Quand tu prospectes et quand ça répond</h2>
+            <div className="tiny muted" style={{ marginBottom: 10 }}>DM et appels de la période, par jour et par heure. Plus la case est foncée, plus tu as contacté ; le point doré signale des réponses.</div>
+            <Heatmap periode={periode} canal={canal} onPick={(key, l) => voir(`Contacts du ${l}`, { kind: 'cellule', key })} />
           </div>
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
-          <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="radio" size={16} /></span> D'où viennent tes prospects</h2>
-          <Donut items={st.repCanal} total="prospects" onPick={(l) => voir(`Prospects du canal ${l}`, { kind: 'canal', key: l })} />
-        </div>
-          <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="tag" size={16} /></span> Secteurs prospectés</h2>
-          <Donut items={st.repSecteur} total="prospects" onPick={(l) => voir(`Secteur : ${l}`, { kind: 'secteur', key: l })} />
-        </div>
-          </div>
-        <div className="card">
-          <RateTable
-            title="📡 Ce que produit chaque canal"
-            onPick={(r) => voir(`Prospects du canal ${r.canal}`, { kind: 'canal', key: r.canal })}
-            rows={[
-              ...st.parCanal,
-              st.parCanal.reduce(
-                (m, r) => ({
-                  canal: 'Total',
-                  actions: m.actions + r.actions,
-                  reponses: m.reponses + r.reponses,
-                  temps: m.temps + r.temps,
-                  rdv: m.rdv + r.rdv,
-                  clients: m.clients + r.clients,
-                  ca: m.ca + r.ca,
-                }),
-                { actions: 0, reponses: 0, temps: 0, rdv: 0, clients: 0, ca: 0 },
-              ),
-            ].map((r) => ({
-              ...r,
-              taux: r.actions ? r.reponses / r.actions : 0,
-              caHeure: r.temps ? r.ca / r.temps : 0,
-              heuresClient: r.clients ? r.temps / r.clients : 0,
-            }))}
-            cols={[
-              ['Canal', (r) => (r.canal === 'Total' ? <b>Total</b> : r.canal)],
-              ['Actions', (r) => r.actions, 1],
-              ['Réponses', (r) => r.reponses, 1],
-              ['Taux', (r) => pct(r.taux), 1],
-              ['Temps (h)', (r) => nb(r.temps, 1), 1],
-              ['RDV', (r) => r.rdv, 1],
-              ['Clients', (r) => r.clients, 1],
-              ['CA signé', (r) => eur(r.ca), 1],
-              ['CA / heure', (r) => (r.caHeure ? eur(r.caHeure) : '—'), 1],
-              ['Heures / client', (r) => (r.heuresClient ? nb(r.heuresClient, 1) : '—'), 1],
-            ]}
-          />
-        </div>
-
-          <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="bolt" size={16} /></span> Vitesse et production</h2>
-          <div className="tiny muted" style={{ marginBottom: 8 }}>Nombre de jours moyen pour passer d'une étape à la suivante</div>
-          <HBars rows={st.vitesse.filter((r) => r.v !== null).map((r) => ({ label: r.label.replace('Jours ', ''), value: Math.round(r.v * 10) / 10 }))} fmt={(v) => `${nb(v, 1)} j`} color={COULEURS[6]} best={false} empty="Pas encore assez d'historique." />
-          <table className="t" style={{ marginTop: 12 }}>
-            <tbody>
-              {st.autres.map((r) => (
-                <tr key={r.label}>
-                  <td>{r.label}</td>
-                  <td className="num bold">{r.v === null ? '—' : r.pct ? pct(r.v) : nb(r.v, 1)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            <div className="card">
+              <h2 className="section">{secIc('clock')} Meilleurs créneaux d'appel</h2>
+              <HBars onPick={(r) => voir(`Appels ${r.label}`, { kind: 'creneau', key: r.key })} rows={st.creneaux.map((m) => ({ key: m.label.match(/\d+/g).map(Number), label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+            </div>
+            <div className="card">
+              <h2 className="section">{secIc('calendar')} Meilleurs jours d'appel</h2>
+              <HBars onPick={(r) => voir(`Appels du ${r.label.toLowerCase()}`, { kind: 'jourSemaine', key: r.key })} rows={st.jours.map((m, i) => ({ key: i + 1, label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+            </div>
+            <div className="card">
+              <h2 className="section">{secIc('mail')} Accroches et modèles de message</h2>
+              <HBars onPick={(r) => voir(`Modèle : ${r.label}`, { kind: 'modele', key: r.label })} rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes accroches." />
+            </div>
+            <div className="card">
+              <h2 className="section">{secIc('eye')} Taux de réponse par signal repéré</h2>
+              <HBars onPick={(r) => voir(`Signal : ${r.label}`, { kind: 'signal', key: r.label })} rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
+            </div>
+            <div className="card">
+              <h2 className="section">{secIc('radio')} D'où viennent tes prospects</h2>
+              <Donut items={st.repCanal} total="prospects" onPick={(l) => voir(`Prospects du canal ${l}`, { kind: 'canal', key: l })} />
+            </div>
+            <div className="card">
+              <h2 className="section">{secIc('tag')} Secteurs prospectés</h2>
+              <Donut items={st.repSecteur} total="prospects" onPick={(l) => voir(`Secteur : ${l}`, { kind: 'secteur', key: l })} />
+            </div>
           </div>
         </>
       )}
 
-      {onglet === 'ventes' && (
+      {onglet === 'conversion' && (
         <>
-          <div className="grid grid-4">
-            <Kpi onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} vs={vs} navy />
-            <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} navy />
-            <Kpi label="Taux de closing" value={pct(c.closing)} />
-            <Kpi onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} label="Revenu récurrent (MRR)" value={eur(st.mrr)} />
+          <div className="card">
+            <h2 className="section">{secIc('layers')} Pipeline en cours, étape par étape</h2>
+            <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ouverts aujourd'hui{canal !== 'Tous' ? ` venus du canal ${canal}` : ''}. Clique une étape pour ouvrir la liste filtrée.</div>
+            <PipelineEtapes canal={canal} />
           </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Ce mois-ci : CA cumulé face à l'objectif</h2>
-          <CumulMois />
-        </div>
-        <div className="card">
-          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-            <h2 className="section" style={{ margin: 0 }}>
-              <span className="sec-ic"><Icon n="trend" size={16} /></span> CA mois par mois ({year})
-            </h2>
-            <div className="legend">
-              <span>
-                <i style={{ background: C_SIGNE }} />
-                CA signé
-              </span>
-              <span>
-                <i style={{ background: C_ENC }} />
-                Encaissé
-              </span>
-              <span>
-                <i style={{ background: 'none', borderTop: '2px dashed #c8423f', borderRadius: 0, height: 0, width: 14 }} />
-                Objectif mensuel
-              </span>
-              {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
-            </div>
-          </div>
-          <MonthChart series={series} objectif={Number(om.ca) || 0} onPick={choisirMois} />
-          <details style={{ marginTop: 10 }}>
-            <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
-              Voir le tableau mois par mois
-            </summary>
-            <div className="table-wrap" style={{ marginTop: 8 }}>
-              <table className="t">
-                <thead>
-                  <tr>
-                    {['Mois', 'Prospects', 'Appels', 'DM', 'RDV', 'Clients', 'CA signé', 'Encaissé', 'Dépenses', 'Bénéfice'].map((h, i) => (
-                      <th key={h} className={i ? 'num' : ''}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            <div className="card">
+              <h2 className="section">{secIc('bolt')} Vitesse et production</h2>
+              <div className="tiny muted" style={{ marginBottom: 8 }}>Nombre de jours moyen pour passer d'une étape à la suivante</div>
+              <HBars rows={st.vitesse.filter((r) => r.v !== null).map((r) => ({ label: r.label.replace('Jours ', ''), value: Math.round(r.v * 10) / 10 }))} fmt={(v) => `${nb(v, 1)} j`} color={COULEURS[6]} best={false} empty="Pas encore assez d'historique." />
+              <table className="t" style={{ marginTop: 12 }}>
                 <tbody>
-                  {series.map((m) => (
-                    <tr key={m.key} className="click" onClick={() => choisirMois(m.key)}>
-                      <td>{fmtMonth(m.key)}</td>
-                      <td className="num">{m.prospects}</td>
-                      <td className="num">{m.appels}</td>
-                      <td className="num">{m.dm}</td>
-                      <td className="num">{m.rdv}</td>
-                      <td className="num">{m.signes}</td>
-                      <td className="num">{eur(m.caSigne)}</td>
-                      <td className="num">{eur(m.encaisse)}</td>
-                      <td className="num">{eur(m.depenses)}</td>
-                      <td className={`num ${m.benefice < 0 ? 'red' : ''}`}>{eur(m.benefice)}</td>
+                  {st.autres.map((r) => (
+                    <tr key={r.label}>
+                      <td>{r.label}</td>
+                      <td className="num bold">{r.v === null ? '—' : r.pct ? pct(r.v) : nb(r.v, 1)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </details>
-        </div>
-
-          <div className="grid grid-2" style={{ alignItems: 'start' }}>
-          <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> CA signé par offre</h2>
-          <Donut items={st.repOffre} fmt={eur} total="CA signé" onPick={(l) => voir(`Ventes : ${l}`, { kind: 'offre', key: l })} />
-        </div>
-          <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Dépenses par catégorie</h2>
-          <Donut items={depensesParCategorie(data, periode)} fmt={eur} total="dépenses" onPick={(l) => voir(`Dépenses : ${l}`, { kind: 'depenses', key: l === 'Autres' ? '' : l })} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Pipeline et trésorerie</h2>
-          <div className="info-grid">
-            {[
-              ['Pipeline pondéré', eur(st.pipelinePondere), { kind: 'pipeline' }],
-              ['Propositions en attente', eur(st.propositionsEnAttente), { kind: 'propositionsAttente' }],
-              ['CA nouveaux clients', eur(c.caNouveaux)],
-              ['CA clients fidèles', eur(c.caFideles)],
-              ['Interventions', nb(c.interventions), { kind: 'interventions' }],
-              ['Reste à encaisser', eur(st.resteAEncaisser), { kind: 'resteClients' }],
-              ['Encaissé sur la période', eur(c.encaisse), { kind: 'encaisse' }],
-              ['Dépenses de la période', eur(c.depenses), { kind: 'depenses' }],
-              ["Coût d'acquisition / client", c.cac === null ? '—' : eur(c.cac)],
-              ['Heures de prospection', nb(c.tempsH, 1)],
-              ['Valeur vie client moyenne', eur(st.vieMoy)],
-              ['Taux de résiliation', pct(st.churn)],
-            ].map(([k, v, spec]) =>
-              spec ? (
-                <button key={k} type="button" className="info-pick" onClick={() => voir(k, spec)}>
-                  <div className="k">{k}</div>
-                  <div className="v">{v}</div>
+            <div className="card">
+              <h2 className="section">{secIc('ban')} Objections et motifs de perte</h2>
+              <HBars onPick={(r) => voir(`Objection : ${r.label}`, { kind: 'objection', key: r.label })} rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
+              {st.perdus > 0 && (
+                <button className="toggle-link tiny" style={{ marginTop: 8 }} onClick={() => voir('Prospects perdus', { kind: 'perdus' })}>
+                  Voir les {st.perdus} prospect{st.perdus > 1 ? 's' : ''} perdu{st.perdus > 1 ? 's' : ''} sur la période
                 </button>
-              ) : (
-                <div key={k}>
-                  <div className="k">{k}</div>
-                  <div className="v">{v}</div>
-                </div>
-              ),
-            )}
-          </div>
-          <div className="table-wrap" style={{ marginTop: 14 }}>
-            <table className="t">
-              <thead>
-                <tr>
-                  <th>Prévision</th>
-                  <th className="num">Encaissements</th>
-                  <th className="num">Dépenses fixes</th>
-                  <th className="num">Solde</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[1, 2, 3].map((k) => {
-                  const dt = new Date(t.getFullYear(), t.getMonth() + k, 1)
-                  const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
-                  const inn = st.mrrTous + (k === 1 ? st.resteTous : 0)
-                  return (
-                    <tr key={k}>
-                      <td>{fmtMonth(key)}</td>
-                      <td className="num">{eur(inn)}</td>
-                      <td className="num">{eur(st.fixes)}</td>
-                      <td className={`num ${inn - st.fixes < 0 ? 'red' : 'green'}`}>{eur(inn - st.fixes)}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            <div className="tiny muted" style={{ marginTop: 6 }}>
-              Le mois prochain inclut le reste à encaisser ; ensuite, seulement les abonnements actifs.
+              )}
             </div>
-          </div>
-        </div>
-
+            <div className="card">
+              <h2 className="section">{secIc('trophy')} Secteurs qui signent le plus</h2>
+              <HBars onPick={(r) => voir(`Secteur : ${r.label}`, { kind: 'secteurSignes', key: r.label })} rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
+            </div>
           </div>
         </>
       )}
 
-      {onglet === 'clients' && <ClientsVue voir={voir} />}
-
-      {onglet === 'marche' && (
-      <>
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Quand tu prospectes et quand ça répond</h2>
-        <div className="tiny muted" style={{ marginBottom: 10 }}>DM et appels de la période, par jour et par heure. Plus la case est foncée, plus tu as contacté ; le point doré signale des réponses.</div>
-        <Heatmap periode={periode} canal={canal} onPick={(key, l) => voir(`Contacts du ${l}`, { kind: 'cellule', key })} />
-      </div>
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
-          <HBars onPick={(r) => voir(`Script : ${r.label}`, { kind: 'modele', key: r.label })} rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="eye" size={16} /></span> Taux de réponse par signal repéré</h2>
-          <HBars onPick={(r) => voir(`Signal : ${r.label}`, { kind: 'signal', key: r.label })} rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Secteurs qui signent le plus</h2>
-          <HBars onPick={(r) => voir(`Secteur : ${r.label}`, { kind: 'secteurSignes', key: r.label })} rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="ban" size={16} /></span> Objections et motifs de perte</h2>
-          <HBars onPick={(r) => voir(`Objection : ${r.label}`, { kind: 'objection', key: r.label })} rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Meilleurs créneaux d'appel</h2>
-          <HBars onPick={(r) => voir(`Appels ${r.label}`, { kind: 'creneau', key: r.key })} rows={st.creneaux.map((m) => ({ key: m.label.match(/\d+/g).map(Number), label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Meilleurs jours d'appel</h2>
-          <HBars onPick={(r) => voir(`Appels du ${r.label.toLowerCase()}`, { kind: 'jourSemaine', key: r.key })} rows={st.jours.map((m, i) => ({ key: i + 1, label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
-        </div>
-      </div>
-      </>
+      {onglet === 'finances' && (
+        <>
+          <div className="grid grid-4">
+            <Kpi onClick={() => voir('Paiements reçus', { kind: 'encaisse' })} label="CA encaissé" value={eur(c.encaisse)} delta={d('encaisse')} vs={vs} navy />
+            <Kpi onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} vs={vs} />
+            <Kpi onClick={() => voir('Dépenses de la période', { kind: 'depenses' })} label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} />
+            <Kpi onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} label="Revenu récurrent (MRR)" value={`${eur(st.mrr)}/mois`} />
+          </div>
+          <div className="card">
+            <h2 className="section">{secIc('target')} Ce mois-ci : CA cumulé face à l'objectif</h2>
+            <CumulMois canal={canal} />
+          </div>
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+            <div className="card">
+              <h2 className="section">{secIc('wallet')} Pipeline et trésorerie</h2>
+              <div className="info-grid">
+                {[
+                  ['Pipeline pondéré', eur(st.pipelinePondere), { kind: 'pipeline' }],
+                  ['Propositions en attente', eur(st.propositionsEnAttente), { kind: 'propositionsAttente' }],
+                  ['CA nouveaux clients', eur(c.caNouveaux)],
+                  ['CA clients fidèles', eur(c.caFideles)],
+                  ['Interventions', nb(c.interventions), { kind: 'interventions' }],
+                  ['Reste à encaisser', eur(st.resteAEncaisser), { kind: 'resteClients' }],
+                  ['Dépenses de la période', eur(c.depenses), { kind: 'depenses' }],
+                  ["Coût d'acquisition / client", c.cac === null ? '—' : eur(c.cac)],
+                  ['Valeur vie client moyenne', eur(st.vieMoy)],
+                  ['Taux de résiliation', pct(st.churn)],
+                ].map(([k, v, spec]) =>
+                  spec ? (
+                    <button key={k} type="button" className="info-pick" onClick={() => voir(k, spec)}>
+                      <div className="k">{k}</div>
+                      <div className="v">{v}</div>
+                    </button>
+                  ) : (
+                    <div key={k}>
+                      <div className="k">{k}</div>
+                      <div className="v">{v}</div>
+                    </div>
+                  ),
+                )}
+              </div>
+              <div className="table-wrap" style={{ marginTop: 14 }}>
+                <table className="t">
+                  <thead>
+                    <tr>
+                      <th>Prévision</th>
+                      <th className="num">Encaissements</th>
+                      <th className="num">Dépenses fixes</th>
+                      <th className="num">Solde</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1, 2, 3].map((k) => {
+                      const dt = new Date(t.getFullYear(), t.getMonth() + k, 1)
+                      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+                      const inn = st.mrrTous + (k === 1 ? st.resteTous : 0)
+                      return (
+                        <tr key={k}>
+                          <td>{fmtMonth(key)}</td>
+                          <td className="num">{eur(inn)}</td>
+                          <td className="num">{eur(st.fixes)}</td>
+                          <td className={`num ${inn - st.fixes < 0 ? 'red' : 'green'}`}>{eur(inn - st.fixes)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <div className="tiny muted" style={{ marginTop: 6 }}>
+                  Prévision tous canaux : le mois prochain inclut le reste à encaisser, ensuite seulement les abonnements actifs.
+                </div>
+              </div>
+            </div>
+            <div className="stack">
+              <div className="card">
+                <h2 className="section">{secIc('coins')} CA signé par offre</h2>
+                <Donut items={st.repOffre} fmt={eur} total="CA signé" onPick={(l) => voir(`Ventes : ${l}`, { kind: 'offre', key: l })} />
+              </div>
+              <div className="card">
+                <h2 className="section">{secIc('wallet')} Dépenses par catégorie</h2>
+                <Donut items={depensesParCategorie(data, periode)} fmt={eur} total="dépenses" onPick={(l) => voir(`Dépenses : ${l}`, { kind: 'depenses', key: l === 'Autres' ? '' : l })} />
+              </div>
+            </div>
+          </div>
+          <MeilleursClients canal={canal} />
+        </>
       )}
+    </div>
+  )
+}
+
+// Onglet du tableau de bord gardé sur l'appareil
+const ONGLETS = ['vue', 'acquisition', 'conversion', 'finances']
+const ANCIENS = { prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
+function lireOnglet() {
+  try {
+    const v = localStorage.getItem('crm-dash-onglet')
+    return ONGLETS.includes(v) ? v : 'vue'
+  } catch {
+    return 'vue'
+  }
+}
+function ecrireOnglet(v) {
+  try {
+    localStorage.setItem('crm-dash-onglet', v)
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+// Chiffre secondaire de la ligne compacte, avec son évolution
+function Mini({ label, v, d, sub, onClick }) {
+  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat'
+  return (
+    <button type="button" role="listitem" className="mini" onClick={onClick}>
+      <span className="mini-l">{label}</span>
+      <span className="mini-v">{nb(v)}</span>
+      {d !== null && d !== undefined && (
+        <span className={`mini-d ${cls}`}>
+          <span className="sr-only">Évolution : </span>
+          {d > 0 ? '↑ +' : d < 0 ? '↓ ' : '= '}
+          {d === 0 ? 'stable' : nb(d)}
+        </span>
+      )}
+      {sub && <span className="mini-s">{sub}</span>}
+    </button>
+  )
+}
+
+// CA mois par mois de l'année, avec l'objectif mensuel et le tableau détaillé
+function CaMois({ series, year, om, best, choisirMois, canal }) {
+  return (
+    <div className="card">
+      <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+        <h2 className="section" style={{ margin: 0 }}>
+          <span className="sec-ic">
+            <Icon n="trend" size={16} />
+          </span>
+          CA mois par mois ({year}
+          {canal !== 'Tous' ? `, ${canal}` : ''})
+        </h2>
+        <div className="legend">
+          <span>
+            <i style={{ background: C_SIGNE }} />
+            CA signé
+          </span>
+          <span>
+            <i style={{ background: C_ENC }} />
+            Encaissé
+          </span>
+          <span>
+            <i style={{ background: 'none', borderTop: '2px dashed #C0322E', borderRadius: 0, height: 0, width: 14 }} />
+            Objectif mensuel
+          </span>
+          {best && best.caSigne > 0 && (
+            <span className="row" style={{ gap: 4 }}>
+              <Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})
+            </span>
+          )}
+        </div>
+      </div>
+      <MonthChart series={series} objectif={Number(om.ca) || 0} onPick={choisirMois} />
+      <details style={{ marginTop: 10 }}>
+        <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
+          Voir le tableau mois par mois
+        </summary>
+        <div className="table-wrap" style={{ marginTop: 8 }}>
+          <table className="t">
+            <thead>
+              <tr>
+                {['Mois', 'Prospects', 'Appels', 'DM', 'RDV', 'Clients', 'CA signé', 'Encaissé', 'Dépenses', 'Bénéfice'].map((h, i) => (
+                  <th key={h} className={i ? 'num' : ''}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {series.map((m) => (
+                <tr key={m.key} className="click" onClick={() => choisirMois(m.key)}>
+                  <td>{fmtMonth(m.key)}</td>
+                  <td className="num">{m.prospects}</td>
+                  <td className="num">{m.appels}</td>
+                  <td className="num">{m.dm}</td>
+                  <td className="num">{m.rdv}</td>
+                  <td className="num">{m.signes}</td>
+                  <td className="num">{eur(m.caSigne)}</td>
+                  <td className="num">{eur(m.encaisse)}</td>
+                  <td className="num">{eur(m.depenses)}</td>
+                  <td className={`num ${m.benefice < 0 ? 'red' : ''}`}>{eur(m.benefice)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </div>
   )
 }
