@@ -169,5 +169,188 @@ const remote = {
   },
 }
 
-export const db = supabase ? remote : local
+// ---------- Hors ligne ----------
+// Copie locale des données + file d'attente des modifications. Chaque écriture est appliquée
+// tout de suite sur la copie locale, puis envoyée à Supabase dès que la connexion le permet.
+const CACHE = 'aecrm-cache'
+const QUEUE = 'aecrm-queue'
+const readJson = (k, d) => {
+  try {
+    return JSON.parse(localStorage.getItem(k)) ?? d
+  } catch {
+    return d
+  }
+}
+const writeJson = (k, v) => {
+  try {
+    localStorage.setItem(k, JSON.stringify(v))
+  } catch {
+    /* stockage plein ou indisponible */
+  }
+}
+export const hasOfflineCache = () => !!localStorage.getItem(CACHE)
+
+const isNetworkError = (e) =>
+  !navigator.onLine || /fetch|network|load failed|timed? ?out|connexion/i.test(String(e?.message || e))
+// Session expirée : on garde la file et on réessaiera après reconnexion
+const isAuthError = (e) => /jwt|token|auth|401|403|row-level security/i.test(String(e?.message || e))
+
+// État de synchronisation, affiché dans l'interface
+let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: '' }
+const listeners = new Set()
+const emit = (patch) => {
+  sync = { ...sync, ...patch }
+  listeners.forEach((f) => f(sync))
+}
+export const syncStatus = {
+  get: () => sync,
+  subscribe(f) {
+    listeners.add(f)
+    return () => listeners.delete(f)
+  },
+}
+
+// Applique une opération sur la copie locale
+function applyLocal(c, op) {
+  if (op.t === 'addProspect') c.prospects = [...c.prospects.filter((x) => x.id !== op.row.id), op.row]
+  if (op.t === 'updateProspect') c.prospects = c.prospects.map((x) => (x.id === op.id ? { ...x, ...op.patch } : x))
+  if (op.t === 'deleteProspect') {
+    c.prospects = c.prospects.filter((x) => x.id !== op.id)
+    c.actions = c.actions.filter((x) => x.prospect_id !== op.id)
+  }
+  if (op.t === 'addActions') {
+    const ids = new Set(op.rows.map((r) => r.id))
+    c.actions = [...c.actions.filter((x) => !ids.has(x.id)), ...op.rows]
+  }
+  if (op.t === 'updateAction') c.actions = c.actions.map((x) => (x.id === op.id ? { ...x, ...op.patch } : x))
+  if (op.t === 'deleteAction') c.actions = c.actions.filter((x) => x.id !== op.id)
+  if (op.t === 'saveSettings') c.settings = op.settings
+  return c
+}
+
+// Envoie une opération à Supabase (insertions idempotentes grâce aux identifiants générés ici)
+async function sendRemote(op) {
+  if (op.t === 'addProspect') check(await supabase.from('prospects').upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'updateProspect') check(await supabase.from('prospects').update(op.patch).eq('id', op.id))
+  if (op.t === 'deleteProspect') check(await supabase.from('prospects').delete().eq('id', op.id))
+  if (op.t === 'addActions') check(await supabase.from('actions').upsert(op.rows, { onConflict: 'id' }))
+  if (op.t === 'updateAction') check(await supabase.from('actions').update(op.patch).eq('id', op.id))
+  if (op.t === 'deleteAction') check(await supabase.from('actions').delete().eq('id', op.id))
+  if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
+}
+
+let flushing = null
+export function flush() {
+  if (!flushing) flushing = doFlush().finally(() => (flushing = null))
+  return flushing
+}
+async function doFlush() {
+  let q = readJson(QUEUE, [])
+  if (!q.length || !navigator.onLine) return emit({ pending: q.length, online: navigator.onLine })
+  emit({ syncing: true })
+  try {
+    await supabase.auth.getSession() // rafraîchit le jeton si besoin
+  } catch {
+    /* hors ligne */
+  }
+  while (q.length) {
+    try {
+      await sendRemote(q[0])
+    } catch (e) {
+      if (isNetworkError(e) || isAuthError(e)) {
+        emit({ syncing: false, online: navigator.onLine, pending: q.length, error: !isNetworkError(e) ? 'Reconnecte-toi pour synchroniser tes modifications.' : '' })
+        return
+      }
+      // Refus du serveur (donnée invalide) : on l'écarte pour ne pas bloquer la file
+      emit({ error: `Une modification n'a pas pu être synchronisée : ${e.message}` })
+    }
+    q = q.slice(1)
+    writeJson(QUEUE, q)
+    emit({ pending: q.length })
+  }
+  emit({ syncing: false, online: true, pending: 0, error: '' })
+}
+
+async function queued(op) {
+  writeJson(CACHE, applyLocal(readJson(CACHE, { prospects: [], actions: [], settings: null }), op))
+  const q = [...readJson(QUEUE, []), op]
+  writeJson(QUEUE, q)
+  emit({ pending: q.length })
+  flush()
+}
+
+const offline = {
+  async load() {
+    if (navigator.onLine) {
+      try {
+        await flush()
+        if (!readJson(QUEUE, []).length) {
+          const [prospects, actions, settings] = await Promise.all([
+            fetchAll('prospects'),
+            fetchAll('actions'),
+            supabase.from('settings').select('*').maybeSingle().then(check),
+          ])
+          writeJson(CACHE, { prospects, actions, settings: settings?.data || null })
+          emit({ online: true })
+          return { prospects, actions, settings: mergeSettings(settings?.data) }
+        }
+      } catch (e) {
+        if (!isNetworkError(e) || !hasOfflineCache()) throw e
+      }
+    }
+    if (!hasOfflineCache()) throw new Error("Pas de connexion internet. Ouvre le CRM une première fois en ligne sur cet appareil.")
+    emit({ online: navigator.onLine })
+    const c = readJson(CACHE, {})
+    return { prospects: c.prospects || [], actions: c.actions || [], settings: mergeSettings(c.settings) }
+  },
+  async addProspect(name, fiche) {
+    const row = { id: uid(), name, fiche: fiche || {}, created_at: nowIso() }
+    await queued({ t: 'addProspect', row })
+    return row
+  },
+  async updateProspect(id, patch) {
+    await queued({ t: 'updateProspect', id, patch })
+    return patch
+  },
+  async deleteProspect(id) {
+    await queued({ t: 'deleteProspect', id })
+  },
+  async addActions(list) {
+    const rows = list.map((a) => ({ id: uid(), created_at: nowIso(), ...cleanAction(a) }))
+    await queued({ t: 'addActions', rows })
+    return rows
+  },
+  async updateAction(id, patch) {
+    const clean = cleanAction(patch)
+    await queued({ t: 'updateAction', id, patch: clean })
+    return clean
+  },
+  async deleteAction(id) {
+    await queued({ t: 'deleteAction', id })
+  },
+  async saveSettings(settings) {
+    await queued({ t: 'saveSettings', settings })
+  },
+  // Import et remise à zéro : uniquement en ligne
+  async bulkImport(prospects, actions) {
+    if (!navigator.onLine) throw new Error("L'import Excel demande une connexion internet.")
+    await flush()
+    await remote.bulkImport(prospects, actions)
+  },
+  async wipe() {
+    if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
+    await flush()
+    await remote.wipe()
+  },
+}
+
+if (supabase && typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    emit({ online: true })
+    flush()
+  })
+  window.addEventListener('offline', () => emit({ online: false }))
+}
+
+export const db = supabase ? offline : local
 export { uid }

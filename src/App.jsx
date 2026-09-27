@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES } from './ui'
-import { db, supabase, isLocal } from './lib/store'
+import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll } from './lib/logic'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
@@ -41,8 +41,13 @@ export default function App() {
   const [session, setSession] = useState(isLocal ? 'local' : undefined)
   useEffect(() => {
     if (!supabase) return
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    // Hors ligne avec des données déjà enregistrées sur l'appareil : on ouvre le CRM sans attendre la session
+    const offlineOk = () => !navigator.onLine && hasOfflineCache()
+    supabase.auth
+      .getSession()
+      .then(({ data }) => setSession(data.session || (offlineOk() ? 'offline' : null)))
+      .catch(() => setSession(offlineOk() ? 'offline' : null))
+    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession((cur) => s || (cur === 'offline' && !navigator.onLine ? cur : s)))
     return () => data.subscription.unsubscribe()
   }, [])
   if (session === undefined) return <div className="login" />
@@ -56,6 +61,8 @@ function Crm() {
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
   const [toast, toastNode] = useToast()
+  const [sync, setSync] = useState(syncStatus.get())
+  useEffect(() => syncStatus.subscribe(setSync), [])
 
   const reload = useCallback(async () => {
     try {
@@ -78,8 +85,24 @@ function Crm() {
     // Resynchronise quand on revient sur l'onglet (téléphone ↔ ordinateur)
     const f = () => document.visibilityState === 'visible' && reload()
     document.addEventListener('visibilitychange', f)
-    return () => document.removeEventListener('visibilitychange', f)
+    // Retour d'internet : on envoie les modifications en attente puis on recharge
+    const on = () => flush().then(reload)
+    window.addEventListener('online', on)
+    return () => {
+      document.removeEventListener('visibilitychange', f)
+      window.removeEventListener('online', on)
+    }
   }, [reload])
+
+  // Précharge l'export Excel pour qu'il fonctionne aussi hors ligne
+  useEffect(() => {
+    if (isLocal || !navigator.onLine) return
+    const t = setTimeout(() => {
+      import('./lib/excel').catch(() => {})
+      fetch(`${import.meta.env.BASE_URL}template/Agence_Elite_Pilotage.xlsx`).catch(() => {})
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [])
 
   const data = useMemo(() => (state ? computeAll(state.prospects, state.actions, state.settings) : null), [state])
 
@@ -161,6 +184,12 @@ function Crm() {
   if (!state) return <div className="login" />
 
   setDevise(state.settings.devise)
+  const syncTxt = !sync.online
+    ? `Hors ligne${sync.pending ? ` · ${sync.pending} modification${sync.pending > 1 ? 's' : ''} en attente` : ''}`
+    : sync.syncing || sync.pending
+      ? `Synchronisation… (${sync.pending})`
+      : 'Synchronisé en ligne'
+  const syncCls = !sync.online ? 'off' : sync.syncing || sync.pending ? 'busy' : ''
   const ctx = {
     ...state,
     data,
@@ -198,7 +227,7 @@ function Crm() {
               {n.label}
             </button>
           ))}
-          <div className="sidebar-foot">{isLocal ? 'Mode démo : données dans ce navigateur' : 'Synchronisé en ligne'}</div>
+          <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
         <main className="main">
           <header className="mobile-top">
@@ -208,6 +237,13 @@ function Crm() {
               <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || 'CRM de pilotage'}</div>
             </div>
           </header>
+          {!isLocal && (!sync.online || sync.pending > 0 || sync.error) && (
+            <div className={`sync-banner ${syncCls}`}>
+              <span className="dot" />
+              {sync.error || syncTxt}
+              {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
+            </div>
+          )}
           {isLocal && route.startsWith('journee') && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
