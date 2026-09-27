@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useApp, Kpi, eur, pct, nb } from '../ui'
+import { useApp, Kpi, eur, pct, nb, Tabs, useTab } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
@@ -172,6 +172,11 @@ function ActivityChart({ buckets, parSemaine }) {
   // Étiquettes de fin de ligne, écartées pour ne pas se chevaucher
   const ends = last >= 0 ? vis.map(([k, l, c]) => ({ k, l, c, v: past[last][k], yy: y(past[last][k]) })).sort((a, b) => a.yy - b.yy) : []
   ends.forEach((e, i) => i && e.yy - ends[i - 1].yy < 13 && (e.yy = ends[i - 1].yy + 13))
+  // Si elles débordent en bas du graphique, on les remonte
+  for (let i = ends.length - 1; i >= 0; i--) {
+    const bas = i === ends.length - 1 ? pad.t + ih : ends[i + 1].yy - 13
+    if (ends[i].yy > bas) ends[i].yy = bas
+  }
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect()
     const px = ((e.clientX - r.left) / r.width) * W
@@ -263,6 +268,7 @@ export default function Dashboard() {
   const { data, settings, actions } = useApp()
   const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
+  const [onglet, setOnglet] = useTab('dashboard', 'vue')
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
   dernierePeriode = mois
@@ -329,188 +335,202 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="bigkpis">
-        <BigKpi ico="instagram" label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
-        <BigKpi ico="message" label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
-        <BigKpi ico="play" label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
-        <BigKpi ico="phone" label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
-        <BigKpi ico="handshake" label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
-        <BigKpi ico="coins" label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
-      </div>
+      <Tabs
+        items={[
+          ['vue', "Vue d'ensemble"],
+          ['prospection', 'Prospection'],
+          ['ventes', 'Ventes et CA'],
+          ['marche', 'Ce qui marche'],
+        ]}
+        value={onglet}
+        onChange={setOnglet}
+      />
 
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="trend" size={16} /></span> Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
-        <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} />
-      </div>
-
-      <div className="grid grid-6">
-        <Kpi label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} />
-        <Kpi label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
-        <Kpi label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
-        <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} navy />
-        <Kpi label="Taux de closing" value={pct(c.closing)} navy />
-        <Kpi label="Revenu récurrent (MRR)" value={eur(st.mrr)} navy />
-      </div>
-
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir de ton process</h2>
-          <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
-          <Funnel steps={st.process} />
-          {st.perdus > 0 && <div className="tiny muted" style={{ marginTop: 4 }}>{st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période.</div>}
+      {onglet === 'vue' && (
+        <>
+        <div className="bigkpis">
+          <BigKpi ico="instagram" label="DM envoyés" value={nb(c.dm)} cur={c.dm} prev={pvv('dm')} vs={vs} />
+          <BigKpi ico="message" label="Réponses" value={nb(c.reponses)} cur={c.reponses} prev={pvv('reponses')} vs={vs} sub={contacts ? `${pct(c.reponses / contacts)} de réponse` : null} />
+          <BigKpi ico="play" label="Looms envoyées" value={nb(c.looms)} cur={c.looms} prev={pvv('looms')} vs={vs} />
+          <BigKpi ico="phone" label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
+          <BigKpi ico="handshake" label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
+          <BigKpi ico="coins" label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
         </div>
 
         <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
-          <div className="gauges">
-            {goals.map(([l, v, cible, fmt]) => (
-              <Gauge key={l} label={l} value={v} cible={cible} proj={dayN ? (v / dayN) * daysIn : 0} fmt={fmt} />
-            ))}
-          </div>
-          <div className="tiny muted" style={{ marginTop: 10 }}>Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.</div>
+          <h2 className="section"><span className="sec-ic"><Icon n="trend" size={16} /></span> Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
+          <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} />
         </div>
-      </div>
 
-      <div className="card">
-        <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
-          <h2 className="section" style={{ margin: 0 }}>
-            <span className="sec-ic"><Icon n="trend" size={16} /></span> CA mois par mois ({year})
-          </h2>
-          <div className="legend">
-            <span>
-              <i style={{ background: C_SIGNE }} />
-              CA signé
-            </span>
-            <span>
-              <i style={{ background: C_ENC }} />
-              Encaissé
-            </span>
-            <span>
-              <i style={{ background: 'none', borderTop: '2px dashed #c8423f', borderRadius: 0, height: 0, width: 14 }} />
-              Objectif mensuel
-            </span>
-            {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          <div className="card">
+            <h2 className="section"><span className="sec-ic"><Icon n="funnel" size={16} /></span> Entonnoir de ton process</h2>
+            <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
+            <Funnel steps={st.process} />
+            {st.perdus > 0 && <div className="tiny muted" style={{ marginTop: 4 }}>{st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période.</div>}
+          </div>
+
+          <div className="card">
+            <h2 className="section"><span className="sec-ic"><Icon n="target" size={16} /></span> Objectifs du mois en cours</h2>
+            <div className="gauges">
+              {goals.map(([l, v, cible, fmt]) => (
+                <Gauge key={l} label={l} value={v} cible={cible} proj={dayN ? (v / dayN) * daysIn : 0} fmt={fmt} />
+              ))}
+            </div>
+            <div className="tiny muted" style={{ marginTop: 10 }}>Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.</div>
           </div>
         </div>
-        <MonthChart series={series} objectif={Number(om.ca) || 0} />
-        <details style={{ marginTop: 10 }}>
-          <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
-            Voir le tableau mois par mois
-          </summary>
-          <div className="table-wrap" style={{ marginTop: 8 }}>
-            <table className="t">
-              <thead>
-                <tr>
-                  {['Mois', 'Prospects', 'Appels', 'DM', 'RDV', 'Clients', 'CA signé', 'Encaissé', 'Dépenses', 'Bénéfice'].map((h, i) => (
-                    <th key={h} className={i ? 'num' : ''}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {series.map((m) => (
-                  <tr key={m.key}>
-                    <td>{fmtMonth(m.key)}</td>
-                    <td className="num">{m.prospects}</td>
-                    <td className="num">{m.appels}</td>
-                    <td className="num">{m.dm}</td>
-                    <td className="num">{m.rdv}</td>
-                    <td className="num">{m.signes}</td>
-                    <td className="num">{eur(m.caSigne)}</td>
-                    <td className="num">{eur(m.encaisse)}</td>
-                    <td className="num">{eur(m.depenses)}</td>
-                    <td className={`num ${m.benefice < 0 ? 'red' : ''}`}>{eur(m.benefice)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      </div>
 
-      <div className="grid grid-3" style={{ alignItems: 'start' }}>
-        <div className="card">
+        </>
+      )}
+
+      {onglet === 'prospection' && (
+        <>
+          <div className="grid grid-4">
+            <Kpi label="Prospects ajoutés" value={nb(c.prospects)} delta={d('prospects')} vs={vs} navy />
+            <Kpi label="Contacts (DM + appels)" value={nb(contacts)} delta={pv ? contacts - pv.dm - pv.appels : null} vs={vs} navy />
+            <Kpi label="RDV obtenus" value={nb(c.rdv)} delta={d('rdv')} vs={vs} />
+            <Kpi label="Propositions" value={nb(c.propositions)} delta={d('propositions')} vs={vs} />
+          </div>
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="radio" size={16} /></span> D'où viennent tes prospects</h2>
           <Donut items={st.repCanal} total="prospects" />
         </div>
-        <div className="card">
+          <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="tag" size={16} /></span> Secteurs prospectés</h2>
           <Donut items={st.repSecteur} total="prospects" />
         </div>
+          </div>
         <div className="card">
+          <RateTable
+            title="📡 Ce que produit chaque canal"
+            rows={[
+              ...st.parCanal,
+              st.parCanal.reduce(
+                (m, r) => ({
+                  canal: 'Total',
+                  actions: m.actions + r.actions,
+                  reponses: m.reponses + r.reponses,
+                  temps: m.temps + r.temps,
+                  rdv: m.rdv + r.rdv,
+                  clients: m.clients + r.clients,
+                  ca: m.ca + r.ca,
+                }),
+                { actions: 0, reponses: 0, temps: 0, rdv: 0, clients: 0, ca: 0 },
+              ),
+            ].map((r) => ({
+              ...r,
+              taux: r.actions ? r.reponses / r.actions : 0,
+              caHeure: r.temps ? r.ca / r.temps : 0,
+              heuresClient: r.clients ? r.temps / r.clients : 0,
+            }))}
+            cols={[
+              ['Canal', (r) => (r.canal === 'Total' ? <b>Total</b> : r.canal)],
+              ['Actions', (r) => r.actions, 1],
+              ['Réponses', (r) => r.reponses, 1],
+              ['Taux', (r) => pct(r.taux), 1],
+              ['Temps (h)', (r) => nb(r.temps, 1), 1],
+              ['RDV', (r) => r.rdv, 1],
+              ['Clients', (r) => r.clients, 1],
+              ['CA signé', (r) => eur(r.ca), 1],
+              ['CA / heure', (r) => (r.caHeure ? eur(r.caHeure) : '—'), 1],
+              ['Heures / client', (r) => (r.heuresClient ? nb(r.heuresClient, 1) : '—'), 1],
+            ]}
+          />
+        </div>
+
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="bolt" size={16} /></span> Vitesse et production</h2>
+          <div className="tiny muted" style={{ marginBottom: 8 }}>Nombre de jours moyen pour passer d'une étape à la suivante</div>
+          <HBars rows={st.vitesse.filter((r) => r.v !== null).map((r) => ({ label: r.label.replace('Jours ', ''), value: Math.round(r.v * 10) / 10 }))} fmt={(v) => `${nb(v, 1)} j`} color={COULEURS[6]} best={false} empty="Pas encore assez d'historique." />
+          <table className="t" style={{ marginTop: 12 }}>
+            <tbody>
+              {st.autres.map((r) => (
+                <tr key={r.label}>
+                  <td>{r.label}</td>
+                  <td className="num bold">{r.v === null ? '—' : r.pct ? pct(r.v) : nb(r.v, 1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+          </div>
+        </>
+      )}
+
+      {onglet === 'ventes' && (
+        <>
+          <div className="grid grid-4">
+            <Kpi label="CA signé" value={eur(c.caSigne)} delta={d('caSigne')} vs={vs} navy />
+            <Kpi label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} navy />
+            <Kpi label="Taux de closing" value={pct(c.closing)} />
+            <Kpi label="Revenu récurrent (MRR)" value={eur(st.mrr)} />
+          </div>
+        <div className="card">
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 8 }}>
+            <h2 className="section" style={{ margin: 0 }}>
+              <span className="sec-ic"><Icon n="trend" size={16} /></span> CA mois par mois ({year})
+            </h2>
+            <div className="legend">
+              <span>
+                <i style={{ background: C_SIGNE }} />
+                CA signé
+              </span>
+              <span>
+                <i style={{ background: C_ENC }} />
+                Encaissé
+              </span>
+              <span>
+                <i style={{ background: 'none', borderTop: '2px dashed #c8423f', borderRadius: 0, height: 0, width: 14 }} />
+                Objectif mensuel
+              </span>
+              {best && best.caSigne > 0 && <span className="row" style={{ gap: 4 }}><Icon n="trophy" size={14} /> Meilleur mois : {fmtMonth(best.key)} ({eur(best.caSigne)})</span>}
+            </div>
+          </div>
+          <MonthChart series={series} objectif={Number(om.ca) || 0} />
+          <details style={{ marginTop: 10 }}>
+            <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
+              Voir le tableau mois par mois
+            </summary>
+            <div className="table-wrap" style={{ marginTop: 8 }}>
+              <table className="t">
+                <thead>
+                  <tr>
+                    {['Mois', 'Prospects', 'Appels', 'DM', 'RDV', 'Clients', 'CA signé', 'Encaissé', 'Dépenses', 'Bénéfice'].map((h, i) => (
+                      <th key={h} className={i ? 'num' : ''}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {series.map((m) => (
+                    <tr key={m.key}>
+                      <td>{fmtMonth(m.key)}</td>
+                      <td className="num">{m.prospects}</td>
+                      <td className="num">{m.appels}</td>
+                      <td className="num">{m.dm}</td>
+                      <td className="num">{m.rdv}</td>
+                      <td className="num">{m.signes}</td>
+                      <td className="num">{eur(m.caSigne)}</td>
+                      <td className="num">{eur(m.encaisse)}</td>
+                      <td className="num">{eur(m.depenses)}</td>
+                      <td className={`num ${m.benefice < 0 ? 'red' : ''}`}>{eur(m.benefice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+          <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> CA signé par offre</h2>
           <Donut items={st.repOffre} fmt={eur} total="CA signé" />
         </div>
-      </div>
-
-      <h2 className="dash-title">Ce qui marche</h2>
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
-          <HBars rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="eye" size={16} /></span> Taux de réponse par signal repéré</h2>
-          <HBars rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Secteurs qui signent le plus</h2>
-          <HBars rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="ban" size={16} /></span> Objections et motifs de perte</h2>
-          <HBars rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Meilleurs créneaux d'appel</h2>
-          <HBars rows={st.creneaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Meilleurs jours d'appel</h2>
-          <HBars rows={st.jours.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
-        </div>
-      </div>
-
-      <div className="card">
-        <RateTable
-          title="📡 Ce que produit chaque canal"
-          rows={[
-            ...st.parCanal,
-            st.parCanal.reduce(
-              (m, r) => ({
-                canal: 'Total',
-                actions: m.actions + r.actions,
-                reponses: m.reponses + r.reponses,
-                temps: m.temps + r.temps,
-                rdv: m.rdv + r.rdv,
-                clients: m.clients + r.clients,
-                ca: m.ca + r.ca,
-              }),
-              { actions: 0, reponses: 0, temps: 0, rdv: 0, clients: 0, ca: 0 },
-            ),
-          ].map((r) => ({
-            ...r,
-            taux: r.actions ? r.reponses / r.actions : 0,
-            caHeure: r.temps ? r.ca / r.temps : 0,
-            heuresClient: r.clients ? r.temps / r.clients : 0,
-          }))}
-          cols={[
-            ['Canal', (r) => (r.canal === 'Total' ? <b>Total</b> : r.canal)],
-            ['Actions', (r) => r.actions, 1],
-            ['Réponses', (r) => r.reponses, 1],
-            ['Taux', (r) => pct(r.taux), 1],
-            ['Temps (h)', (r) => nb(r.temps, 1), 1],
-            ['RDV', (r) => r.rdv, 1],
-            ['Clients', (r) => r.clients, 1],
-            ['CA signé', (r) => eur(r.ca), 1],
-            ['CA / heure', (r) => (r.caHeure ? eur(r.caHeure) : '—'), 1],
-            ['Heures / client', (r) => (r.heuresClient ? nb(r.heuresClient, 1) : '—'), 1],
-          ]}
-        />
-      </div>
-
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
           <h2 className="section"><span className="sec-ic"><Icon n="wallet" size={16} /></span> Pipeline et trésorerie</h2>
           <div className="info-grid">
@@ -565,23 +585,38 @@ export default function Dashboard() {
           </div>
         </div>
 
+          </div>
+        </>
+      )}
+
+      {onglet === 'marche' && (
+      <div className="grid grid-2" style={{ alignItems: 'start' }}>
         <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="bolt" size={16} /></span> Vitesse et production</h2>
-          <div className="tiny muted" style={{ marginBottom: 8 }}>Nombre de jours moyen pour passer d'une étape à la suivante</div>
-          <HBars rows={st.vitesse.filter((r) => r.v !== null).map((r) => ({ label: r.label.replace('Jours ', ''), value: Math.round(r.v * 10) / 10 }))} fmt={(v) => `${nb(v, 1)} j`} color={COULEURS[6]} best={false} empty="Pas encore assez d'historique." />
-          <table className="t" style={{ marginTop: 12 }}>
-            <tbody>
-              {st.autres.map((r) => (
-                <tr key={r.label}>
-                  <td>{r.label}</td>
-                  <td className="num bold">{r.v === null ? '—' : r.pct ? pct(r.v) : nb(r.v, 1)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h2 className="section"><span className="sec-ic"><Icon n="mail" size={16} /></span> Taux de réponse par script / accroche</h2>
+          <HBars rows={st.modeles.filter((m) => m.n).map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} envois` }))} fmt={pct} color={COULEURS[0]} empty="Choisis le modèle utilisé quand tu saisis un DM pour comparer tes scripts." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="eye" size={16} /></span> Taux de réponse par signal repéré</h2>
+          <HBars rows={st.signaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} prospects · ${m.signes} signé${m.signes > 1 ? 's' : ''}` }))} fmt={pct} color={COULEURS[1]} empty="Indique le signal repéré (pub moyenne, CTA flou…) à l'ajout d'un prospect." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="trophy" size={16} /></span> Secteurs qui signent le plus</h2>
+          <HBars rows={st.secteurs.map((x) => ({ label: x.label, value: x.taux, sub: `${x.clients} client${x.clients > 1 ? 's' : ''} / ${x.prospects} · ${eur(x.ca)}` }))} fmt={pct} color={COULEURS[2]} />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="ban" size={16} /></span> Objections et motifs de perte</h2>
+          <HBars rows={st.objections.filter((o) => o.n).map((o) => ({ label: o.label, value: o.n, sub: pct(o.part) }))} color={COULEURS[7]} empty="Aucune objection notée sur la période." />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="clock" size={16} /></span> Meilleurs créneaux d'appel</h2>
+          <HBars rows={st.creneaux.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Meilleurs jours d'appel</h2>
+          <HBars rows={st.jours.map((m) => ({ label: m.label, value: m.taux, sub: `${m.r} / ${m.n} appels` }))} fmt={pct} color={COULEURS[3]} />
         </div>
       </div>
-
+      )}
     </div>
   )
 }

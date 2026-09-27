@@ -231,12 +231,12 @@ export function ScriptsCard({ p }) {
         })}
       </div>
       <div className="row" style={{ marginTop: 10, justifyContent: 'space-between' }}>
-        {p.fiche?.instagram && (
+        {p?.fiche?.instagram && (
           <a className="btn sm" href={instaLink(p.fiche.instagram)} target="_blank" rel="noreferrer">
             <Icon n="instagram" size={14} /> Ouvrir le compte
           </a>
         )}
-        <button type="button" className="toggle-link" onClick={() => go('/parametres')}>
+        <button type="button" className="toggle-link" onClick={() => go('/parametres/scripts')}>
           Modifier mes scripts
         </button>
       </div>

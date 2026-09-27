@@ -487,3 +487,31 @@ export function DepensesTab() {
     </>
   )
 }
+
+// ---------- Pages du menu Ventes / Achats ----------
+export function Paiements() {
+  return (
+    <div className="stack">
+      <div className="page-head">
+        <div>
+          <h1>Paiements reçus</h1>
+          <div className="sub">Tout ce que tes clients t'ont réglé, par période et par mode de paiement.</div>
+        </div>
+      </div>
+      <PaiementsTab />
+    </div>
+  )
+}
+export function Depenses() {
+  return (
+    <div className="stack">
+      <div className="page-head">
+        <div>
+          <h1>Dépenses</h1>
+          <div className="sub">Tes achats et frais, avec les reçus, pour connaître ton vrai bénéfice.</div>
+        </div>
+      </div>
+      <DepensesTab />
+    </div>
+  )
+}

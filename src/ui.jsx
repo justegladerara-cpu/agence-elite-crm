@@ -197,3 +197,26 @@ export function useToast() {
 export function Empty({ children }) {
   return <div className="empty">{children}</div>
 }
+
+// Onglets de page (façon Zoho) : l'onglet choisi est gardé tant que l'appli est ouverte
+const ongletsMemo = {}
+export function useTab(key, def) {
+  const [v, setV] = useState(() => ongletsMemo[key] || def)
+  const set = (x) => {
+    ongletsMemo[key] = x
+    setV(x)
+  }
+  return [v, set]
+}
+export function Tabs({ items, value, onChange }) {
+  return (
+    <div className="ptabs" role="tablist">
+      {items.map(([id, label, count]) => (
+        <button key={id} type="button" role="tab" aria-selected={value === id} className={value === id ? 'on' : ''} onClick={() => onChange(id)}>
+          {label}
+          {count !== undefined && count !== null && <span className="pt-count">{count}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}

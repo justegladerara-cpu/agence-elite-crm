@@ -8,26 +8,56 @@ import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
-import Prospects from './pages/Prospects'
+import Prospects, { MiniListe } from './pages/Prospects'
 import Fiche from './pages/Fiche'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import Parametres from './pages/Parametres'
 import Session from './pages/Session'
 import Factures, { DocEditor } from './pages/Factures'
+import { Paiements, Depenses } from './pages/Finances'
+import Scripts from './pages/Scripts'
 
+// Menu groupé (façon Zoho) : le tableau de bord d'abord
 const NAV = [
-  { path: 'journee', label: 'Ma journée', short: 'Journée', ico: 'sun' },
-  { path: 'prospects', label: 'Prospects', short: 'Prospects', ico: 'users' },
-  { path: 'saisie', label: 'Saisir une action', short: 'Saisir', ico: 'plus', cta: true },
-  { path: 'clients', label: 'Clients', short: 'Clients', ico: 'handshake' },
-  { path: 'factures', label: 'Factures & finances', short: 'Factures', ico: 'file' },
-  { path: 'dashboard', label: 'Tableau de bord', short: 'Stats', ico: 'chart' },
-  { path: 'parametres', label: 'Paramètres', short: 'Réglages', ico: 'settings' },
+  {
+    items: [
+      { path: 'dashboard', label: 'Tableau de bord', ico: 'chart' },
+      { path: 'journee', label: 'Ma journée', ico: 'sun' },
+    ],
+  },
+  {
+    titre: 'Prospection',
+    items: [
+      { path: 'prospects', label: 'Prospects', ico: 'users' },
+      { path: 'session', label: "Session d'appels", ico: 'phone' },
+      { path: 'scripts', label: 'Scripts', ico: 'message' },
+    ],
+  },
+  {
+    titre: 'Ventes',
+    items: [
+      { path: 'clients', label: 'Clients', ico: 'handshake' },
+      { path: 'devis', label: 'Devis', ico: 'clipboard' },
+      { path: 'factures', label: 'Factures', ico: 'file' },
+      { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
+    ],
+  },
+  { titre: 'Achats', items: [{ path: 'depenses', label: 'Dépenses', ico: 'wallet' }] },
+]
+const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
+PAGES.parametres = 'Paramètres'
+PAGES.saisie = 'Saisir une action'
+// Barre du bas sur téléphone : 5 boutons, le reste dans « Plus »
+const BOTTOM = [
+  { path: 'dashboard', short: 'Accueil', ico: 'chart' },
+  { path: 'journee', short: 'Journée', ico: 'sun' },
+  { path: 'saisie', short: 'Saisir', ico: 'plus', cta: true },
+  { path: 'prospects', short: 'Prospects', ico: 'users' },
 ]
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'journee'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'dashboard'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -63,6 +93,10 @@ function Crm() {
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
+  // Menu « Plus » du téléphone : se referme dès qu'on change de page
+  const [plusSur, setPlusSur] = useState(null)
+  const plus = plusSur === route
+  const setPlus = (v) => setPlusSur(v ? route : null)
   const [toast, toastNode] = useToast()
   const [sync, setSync] = useState(syncStatus.get())
   useEffect(() => syncStatus.subscribe(setSync), [])
@@ -223,18 +257,37 @@ function Crm() {
 
   const [page, argFull = ''] = route.split(/\/(.*)/s)
   const [arg, query = ''] = argFull.split('?')
-  const current = page === 'prospect' ? 'prospects' : page === 'session' ? 'journee' : page === 'facture' ? 'factures' : page
+  const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
+  const current =
+    page === 'prospect' ? (data.clients.some((c) => c.id === arg) ? 'clients' : 'prospects') : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
   else if (page === 'prospects') content = <Prospects />
-  else if (page === 'prospect') content = <Fiche key={arg} id={arg} />
-  else if (page === 'dashboard') content = <Dashboard />
+  else if (page === 'prospect')
+    content = (
+      <div className="split">
+        <MiniListe current={arg} />
+        <div className="split-main">
+          <Fiche key={arg} id={arg} />
+        </div>
+      </div>
+    )
+  else if (page === 'journee') content = <Journee />
   else if (page === 'clients') content = <Clients />
-  else if (page === 'parametres') content = <Parametres />
+  else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
-  else if (page === 'factures') content = <Factures />
+  else if (page === 'scripts') content = <Scripts />
+  else if (page === 'factures' || page === 'devis') content = <Factures key={page} type={page === 'devis' ? 'devis' : 'facture'} />
+  else if (page === 'paiements') content = <Paiements />
+  else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else content = <Journee />
+  else content = <Dashboard />
+  const navBtn = (n) => (
+    <button key={n.path} className={`nav-item ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
+      <span className="ico"><Icon n={n.ico} size={17} /></span>
+      {n.label}
+    </button>
+  )
 
   return (
     <AppCtx.Provider value={ctx}>
@@ -249,12 +302,18 @@ function Crm() {
               </div>
             )}
           </div>
-          {NAV.map((n) => (
-            <button key={n.path} className={`nav-item ${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-              <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
-              {n.label}
-            </button>
-          ))}
+          <button className="nav-new" onClick={() => go('/saisie')}>
+            <Icon n="plus" size={17} /> Saisir une action
+          </button>
+          <nav className="nav-scroll">
+            {NAV.map((g, i) => (
+              <div key={i} className="nav-group">
+                {g.titre && <div className="nav-title">{g.titre}</div>}
+                {g.items.map(navBtn)}
+              </div>
+            ))}
+          </nav>
+          {navBtn({ path: 'parametres', label: 'Paramètres', ico: 'settings' })}
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
         <main className="main">
@@ -262,7 +321,7 @@ function Crm() {
             <Logo size={32} />
             <div style={{ minWidth: 0 }}>
               {avecNom && <div className="brand-name">{brand.nom}</div>}
-              <div className="brand-sub">{NAV.find((n) => n.path === current)?.label || brand.sousTitre}</div>
+              <div className="brand-sub">{PAGES[current] || brand.sousTitre}</div>
             </div>
             <button className={`icon-btn mobile-settings ${current === 'parametres' ? 'on' : ''}`} title="Paramètres" onClick={() => go('/parametres')}>
               <Icon n="settings" size={18} />
@@ -275,19 +334,50 @@ function Crm() {
               {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
             </div>
           )}
-          {isLocal && route.startsWith('journee') && (
+          {isLocal && (route === '' || route.startsWith('dashboard')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
           {content}
         </main>
         <nav className="bottom-nav">
-          {NAV.filter((n) => n.path !== 'parametres').map((n) => (
+          {BOTTOM.map((n) => (
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 20 : 19} /></span>
               {n.short}
             </button>
           ))}
+          <button className={plus || !BOTTOM.some((n) => n.path === current) ? 'active' : ''} onClick={() => setPlus(!plus)}>
+            <span className="ico"><Icon n="menu" size={19} /></span>
+            Plus
+          </button>
         </nav>
+        {plus && (
+          <div className="sheet-bg" onClick={() => setPlus(false)}>
+            <div className="sheet" onClick={(e) => e.stopPropagation()}>
+              {NAV.slice(1).map((g) => (
+                <div key={g.titre} className="sheet-group">
+                  <div className="nav-title">{g.titre}</div>
+                  <div className="sheet-grid">
+                    {g.items.map((n) => (
+                      <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
+                        <Icon n={n.ico} size={20} />
+                        {n.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="sheet-group">
+                <div className="sheet-grid">
+                  <button className={current === 'parametres' ? 'on' : ''} onClick={() => go('/parametres')}>
+                    <Icon n="settings" size={20} />
+                    Paramètres
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {actionModal && (
         <Modal title="Saisir une action" onClose={() => setActionModal(null)}>

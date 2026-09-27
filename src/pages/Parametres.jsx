@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Field, eur, lbl, DEVISES } from '../ui'
+import { useApp, Field, eur, lbl, go, DEVISES } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
@@ -14,6 +14,16 @@ const NUM_GROUPS = [
   ['🟠 Alertes', 'alertes', [['sansAction', 'Prospect sans action depuis (jours)'], ['propositionSansReponse', 'Proposition sans réponse depuis (jours)'], ['validiteProposition', "Validité d'une proposition (jours)"], ['delaiPaiement', 'Délai de paiement avant retard (jours)'], ['recontacterPerdu', 'Recontacter un perdu après (jours)'], ['avisGoogle', 'Demander un avis Google après (jours)'], ['renouvellement', 'Alerte renouvellement (jours avant)'], ['relanceClient', 'Client fidèle à recontacter après (jours sans intervention)']]],
   ['🤝 Clients', 'clients', [['engagementMois', "Durée d'engagement (mois)"], ['dureeVieMois', "Durée de vie moyenne d'un client (mois)"], ['indicatifWhatsApp', 'Indicatif pays WhatsApp', 'text']]],
   ['🔥 Score de priorité (points)', 'score', [['pubActive', 'Pub Instagram active'], ['pubReguliere', 'Pub régulière'], ['pubRecente', 'Pub repérée il y a moins de 30 jours'], ['pasDeSite', 'Pas de site internet'], ['googleAbsente', 'Présence Google absente'], ['googleFaible', 'Présence Google faible'], ['noteGoogleBasse', 'Note Google inférieure à 4'], ['entrepriseMoyenne', 'Entreprise moyenne'], ['grandeEntreprise', 'Grande entreprise'], ['recommande', "Recommandé par quelqu'un"]]],
+]
+
+const SECTIONS = [
+  ['identite', 'Identité', 'Ton logo, tes couleurs et le nom affiché.', 'sparkles'],
+  ['facturation', 'Facturation', 'Devise, factures et devis, tarifs et dépenses.', 'file'],
+  ['objectifs', 'Objectifs', 'Objectifs du mois et du jour, relances, alertes et score.', 'target'],
+  ['listes', 'Listes', 'Canaux, secteurs, sources, actions et étapes.', 'tag'],
+  ['scripts', 'Scripts', "Messages Instagram, script d'appel et accroches.", 'message'],
+  ['excel', 'Excel', 'Export, import et données d’exemple.', 'folder'],
+  ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
 
 const LIST_DEFS = [
@@ -274,7 +284,7 @@ function normalize(s) {
   return out
 }
 
-export default function Parametres() {
+export default function Parametres({ section }) {
   const { settings, prospects, actions, api, toast } = useApp()
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)))
   const [dirty, setDirty] = useState(false)
@@ -400,12 +410,62 @@ export default function Parametres() {
     setBusy('')
   }
 
+  const sec = SECTIONS.some((x) => x[0] === section) ? section : 'identite'
+  const numCard = (g) =>
+    NUM_GROUPS.filter((x) => x[1] === g).map(([title, g, fields]) => (
+      <div className="card" key={g}>
+        <h2 className="section">{withIcon(title)}</h2>
+        <div className="stack" style={{ gap: 10 }}>
+          {fields.map(([k, label, t]) => (
+            <div className="row" key={k} style={{ flexWrap: 'nowrap' }}>
+              <span className="small" style={{ flex: 1 }}>
+                {lbl(label)}
+              </span>
+              <input
+                className="input"
+                style={{ width: 110, textAlign: 'right' }}
+                inputMode={t === 'text' ? 'numeric' : 'decimal'}
+                value={s[g][k] ?? ''}
+                onChange={(e) => change({ ...s, [g]: { ...s[g], [k]: e.target.value } })}
+              />
+            </div>
+          ))}
+          {g === 'objectifsMois' && <div className="tiny muted">Soit environ {eur(Number(s.objectifsMois.ca) / Math.max(1, Number(s.objectifsMois.clients)))} par client.</div>}
+        </div>
+      </div>
+    ))
+  const listCard = (key) =>
+    LIST_DEFS.filter((x) => x[0] === key).map(([key, title, cols]) => (
+      <div className="card" key={key}>
+        <h2 className="section">{withIcon(title)}</h2>
+        <ListEditor
+          value={s[key]}
+          cols={cols}
+          max={LIST_CAPACITY[key]}
+          excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine', 'signaux'].includes(key)}
+          fixedLength={key === 'etapes'}
+          onChange={(v) => change({ ...s, [key]: v })}
+        />
+        {key === 'actions' && (
+          <div className="tiny muted" style={{ marginTop: 6 }}>
+            Étape atteinte : 1 Nouveau, 2 Contacté, 3 Qualifié, 4 Audit/Démo, 5 RDV, 6 Proposition, 7 Gagné. Garde les noms des actions de vente
+            (Proposition envoyée, Signature, Intervention, Paiement reçu…) : les calculs s'appuient dessus.
+          </div>
+        )}
+      </div>
+    ))
+  const cols = (...cards) => (
+    <div className="grid grid-2" style={{ alignItems: 'start' }}>
+      {cards}
+    </div>
+  )
+
   return (
     <div className="stack">
-      <div className="page-head" style={{ marginBottom: 0 }}>
+      <div className="page-head">
         <div>
           <h1>Paramètres</h1>
-          <div className="sub">Tes réglages au même endroit, comme l'onglet Paramètres du fichier Excel.</div>
+          <div className="sub">{SECTIONS.find((x) => x[0] === sec)[2]}</div>
         </div>
         <div className="row">
           {dirty && (
@@ -419,34 +479,18 @@ export default function Parametres() {
         </div>
       </div>
 
-      <ApparenceCard s={s} change={change} />
-
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> Devise</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Monnaie utilisée partout dans le CRM (montants, tableau de bord, clients).
-        </p>
-        <div className="row" style={{ alignItems: 'flex-end' }}>
-          <Field label="Devise" style={{ minWidth: 240 }}>
-            <select
-              value={s.devise || 'EUR'}
-              onChange={(e) => change(convertir ? convertMontants(s, s.devise || 'EUR', e.target.value) : { ...s, devise: e.target.value })}
-            >
-              {DEVISES.map((d) => (
-                <option key={d.code} value={d.code}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <label className="row small" style={{ paddingBottom: 10, flexWrap: 'nowrap', alignItems: 'flex-start', flex: '1 1 260px' }}>
-            <input type="checkbox" checked={convertir} onChange={(e) => setConvertir(e.target.checked)} /> Convertir aussi mes tarifs, objectif de CA et
-            dépenses fixes (1 € = 655,957 FCFA)
-          </label>
-        </div>
-        {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
-      </div>
-
+      <div className="settings">
+        <nav className="set-menu">
+          {SECTIONS.map(([k, label, , ico]) => (
+            <button key={k} className={sec === k ? 'on' : ''} onClick={() => go(`/parametres/${k}`)}>
+              <Icon n={ico} size={16} /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="set-body stack">
+          {sec === 'identite' && <ApparenceCard s={s} change={change} />}
+          {sec === 'facturation' && (
+            <>
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="file" size={16} /></span> Factures et devis</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
@@ -498,6 +542,88 @@ export default function Parametres() {
         </div>
       </div>
 
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> Devise</h2>
+        <p className="small muted" style={{ marginTop: 0 }}>
+          Monnaie utilisée partout dans le CRM (montants, tableau de bord, clients).
+        </p>
+        <div className="row" style={{ alignItems: 'flex-end' }}>
+          <Field label="Devise" style={{ minWidth: 240 }}>
+            <select
+              value={s.devise || 'EUR'}
+              onChange={(e) => change(convertir ? convertMontants(s, s.devise || 'EUR', e.target.value) : { ...s, devise: e.target.value })}
+            >
+              {DEVISES.map((d) => (
+                <option key={d.code} value={d.code}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <label className="row small" style={{ paddingBottom: 10, flexWrap: 'nowrap', alignItems: 'flex-start', flex: '1 1 260px' }}>
+            <input type="checkbox" checked={convertir} onChange={(e) => setConvertir(e.target.checked)} /> Convertir aussi mes tarifs, objectif de CA et
+            dépenses fixes (1 € = 655,957 FCFA)
+          </label>
+        </div>
+        {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
+      </div>
+
+              {cols(listCard('offres'), listCard('modesPaiement'), listCard('depensesFixes'), listCard('categoriesDepenses'))}
+            </>
+          )}
+          {sec === 'objectifs' && (
+            <>
+              {cols(numCard('objectifsMois'), listCard('objectifsQuotidiens'))}
+              {cols(listCard('routine'), numCard('relance'))}
+              {cols(numCard('alertes'), numCard('score'))}
+            </>
+          )}
+          {sec === 'listes' && (
+            <>
+              {cols(listCard('canaux'), listCard('sources'), listCard('secteurs'), listCard('zones'), listCard('objections'), numCard('clients'))}
+              {cols(listCard('actions'), listCard('resultats'))}
+              {listCard('etapes')}
+            </>
+          )}
+          {sec === 'scripts' && (
+            <>
+              <div className="grid grid-2" style={{ alignItems: 'start' }}>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="instagram" size={16} /></span> Scripts Instagram (à copier depuis la fiche)</h2>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>
+            Remplis automatiquement : {'{entreprise}'}, {'{produit}'} (ce qu'il vend), {'{contact}'}, {'{lien}'} (lien de la Loom).
+          </div>
+          {(s.scriptsDM || []).map((x, i) => (
+            <div key={i} style={{ marginBottom: 12 }}>
+              <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
+                <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
+                <button className="icon-btn" style={{ width: 30, height: 30 }} title="Retirer" onClick={() => change({ ...s, scriptsDM: s.scriptsDM.filter((_, j) => j !== i) })}>
+                  ✕
+                </button>
+              </div>
+              <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+            </div>
+          ))}
+          {(s.scriptsDM || []).length < 15 && (
+            <button className="btn sm" onClick={() => change({ ...s, scriptsDM: [...(s.scriptsDM || []), { titre: 'Nouveau message', texte: '' }] })}>
+              + Ajouter un message
+            </button>
+          )}
+        </div>
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
+          {s.script.map((x, i) => (
+            <Field key={i} label={x.titre} style={{ marginBottom: 10 }}>
+              <textarea value={x.texte} onChange={(e) => change({ ...s, script: s.script.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+            </Field>
+          ))}
+        </div>
+              </div>
+              {cols(listCard('modeles'), listCard('signaux'))}
+            </>
+          )}
+          {sec === 'excel' && (
+            <>
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="folder" size={16} /></span> Fichier Excel</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
@@ -565,83 +691,10 @@ export default function Parametres() {
         </div>
       </div>
 
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        {NUM_GROUPS.map(([title, g, fields]) => (
-          <div className="card" key={g}>
-            <h2 className="section">{withIcon(title)}</h2>
-            <div className="stack" style={{ gap: 10 }}>
-              {fields.map(([k, label, t]) => (
-                <div className="row" key={k} style={{ flexWrap: 'nowrap' }}>
-                  <span className="small" style={{ flex: 1 }}>
-                    {lbl(label)}
-                  </span>
-                  <input
-                    className="input"
-                    style={{ width: 110, textAlign: 'right' }}
-                    inputMode={t === 'text' ? 'numeric' : 'decimal'}
-                    value={s[g][k] ?? ''}
-                    onChange={(e) => change({ ...s, [g]: { ...s[g], [k]: e.target.value } })}
-                  />
-                </div>
-              ))}
-              {g === 'objectifsMois' && <div className="tiny muted">Soit environ {eur(Number(s.objectifsMois.ca) / Math.max(1, Number(s.objectifsMois.clients)))} par client.</div>}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        {LIST_DEFS.map(([key, title, cols]) => (
-          <div className="card" key={key}>
-            <h2 className="section">{withIcon(title)}</h2>
-            <ListEditor
-              value={s[key]}
-              cols={cols}
-              max={LIST_CAPACITY[key]}
-              excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine', 'signaux'].includes(key)}
-              fixedLength={key === 'etapes'}
-              onChange={(v) => change({ ...s, [key]: v })}
-            />
-            {key === 'actions' && (
-              <div className="tiny muted" style={{ marginTop: 6 }}>
-                Étape atteinte : 1 Nouveau, 2 Contacté, 3 Qualifié, 4 Audit/Démo, 5 RDV, 6 Proposition, 7 Gagné. Garde les noms des actions de vente
-                (Proposition envoyée, Signature, Intervention, Paiement reçu…) : les calculs s'appuient dessus.
-              </div>
-            )}
-          </div>
-        ))}
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="instagram" size={16} /></span> Scripts Instagram (à copier depuis la fiche)</h2>
-          <div className="tiny muted" style={{ marginBottom: 10 }}>
-            Remplis automatiquement : {'{entreprise}'}, {'{produit}'} (ce qu'il vend), {'{contact}'}, {'{lien}'} (lien de la Loom).
-          </div>
-          {(s.scriptsDM || []).map((x, i) => (
-            <div key={i} style={{ marginBottom: 12 }}>
-              <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
-                <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
-                <button className="icon-btn" style={{ width: 30, height: 30 }} title="Retirer" onClick={() => change({ ...s, scriptsDM: s.scriptsDM.filter((_, j) => j !== i) })}>
-                  ✕
-                </button>
-              </div>
-              <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, scriptsDM: s.scriptsDM.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
-            </div>
-          ))}
-          {(s.scriptsDM || []).length < 15 && (
-            <button className="btn sm" onClick={() => change({ ...s, scriptsDM: [...(s.scriptsDM || []), { titre: 'Nouveau message', texte: '' }] })}>
-              + Ajouter un message
-            </button>
+            </>
           )}
-        </div>
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
-          {s.script.map((x, i) => (
-            <Field key={i} label={x.titre} style={{ marginBottom: 10 }}>
-              <textarea value={x.texte} onChange={(e) => change({ ...s, script: s.script.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
-            </Field>
-          ))}
-        </div>
-      </div>
-
+          {sec === 'compte' && (
+            <>
       <div className="card">
         <h2 className="section">Compte</h2>
         <div className="row">
@@ -666,6 +719,10 @@ export default function Parametres() {
           >
             Paramètres par défaut
           </button>
+        </div>
+      </div>
+            </>
+          )}
         </div>
       </div>
       {dirty && (

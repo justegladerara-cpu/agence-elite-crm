@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
-import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal } from '../ui'
+import { lbl, useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Field, Modal, Tabs, useTab } from '../ui'
 import { FicheInput, ActionForm, ActionLine } from './Saisie'
 import { ProcessCard, ScriptsCard, QualifCard } from './Insta'
 import { FICHE_FIELDS } from '../lib/defaults'
@@ -9,13 +9,14 @@ import { siteLink, instaLink } from '../lib/logic'
 import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
 
 export default function Fiche({ id }) {
-  const { data, api, openAction, toast } = useApp()
+  const { data, api, openAction, toast, documents } = useApp()
   const p = data.byId[id]
   const [editing, setEditing] = useState(false)
   const [fiche, setFiche] = useState(null)
   const [name, setName] = useState('')
   const [editAction, setEditAction] = useState(null)
   const [tousChamps, setTousChamps] = useState(false)
+  const [onglet, setOnglet] = useTab('fiche', 'apercu')
   if (!p)
     return (
       <div className="card">
@@ -71,21 +72,29 @@ export default function Fiche({ id }) {
   ]
   const history = [...p.acts].reverse()
 
+  const docs = documents.filter((d) => d.prospect_id === p.id)
+  const ONGLETS = [
+    ['apercu', 'Aperçu'],
+    ['historique', 'Historique', p.acts.length],
+    ...(client ? [] : [['scripts', 'Scripts et qualification']]),
+    ['docs', 'Devis et factures', docs.length],
+    ['fiche', 'Fiche'],
+  ]
+  const tab = ONGLETS.some(([k]) => k === onglet) ? onglet : 'apercu'
+
   return (
-    <div className="stack">
-      <div>
-        <button className="btn ghost sm" onClick={() => (window.history.length > 1 ? window.history.back() : go("/prospects"))}>
-          ← Retour
-        </button>
-      </div>
-      <div className="card">
-        <div className="row" style={{ alignItems: 'flex-start' }}>
+    <div className="stack fiche">
+      <div className="fiche-head">
+        <div className="row" style={{ alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+          <button className="icon-btn back-btn" title="Retour" onClick={() => go(client ? '/clients' : '/prospects')}>
+            ←
+          </button>
           <div className="li-main">
-            <h1 style={{ margin: 0, color: 'var(--navy)', fontSize: 24 }}>{p.name}</h1>
-            <div className="muted" style={{ marginTop: 4 }}>
+            <h1>{p.name}</h1>
+            <div className="muted small ell-2">
               {[f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`, f.instagram, f.secteur, f.produit, f.ville, f.telephone].filter(Boolean).join(' · ')}
             </div>
-            <div className="row" style={{ marginTop: 10 }}>
+            <div className="row" style={{ marginTop: 8, gap: 6 }}>
               <StageBadge etape={p.etape} />
               <Score v={p.score} />
               {p.alerte && <span className="badge b-orange">{p.alerte}</span>}
@@ -93,69 +102,42 @@ export default function Fiche({ id }) {
               {f.signal && <span className="badge b-gold">{f.signal}</span>}
             </div>
           </div>
-          <div className="row">
+          <div className="row hide-m">
             <ContactButtons p={p} />
           </div>
         </div>
-        <div className="row" style={{ marginTop: 16 }}>
-          <button className="btn gold" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
+        <div className="row fiche-actions">
+          <button className="btn gold sm" onClick={() => openAction({ prospect_id: p.id, canal: p.canal })}>
             + Saisir une action
           </button>
-          <button className="btn" onClick={() => go(`/facture/new?type=facture&p=${p.id}`)}>
-            + Facture
-          </button>
-          <button className="btn" onClick={() => go(`/facture/new?type=devis&p=${p.id}`)}>
+          <button className="btn sm" onClick={() => go(`/facture/new?type=devis&p=${p.id}`)}>
             + Devis
           </button>
-          <button className="btn" onClick={startEdit}>
-            <Icon n="edit" size={15} /> Modifier la fiche
+          <button className="btn sm" onClick={() => go(`/facture/new?type=facture&p=${p.id}`)}>
+            + Facture
           </button>
+          <button className="btn sm" onClick={startEdit}>
+            <Icon n="edit" size={14} /> Modifier
+          </button>
+          <div className="show-m">
+            <ContactButtons p={p} />
+          </div>
           <div className="spacer" />
-          <button className="btn danger sm" onClick={remove}>
-            Supprimer
+          <button className="btn ghost danger sm" onClick={remove}>
+            <Icon n="trash" size={14} /> Supprimer
           </button>
         </div>
+        <Tabs items={ONGLETS} value={tab} onChange={setOnglet} />
       </div>
 
-      {!client && (
+      {tab === 'apercu' && (
         <>
-          <ProcessCard p={p} />
+          {!client && <ProcessCard p={p} />}
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
-            <ScriptsCard p={p} />
-            <QualifCard p={p} />
-          </div>
-        </>
-      )}
-
-      <DocsCard pid={p.id} />
-
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="stack">
-          <div className="card">
-            <h2 className="section">Suivi</h2>
-            <div className="info-grid">
-              {infos.map(([k, v]) => (
-                <div key={k}>
-                  <div className="k">{k}</div>
-                  <div className="v">{v}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {client && (
             <div className="card">
-              <h2 className="section">Client</h2>
+              <h2 className="section">Suivi</h2>
               <div className="info-grid">
-                {[
-                  ['Total signé', eur(client.total)],
-                  ['Encaissé', eur(client.encaisse)],
-                  ['Reste à encaisser', eur(client.reste)],
-                  ['Paiement', client.statutPaiement || '—'],
-                  ['Abonnement', client.abonnement ? `${eur(client.abonnement)}/mois` : '—'],
-                  ['Renouvellement', client.renouvellement ? fmtDate(client.renouvellement) : '—'],
-                  ['Onboarding', `${Math.round(client.onboarding * 100)} %`],
-                  ['Valeur vie client', eur(client.valeurVie)],
-                ].map(([k, v]) => (
+                {infos.map(([k, v]) => (
                   <div key={k}>
                     <div className="k">{k}</div>
                     <div className="v">{v}</div>
@@ -163,36 +145,50 @@ export default function Fiche({ id }) {
                 ))}
               </div>
             </div>
-          )}
-          <AuditCard p={p} />
-          <div className="card">
-            <h2 className="section">Fiche</h2>
-            <div className="info-grid">
-              {FICHE_FIELDS.filter((x) => tousChamps || f[x.key] || f[x.key] === 0).map((x) => {
-                let v = f[x.key]
-                if (!v && v !== 0) v = '—'
-                else if (x.key === 'instagram') v = <a href={instaLink(v)} target="_blank" rel="noreferrer">{v}</a>
-                else if (x.key === 'site') v = <a href={siteLink(v)} target="_blank" rel="noreferrer">{v}</a>
-                else if (x.type === 'date') v = fmtDate(v)
-                return (
-                  <div key={x.key}>
-                    <div className="k">{lbl(x.label)}</div>
-                    <div className="v">{v}</div>
+            <div className="stack">
+              {client && (
+                <div className="card">
+                  <h2 className="section">Client</h2>
+                  <div className="info-grid">
+                    {[
+                      ['Total signé', eur(client.total)],
+                      ['Encaissé', eur(client.encaisse)],
+                      ['Reste à encaisser', eur(client.reste)],
+                      ['Paiement', client.statutPaiement || '—'],
+                      ['Abonnement', client.abonnement ? `${eur(client.abonnement)}/mois` : '—'],
+                      ['Renouvellement', client.renouvellement ? fmtDate(client.renouvellement) : '—'],
+                      ['Onboarding', `${Math.round(client.onboarding * 100)} %`],
+                      ['Valeur vie client', eur(client.valeurVie)],
+                    ].map(([k, v]) => (
+                      <div key={k}>
+                        <div className="k">{k}</div>
+                        <div className="v">{v}</div>
+                      </div>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              )}
+              <div className="card">
+                <h2 className="section">
+                  Dernières actions
+                  <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => setOnglet('historique')}>
+                    Tout voir
+                  </button>
+                </h2>
+                <div className="list">
+                  {history.length === 0 && <Empty>Aucune action.</Empty>}
+                  {history.slice(0, 4).map((a) => (
+                    <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
+                  ))}
+                </div>
+              </div>
             </div>
-            {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
-              <button className="toggle-link" style={{ marginTop: 10 }} onClick={() => setTousChamps((v) => !v)}>
-                {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
-              </button>
-            )}
           </div>
-        </div>
+        </>
+      )}
+
+      {tab === 'historique' && (
         <div className="card">
-          <h2 className="section">
-            Historique <span className="count">{p.acts.length}</span>
-          </h2>
           <div className="list">
             {history.length === 0 && <Empty>Aucune action.</Empty>}
             {history.map((a) => (
@@ -200,7 +196,55 @@ export default function Fiche({ id }) {
             ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {tab === 'scripts' && (
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          <ScriptsCard p={p} />
+          <div className="stack">
+            <QualifCard p={p} />
+            <AuditCard p={p} />
+          </div>
+        </div>
+      )}
+
+      {tab === 'docs' && <DocsCard pid={p.id} />}
+
+      {tab === 'fiche' && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 10 }}>
+            <h2 className="section" style={{ margin: 0 }}>Informations</h2>
+            <button className="btn sm" onClick={startEdit}>
+              <Icon n="edit" size={14} /> Modifier la fiche
+            </button>
+          </div>
+          <div className="info-grid">
+            {FICHE_FIELDS.filter((x) => tousChamps || f[x.key] || f[x.key] === 0).map((x) => {
+              let v = f[x.key]
+              if (!v && v !== 0) v = '—'
+              else if (x.key === 'instagram') v = <a href={instaLink(v)} target="_blank" rel="noreferrer">{v}</a>
+              else if (x.key === 'site') v = <a href={siteLink(v)} target="_blank" rel="noreferrer">{v}</a>
+              else if (x.type === 'date') v = fmtDate(v)
+              return (
+                <div key={x.key}>
+                  <div className="k">{lbl(x.label)}</div>
+                  <div className="v">{v}</div>
+                </div>
+              )
+            })}
+          </div>
+          {FICHE_FIELDS.some((x) => !f[x.key] && f[x.key] !== 0) && (
+            <button className="toggle-link" style={{ marginTop: 10 }} onClick={() => setTousChamps((v) => !v)}>
+              {tousChamps ? 'Masquer les champs vides' : `Afficher les champs vides (${FICHE_FIELDS.filter((x) => !f[x.key] && f[x.key] !== 0).length})`}
+            </button>
+          )}
+          {client && (
+            <div style={{ marginTop: 16 }}>
+              <AuditCard p={p} />
+            </div>
+          )}
+        </div>
+      )}
 
       {editing && (
         <Modal title="Modifier la fiche" onClose={() => setEditing(false)}>
@@ -270,13 +314,10 @@ function AuditCard({ p }) {
 function DocsCard({ pid }) {
   const { documents, actions } = useApp()
   const docs = documents.filter((d) => d.prospect_id === pid).sort((a, b) => (b.data?.date || '').localeCompare(a.data?.date || ''))
-  if (!docs.length) return null
   return (
     <div className="card">
-      <h2 className="section">
-        <span className="sec-ic"><Icon n="file" size={16} /></span> Factures et devis <span className="count">{docs.length}</span>
-      </h2>
       <div className="list">
+        {docs.length === 0 && <Empty>Aucun devis ni facture pour ce contact. Utilise « + Devis » ou « + Facture » en haut.</Empty>}
         {docs.map((d) => {
           const st = statutDe(d, actions)
           return (

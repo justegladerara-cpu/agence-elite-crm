@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Icon } from '../icons'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Bar, Empty, go, eur, nb } from '../ui'
+import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, nb, Tabs, useTab } from '../ui'
 import { computeStats } from '../lib/logic'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
@@ -34,6 +34,7 @@ export default function Journee() {
   const { data, settings, prospects, api, toast } = useApp()
   const t = today()
   const { jour, update } = useJournee(t)
+  const [onglet, setOnglet] = useTab('journee', 'relances')
   const semaine = useMemo(() => {
     const debut = addDays(t, -(weekday(t) - 1) - 7)
     const fin = addDays(debut, 6)
@@ -55,7 +56,7 @@ export default function Journee() {
       {prospects.some(isExample) && (
         <div className="banner row">
           <span style={{ flex: 1 }}>Des prospects d'exemple sont chargés.</span>
-          <button className="btn sm" onClick={() => go('/parametres')}>
+          <button className="btn sm" onClick={() => go('/parametres/excel')}>
             Les supprimer
           </button>
         </div>
@@ -69,12 +70,23 @@ export default function Journee() {
         <ObjectifsJour jour={jour} update={update} />
       </div>
 
-      <div className="grid grid-2" style={{ alignItems: 'start' }}>
-        <div className="stack">
-          <TodoJour jour={jour} update={update} />
+      <Tabs
+        items={[
+          ['relances', 'Relances', data.aRelancer.length],
+          ['chauds', 'Prospects chauds'],
+          ['alertes', 'Alertes', data.alertes.length + data.clientsAlertes.length],
+          ['routine', 'Ma routine'],
+          ['historique', 'Historique'],
+        ]}
+        value={onglet}
+        onChange={setOnglet}
+      />
+
+      {onglet === 'relances' && (
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h2 className="section">
-              <span className="sec-ic"><Icon n="alert" size={16} /></span> À relancer aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
+              <span className="sec-ic"><Icon n="alert" size={16} /></span> Aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
             </h2>
             <div className="list">
               {data.aRelancer.length === 0 && <Empty>Aucune relance en attente. Bravo !</Empty>}
@@ -86,23 +98,37 @@ export default function Journee() {
               ))}
             </div>
           </div>
-
           <div className="card">
-            <h2 className="section"><span className="sec-ic"><Icon n="flame" size={16} /></span> Les 10 prospects les plus chauds à appeler</h2>
+            <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Prochaines relances</h2>
             <div className="list">
-              {data.chauds.length === 0 && <Empty>Ajoute des prospects pour voir ta liste d'appels du jour.</Empty>}
-              {data.chauds.map((p) => (
+              {data.aVenir.length === 0 && <Empty>Rien de planifié.</Empty>}
+              {data.aVenir.slice(0, 10).map((p) => (
                 <ProspectRow key={p.id} p={p}>
-                  <Score v={p.score} /> <StageBadge etape={p.etape} /> {p.fiche?.secteur || ''}
-                  {p.fiche?.pub_active === 'Oui' ? ' · pub active' : ''} · {p.tentatives} tentative{p.tentatives > 1 ? 's' : ''}
+                  <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction}
                 </ProspectRow>
               ))}
             </div>
           </div>
         </div>
+      )}
 
-        <div className="stack">
-          <HistoriqueJours />
+      {onglet === 'chauds' && (
+        <div className="card">
+          <h2 className="section"><span className="sec-ic"><Icon n="flame" size={16} /></span> Les 10 prospects les plus chauds à appeler</h2>
+          <div className="list">
+            {data.chauds.length === 0 && <Empty>Ajoute des prospects pour voir ta liste d'appels du jour.</Empty>}
+            {data.chauds.map((p) => (
+              <ProspectRow key={p.id} p={p}>
+                <Score v={p.score} /> <StageBadge etape={p.etape} /> {p.fiche?.secteur || ''}
+                {p.fiche?.pub_active === 'Oui' ? ' · pub active' : ''} · {p.tentatives} tentative{p.tentatives > 1 ? 's' : ''}
+              </ProspectRow>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {onglet === 'alertes' && (
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
           <div className="card">
             <h2 className="section">
               <span className="sec-ic"><Icon n="bell" size={16} /></span> Alertes prospects <span className="count">{data.alertes.length}</span>
@@ -117,7 +143,6 @@ export default function Journee() {
               ))}
             </div>
           </div>
-
           <div className="card">
             <h2 className="section">
               <span className="sec-ic"><Icon n="handshake" size={16} /></span> Clients à surveiller <span className="count">{data.clientsAlertes.length}</span>
@@ -132,19 +157,14 @@ export default function Journee() {
               ))}
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="card">
-            <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Prochaines relances</h2>
-            <div className="list">
-              {data.aVenir.length === 0 && <Empty>Rien de planifié.</Empty>}
-              {data.aVenir.slice(0, 8).map((p) => (
-                <ProspectRow key={p.id} p={p}>
-                  <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction}
-                </ProspectRow>
-              ))}
-            </div>
-          </div>
+      {onglet === 'routine' && <TodoJour jour={jour} update={update} />}
 
+      {onglet === 'historique' && (
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          <HistoriqueJours />
           <div className="card">
             <h2 className="section"><span className="sec-ic"><Icon n="calendar" size={16} /></span> Revue de la semaine dernière</h2>
             <div className="tiny muted" style={{ marginBottom: 8 }}>
@@ -168,19 +188,8 @@ export default function Journee() {
               ))}
             </div>
           </div>
-
-          <div className="card">
-            <details className="script">
-              <summary><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</summary>
-              {settings.script.map((s, i) => (
-                <p key={i}>
-                  <b>{s.titre} :</b> {s.texte}
-                </p>
-              ))}
-            </details>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

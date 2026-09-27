@@ -62,11 +62,90 @@ export function NewProspect({ onClose }) {
   )
 }
 
+// Filtres gardés entre la liste et la vue côte à côte
+const filtres = { q: '', etape: 'Actifs', canal: 'Tous' }
+function useFiltre(k) {
+  const [v, setV] = useState(filtres[k])
+  return [
+    v,
+    (x) => {
+      filtres[k] = x
+      setV(x)
+    },
+  ]
+}
+const TRIS = {
+  score: (a, b) => b.score - a.score,
+  relance: (a, b) => (a.relance || '9999').localeCompare(b.relance || '9999'),
+  recent: (a, b) => (b.derniereAction || '').localeCompare(a.derniereAction || ''),
+  ajout: (a, b) => (b.dateAjout || '').localeCompare(a.dateAjout || ''),
+  nom: (a, b) => a.name.localeCompare(b.name, 'fr'),
+}
+function filtrer(list, { q, etape, canal, sort }) {
+  const s = q.trim().toLowerCase()
+  return list
+    .filter((p) => {
+      if (etape === 'Actifs' && (p.etape === 'Gagné' || p.etape === 'Perdu')) return false
+      if (etape !== 'Actifs' && etape !== 'Tous' && p.etape !== etape) return false
+      if (canal !== 'Tous' && p.canal !== canal) return false
+      if (!s) return true
+      const f = p.fiche || {}
+      return [p.name, f.contact, f.telephone, f.ville, f.secteur, f.instagram].some((x) => (x || '').toLowerCase().includes(s))
+    })
+    .sort(TRIS[sort] || TRIS.score)
+}
+
+// Liste réduite à gauche de la fiche (vue côte à côte, grand écran)
+export function MiniListe({ current }) {
+  const { data } = useApp()
+  const [q, setQ] = useFiltre('q')
+  const [insta, setInsta] = useState(false)
+  const estClient = data.clients.some((c) => c.id === current)
+  const liste = useMemo(() => {
+    if (estClient) {
+      const s = q.trim().toLowerCase()
+      return data.clients.map((c) => c.prospect).filter((p) => p && (!s || p.name.toLowerCase().includes(s)))
+    }
+    const l = filtrer(data.list, { ...filtres, q, sort: readPref('crm-sort', 'score') })
+    const cur = data.byId[current]
+    return cur && !l.includes(cur) ? [cur, ...l] : l
+  }, [data, q, current, estClient])
+  return (
+    <aside className="mini-list">
+      <div className="ml-head">
+        <button className="ml-title" onClick={() => go(estClient ? '/clients' : '/prospects')}>
+          {estClient ? 'Clients' : filtres.etape === 'Actifs' ? 'Prospects actifs' : filtres.etape === 'Tous' ? 'Tous les prospects' : filtres.etape}
+          <span className="pt-count">{liste.length}</span>
+        </button>
+        {!estClient && (
+          <button className="btn gold sm" title="Nouveau prospect Instagram" onClick={() => setInsta(true)}>
+            + Nouveau
+          </button>
+        )}
+      </div>
+      <input className="input" placeholder="Rechercher…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="ml-items">
+        {liste.map((p) => (
+          <button key={p.id} className={`ml-item ${p.id === current ? 'on' : ''}`} onClick={() => go(`/prospect/${p.id}`)}>
+            <span className="ml-name">{p.name}</span>
+            <span className="ml-sub">
+              <span className={`dot-e e-${p.etape.replace(/[^A-Za-zéèÉ]/g, '')}`} />
+              {p.etape}
+              {p.relance ? ` · ${fmtDate(p.relance)}` : ''}
+            </span>
+          </button>
+        ))}
+      </div>
+      {insta && <QuickInsta onClose={() => setInsta(false)} />}
+    </aside>
+  )
+}
+
 export default function Prospects() {
   const { data, settings } = useApp()
-  const [q, setQ] = useState('')
-  const [etape, setEtape] = useState('Actifs')
-  const [canal, setCanal] = useState('Tous')
+  const [q, setQ] = useFiltre('q')
+  const [etape, setEtape] = useFiltre('etape')
+  const [canal, setCanal] = useFiltre('canal')
   const [sort, setSort] = useState(() => readPref('crm-sort', 'score'))
   const [view, setView] = useState(() => readPref('crm-view', 'liste'))
   const [adding, setAdding] = useState(false)
@@ -79,25 +158,7 @@ export default function Prospects() {
     return c
   }, [data, etapes])
 
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    let l = data.list.filter((p) => {
-      if (etape === 'Actifs' && (p.etape === 'Gagné' || p.etape === 'Perdu')) return false
-      if (etape !== 'Actifs' && etape !== 'Tous' && p.etape !== etape) return false
-      if (canal !== 'Tous' && p.canal !== canal) return false
-      if (!s) return true
-      const f = p.fiche || {}
-      return [p.name, f.contact, f.telephone, f.ville, f.secteur, f.instagram].some((x) => (x || '').toLowerCase().includes(s))
-    })
-    const cmp = {
-      score: (a, b) => b.score - a.score,
-      relance: (a, b) => (a.relance || '9999').localeCompare(b.relance || '9999'),
-      recent: (a, b) => (b.derniereAction || '').localeCompare(a.derniereAction || ''),
-      ajout: (a, b) => (b.dateAjout || '').localeCompare(a.dateAjout || ''),
-      nom: (a, b) => a.name.localeCompare(b.name, 'fr'),
-    }[sort]
-    return l.sort(cmp)
-  }, [data, q, etape, canal, sort])
+  const filtered = useMemo(() => filtrer(data.list, { q, etape, canal, sort }), [data, q, etape, canal, sort])
 
   return (
     <div>
@@ -132,8 +193,9 @@ export default function Prospects() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
-        <div className="row filters" style={{ marginBottom: 12 }}>
+      <div className="card flush">
+        <div className="list-tools">
+        <div className="row filters" >
           <input className="input" style={{ flex: 1, minWidth: 200 }} placeholder="Rechercher : nom, contact, téléphone, ville…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="input" style={{ width: 'auto' }} value={canal} onChange={(e) => setCanal(e.target.value)}>
             <option value="Tous">Tous les canaux</option>
@@ -168,35 +230,52 @@ export default function Prospects() {
             ))}
           </div>
         )}
-      </div>
-
-      {view === 'liste' ? (
-        <div className="card">
-          <div className="list">
-            {filtered.length === 0 && <Empty>Aucun prospect ici.</Empty>}
-            {filtered.map((p) => (
-              <div key={p.id} className="list-item click" onClick={() => go(`/prospect/${p.id}`)}>
-                <Score v={p.score} />
-                <div className="li-main">
-                  <div className="li-title">{p.name}</div>
-                  <div className="li-sub">
-                    {[p.fiche?.contact, p.fiche?.secteur, p.fiche?.ville, p.canal].filter(Boolean).join(' · ')}
-                    {p.derniereAction ? ` · dernière action ${fmtDate(p.derniereAction)}` : ''}
-                  </div>
-                  <div className="row" style={{ marginTop: 6, gap: 6 }}>
-                    <StageBadge etape={p.etape} />
-                    <RelanceTag date={p.relance} heure={p.heureRappel} />
-                    {p.alerte && <span className={`badge ${p.alerte.startsWith('Relance') ? 'b-red' : 'b-orange'}`}>{p.alerte}</span>}
-                    {p.montantPropose ? <span className="badge b-gold">{eur(p.montantPropose)}</span> : null}
-                  </div>
-                </div>
-                <div className="li-side">
-                  <ContactButtons p={p} compact />
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
+      {view === 'liste' ? (
+        filtered.length === 0 ? (
+          <Empty>Aucun prospect ici.</Empty>
+        ) : (
+          <div className="table-wrap">
+            <table className="t zt">
+              <thead>
+                <tr>
+                  <th className="num">Score</th>
+                  <th>Prospect</th>
+                  <th>Étape</th>
+                  <th className="hide-m">Canal</th>
+                  <th className="hide-m">Relance</th>
+                  <th className="num hide-m">Montant</th>
+                  <th className="hide-m" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id} className="click" onClick={() => go(`/prospect/${p.id}`)}>
+                    <td className="num">
+                      <Score v={p.score} />
+                    </td>
+                    <td className="ell-cell">
+                      <div className="bold ell">{p.name}</div>
+                      <div className="tiny muted ell">
+                        {[p.fiche?.contact, p.fiche?.secteur, p.fiche?.ville].filter(Boolean).join(' · ')}
+                        {p.alerte && <span className={`t-alert ${p.alerte.startsWith('Relance') ? 'red' : 'orange'}`}> · {p.alerte}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <StageBadge etape={p.etape} />
+                    </td>
+                    <td className="hide-m">{p.canal || '—'}</td>
+                    <td className="hide-m">{p.relance ? <RelanceTag date={p.relance} heure={p.heureRappel} /> : <span className="muted">—</span>}</td>
+                    <td className="num hide-m">{p.montantPropose ? eur(p.montantPropose) : ''}</td>
+                    <td className="hide-m">
+                      <ContactButtons p={p} compact />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : (
         <div className="kanban">
           {etapes.map((e) => {
@@ -235,6 +314,7 @@ export default function Prospects() {
           })}
         </div>
       )}
+      </div>
       {adding && <NewProspect onClose={() => setAdding(false)} />}
       {insta && <QuickInsta onClose={() => setInsta(false)} />}
     </div>
