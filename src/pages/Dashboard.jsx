@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, Kpi, Bar, eur, pct, nb } from '../ui'
 import { Icon, withIcon } from '../icons'
-import { computeStats, periodeFor, monthlySeries } from '../lib/logic'
+import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
@@ -125,6 +125,112 @@ function RateTable({ title, rows, cols }) {
   )
 }
 
+// Courbe d'activité : 4 séries sur un même axe (des nombres d'actions)
+const SERIES = [
+  ['dm', 'DM', '#2a78d6'],
+  ['reponses', 'Réponses', '#eb6834'],
+  ['looms', 'Looms', '#1baf7a'],
+  ['appels', 'Appels', '#eda100'],
+]
+const JOURS_COURTS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.']
+function ActivityChart({ buckets, parSemaine }) {
+  const [hover, setHover] = useState(null)
+  const [off, setOff] = useState({})
+  // Largeur réelle : textes lisibles aussi sur mobile
+  const box = useRef(null)
+  const [W, setW] = useState(720)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const H = W < 500 ? 220 : 250
+  const pad = { l: 34, r: 74, t: 14, b: 28 }
+  const iw = W - pad.l - pad.r
+  const ih = H - pad.t - pad.b
+  const vis = SERIES.filter(([k]) => !off[k])
+  const past = buckets.filter((b) => !b.futur)
+  const max = Math.max(1, ...past.flatMap((b) => vis.map(([k]) => b[k])))
+  const step = Math.max(1, Math.round(niceStep(max)))
+  const top = Math.ceil(max / step) * step
+  const n = buckets.length
+  const x = (i) => pad.l + (n === 1 ? iw / 2 : (i / (n - 1)) * iw)
+  const y = (v) => pad.t + ih - (v / top) * ih
+  const ticks = []
+  for (let v = 0; v <= top; v += step) ticks.push(v)
+  const lab = (b) => {
+    const dd = parse(b.date)
+    return parSemaine ? `${dd.getDate()}/${dd.getMonth() + 1}` : n <= 7 ? JOURS_COURTS[dd.getDay()] : String(dd.getDate())
+  }
+  const every = Math.ceil(n / 12)
+  const last = past.length - 1
+  // Étiquettes de fin de ligne, écartées pour ne pas se chevaucher
+  const ends = last >= 0 ? vis.map(([k, l, c]) => ({ k, l, c, v: past[last][k], yy: y(past[last][k]) })).sort((a, b) => a.yy - b.yy) : []
+  ends.forEach((e, i) => i && e.yy - ends[i - 1].yy < 13 && (e.yy = ends[i - 1].yy + 13))
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const px = ((e.clientX - r.left) / r.width) * W
+    const i = Math.round(((px - pad.l) / iw) * (n - 1))
+    setHover(Math.max(0, Math.min(Math.min(n - 1, last), i)))
+  }
+  const hb = hover !== null ? buckets[hover] : null
+  return (
+    <div>
+      <div className="legend act-legend">
+        {SERIES.map(([k, l, c]) => (
+          <button key={k} type="button" className={off[k] ? 'off' : ''} onClick={() => setOff({ ...off, [k]: !off[k] })} title={off[k] ? 'Afficher' : 'Masquer'}>
+            <i style={{ background: c }} />
+            {l}
+          </button>
+        ))}
+      </div>
+      <div style={{ position: 'relative' }} ref={box}>
+        <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Activité par jour : DM, réponses, Looms et appels" onMouseMove={onMove} onMouseLeave={() => setHover(null)} onTouchStart={(e) => onMove(e.touches[0] ? { currentTarget: e.currentTarget, clientX: e.touches[0].clientX } : e)}>
+          {ticks.map((v) => (
+            <g key={v}>
+              <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="#eceae4" />
+              <text x={pad.l - 8} y={y(v) + 4} fontSize="11" textAnchor="end" fill="#6b7489">{v}</text>
+            </g>
+          ))}
+          {buckets.map((b, i) =>
+            i % every === 0 || i === n - 1 ? (
+              <text key={b.date} x={x(i)} y={H - 8} fontSize="11" textAnchor="middle" fill={b.date === today() ? '#16203a' : '#6b7489'} fontWeight={b.date === today() ? 700 : 400}>
+                {lab(b)}
+              </text>
+            ) : null,
+          )}
+          {hb && <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={pad.t + ih} stroke="#c9ced9" strokeDasharray="3 3" />}
+          {vis.map(([k, , c]) => (
+            <g key={k}>
+              {past.length > 1 && <polyline points={past.map((b, i) => `${x(i)},${y(b[k])}`).join(' ')} fill="none" stroke={c} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />}
+              {past.map((b, i) => (n <= 31 || i === hover) && <circle key={i} cx={x(i)} cy={y(b[k])} r={i === hover ? 5 : 3.5} fill={c} stroke="#fff" strokeWidth="2" />)}
+            </g>
+          ))}
+          {ends.map((e) => (
+            <text key={e.k} x={x(last) + 10} y={e.yy + 4} fontSize="11.5" fill="#16203a" fontWeight="600">
+              {e.l} {e.v}
+            </text>
+          ))}
+        </svg>
+        {hb && (
+          <div className="card small chart-tip" style={{ left: `${Math.min(68, Math.max(2, (x(hover) / W) * 100 - 12))}%` }}>
+            <b>{parSemaine ? `Semaine du ${fmtDate(hb.date)}` : fmtDate(hb.date)}</b>
+            {SERIES.map(([k, l, c]) => (
+              <div key={k} className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                <i style={{ display: 'inline-block', width: 8, height: 8, background: c, borderRadius: 2 }} />
+                <span style={{ flex: 1 }}>{l}</span>
+                <b>{hb[k]}</b>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // Chiffre clé en grand, avec l'évolution par rapport à la période précédente
 function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb }) {
   const comp = prev !== null && prev !== undefined
@@ -186,6 +292,7 @@ export default function Dashboard() {
   const funnelMax = Math.max(1, st.funnel[0]?.n || 0)
   const titre = mois === 'Tous' ? "Tout l'historique" : periode.semaine ? `${mois} (${fmtDate(periode.debut)} → ${fmtDate(periode.fin)})` : fmtMonth(periode.key)
   const vs = periode.prevLabel
+  const act = activitySeries(data, periode, canal)
   const pvv = (k) => (pv ? pv[k] : null)
   const contacts = c.dm + c.appels
 
@@ -227,6 +334,11 @@ export default function Dashboard() {
         <BigKpi ico="phone" label="Appels" value={nb(c.appels)} cur={c.appels} prev={pvv('appels')} vs={vs} />
         <BigKpi ico="handshake" label="Signatures" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} sub={c.propositions ? `${pct(c.closing)} des propositions` : null} />
         <BigKpi ico="coins" label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
+      </div>
+
+      <div className="card">
+        <h2 className="section"><span className="sec-ic"><Icon n="trend" size={16} /></span> Activité {act.parSemaine ? 'semaine par semaine' : 'jour par jour'}</h2>
+        <ActivityChart buckets={act.buckets} parSemaine={act.parSemaine} />
       </div>
 
       <div className="grid grid-6">

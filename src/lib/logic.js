@@ -533,3 +533,41 @@ export function todayCounts(data) {
     dm: acts.filter((a) => a.canal === 'DM').length,
   }
 }
+
+// Activité jour par jour (ou semaine par semaine sur une longue période) : DM, réponses, Looms, appels
+export function activitySeries(data, periode, canal) {
+  const { sorted, byId, L } = data
+  const t = today()
+  let debut = periode.debut
+  let fin = periode.fin
+  if (periode.mois === 'Tous') {
+    const dates = sorted.map((a) => a.date).filter(Boolean).sort()
+    debut = dates[0] || t
+    fin = t
+  }
+  const jours = diffDays(fin, debut) + 1
+  const parSemaine = jours > 62
+  const canalOk = (c) => canal === 'Tous' || c === canal
+  const buckets = []
+  const index = {}
+  // Semaines : du lundi au dimanche
+  let d = parSemaine ? addDays(debut, 1 - weekday(debut)) : debut
+  while (d <= fin) {
+    const b = { date: d, fin: parSemaine ? addDays(d, 6) : d, futur: d > t, dm: 0, reponses: 0, looms: 0, appels: 0 }
+    buckets.push(b)
+    index[d] = b
+    d = addDays(d, parSemaine ? 7 : 1)
+  }
+  sorted.forEach((x) => {
+    if (!x.date || x.date < debut || x.date > fin) return
+    const key = parSemaine ? addDays(x.date, 1 - weekday(x.date)) : x.date
+    const b = index[key]
+    if (!b) return
+    const pc = byId[x.prospect_id]?.canal || ''
+    if (isProspection(x, L) && x.canal === 'DM' && canalOk(x.canal)) b.dm++
+    if (isProspection(x, L) && x.canal === 'Appel' && canalOk(x.canal)) b.appels++
+    if (isReponse(x, L) && canalOk(x.canal)) b.reponses++
+    if ((x.action === 'Loom envoyé' || x.action === 'Audit réalisé') && canalOk(pc)) b.looms++
+  })
+  return { buckets, parSemaine }
+}
