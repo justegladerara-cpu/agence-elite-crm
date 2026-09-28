@@ -4,7 +4,7 @@
   var body = document.body
   var entete = document.getElementById('entete')
   var burger = document.getElementById('burger')
-  var mobile = window.matchMedia('(max-width: 900px)')
+  var mobile = window.matchMedia('(max-width: 1000px)')
 
   // Ombre de l'en-tête au défilement
   var surDefile = function () {
@@ -90,11 +90,28 @@
     })
   }
 
+  // Filtres de la boutique
+  var filtres = document.querySelectorAll('.filtre')
+  filtres.forEach(function (f) {
+    f.addEventListener('click', function () {
+      var cat = f.getAttribute('data-filtre')
+      filtres.forEach(function (x) {
+        x.classList.toggle('actif', x === f)
+      })
+      document.querySelectorAll('.produit').forEach(function (p) {
+        p.hidden = !!cat && p.getAttribute('data-cat') !== cat
+      })
+    })
+  })
+
   // Formulaire de contact
   var form = document.getElementById('form-contact')
   if (!form) return
   var params = new URLSearchParams(location.search)
   if (params.get('solution')) form.solution.value = params.get('solution')
+  var produits = JSON.parse(form.getAttribute('data-produits') || '{}')
+  var produit = produits[params.get('produit')]
+  if (produit && !form.message.value) form.message.value = 'Je souhaite commander : ' + produit + '.'
   var canal = 'whatsapp'
   form.querySelectorAll('button[type=submit]').forEach(function (b) {
     b.addEventListener('click', function () {

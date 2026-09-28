@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS } from './data.mjs'
+import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS, PRODUITS } from './data.mjs'
 
 const ici = dirname(fileURLToPath(import.meta.url))
 const OUT = process.argv[2] || join(ici, '..', 'site-dist')
@@ -17,6 +17,7 @@ const unsplash = (id, w) => `https://images.unsplash.com/photo-${id}?auto=format
 const srcset = (id, ws) => ws.map((w) => `${unsplash(id, w)} ${w}w`).join(', ')
 const photo = (id, alt, { w = 800, ws = [480, 800, 1200], sizes = '(max-width: 900px) 100vw, 50vw', cls = '', eager = false } = {}) =>
   `<img${cls ? ` class="${cls}"` : ''} src="${unsplash(id, w)}" srcset="${srcset(id, ws)}" sizes="${sizes}" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`
+const fcfa = (n) => n.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ') + ' FCFA'
 const telHref = (t) => 'tel:' + t.replace(/[^+\d]/g, '')
 
 // Icônes (trait 1.8, 24×24)
@@ -142,6 +143,7 @@ function page({ chemin, titre, description, corps, actif = '' }) {
           <a class="mm-lien simple" href="${r('agence/#partenaires')}">${ico('hands')}<span><strong>Nos partenaires</strong></span></a>
         </div></div>
       </div>
+      <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}">Boutique</a>
       <a class="nav-btn nav-lien${actif === 'contact' ? ' actif' : ''}" href="${r('contact/')}">Contact</a>
       <a class="btn btn-rouge nav-cta" href="${r('contact/')}">Parlez-nous de votre projet</a>
     </nav>
@@ -165,7 +167,7 @@ ${corps(r)}
     </div>
     <div><div class="pied-titre">Solutions</div>${SOLUTIONS.map((s) => `<a href="${r('solutions/' + s.slug + '/')}">${esc(s.categorie)}</a>`).join('')}</div>
     <div><div class="pied-titre">L'agence</div>
-      <a href="${r('agence/#histoire')}">Notre histoire</a><a href="${r('agence/#valeurs')}">Nos valeurs</a><a href="${r('agence/#partenaires')}">Nos partenaires</a><a href="${r('secteurs/')}">Votre secteur</a><a href="${r('contact/')}">Contact</a></div>
+      <a href="${r('agence/#histoire')}">Notre histoire</a><a href="${r('agence/#valeurs')}">Nos valeurs</a><a href="${r('agence/#partenaires')}">Nos partenaires</a><a href="${r('secteurs/')}">Votre secteur</a><a href="${r('boutique/')}">Boutique</a><a href="${r('contact/')}">Contact</a></div>
     <div><div class="pied-titre">Contact</div>
       <p class="pied-ligne">${ico('pin')}<span>${esc(SITE.adresse)}<br>${esc(SITE.ville)}<br>${esc(SITE.bp)}</span></p>
       <a class="pied-ligne" href="${telHref(SITE.tel1)}">${ico('phone')}<span>${esc(SITE.tel1)}</span></a>
@@ -196,6 +198,24 @@ const carteSolution = (s, r) => `
   <span class="cs-gain">${ico('check')}${esc(s.gain)}</span>
   <span class="lien-fleche">En savoir plus ${ico('arrow')}</span>
 </a>`
+
+const carteProduit = (p, r) => `
+<article class="produit" id="${p.slug}" data-cat="${esc(p.categorie)}">
+  <span class="pr-cat">${esc(p.categorie)}</span>
+  <h3>${esc(p.nom)}</h3>
+  <p class="pr-prix"><strong>${fcfa(p.prix)}</strong> <span>${esc(p.periode)}</span></p>
+  ${p.suivi ? `<p class="pr-suivi">${esc(p.suivi)}</p>` : ''}
+  <p class="pr-desc">${esc(p.description)}</p>
+  <ul class="pr-inclus">${p.inclus.map((x) => `<li>${ico('check')}${esc(x)}</li>`).join('')}</ul>
+  <div class="pr-actions">
+    ${
+      p.paiement
+        ? `<a class="btn btn-rouge" href="${esc(p.paiement)}" target="_blank" rel="noopener">Payer ${fcfa(p.prix)} ${ico('arrow')}</a>`
+        : `<a class="btn btn-rouge" href="${r('contact/?produit=' + p.slug)}">Commander ${ico('arrow')}</a>`
+    }
+    <a class="btn btn-ligne" href="${waLink(`Bonjour Agence Elite, je souhaite commander : ${p.nom} (${fcfa(p.prix)} ${p.periode}).`)}" target="_blank" rel="noopener">${SOCIAL.whatsapp} WhatsApp</a>
+  </div>
+</article>`
 
 const bandePartenaires = (r) => {
   const logos = PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}" loading="lazy"></li>`).join('')
@@ -432,6 +452,12 @@ for (const s of SOLUTIONS) {
   </div>
 </section>
 
+${PRODUITS.filter((p) => p.solution === s.slug && p.categorie === 'Licences')
+  .map(
+    (p) => `<section class="section section-sombre"><div class="conteneur offre-phare"><div><p class="surtitre">Disponible en boutique</p><h2>${esc(p.nom)} : ${fcfa(p.prix)} ${esc(p.periode)}</h2><p>${esc(p.description)}</p></div>
+    <a class="btn btn-rouge" href="${r('boutique/#' + p.slug)}">Commander ${ico('arrow')}</a></div></section>`,
+  )
+  .join('')}
 <section class="section section-douce">
   <div class="conteneur">
     <div class="titre-section gauche"><p class="surtitre">Ce que vous y gagnez</p><h2>${esc(s.gain)}</h2></div>
@@ -548,6 +574,36 @@ PAGES.push({
 ${blocCta(r)}`,
 })
 
+// Boutique
+const CATS = [...new Set(PRODUITS.map((p) => p.categorie))]
+PAGES.push({
+  chemin: 'boutique/',
+  actif: 'boutique',
+  titre: 'Boutique | Agence Elite',
+  description: 'Licences Microsoft 365 officielles, sites internet, gestion des réseaux sociaux : commandez en ligne auprès d\'Agence Elite.',
+  corps: (r) => `
+<section class="bandeau">
+  <div class="conteneur">
+    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>Boutique</span></nav>
+    <h1>Boutique</h1>
+    <p class="hero-lead">Licences officielles et offres prêtes à démarrer. Prix en FCFA, taxes comprises.</p>
+  </div>
+</section>
+<section class="section">
+  <div class="conteneur">
+    <div class="filtres" role="group" aria-label="Filtrer les produits">
+      <button class="filtre actif" data-filtre="">Tout</button>${CATS.map((c) => `<button class="filtre" data-filtre="${esc(c)}">${esc(c)}</button>`).join('')}
+    </div>
+    <div class="grille-produits">${PRODUITS.map((p) => carteProduit(p, r)).join('')}</div>
+    <div class="paiement-info">
+      ${ico('shield', 'grand')}
+      <div><strong>Paiement sécurisé</strong><p>Vous réglez par carte bancaire ou Mobile Money sur la page sécurisée de notre prestataire de paiement : vos coordonnées bancaires ne transitent jamais par notre site. Vous pouvez aussi commander sur WhatsApp et payer par virement ou Mobile Money.</p></div>
+    </div>
+  </div>
+</section>
+${blocCta(r, 'Besoin d\'une offre sur mesure ?', 'Plusieurs licences, un projet particulier ou un devis pour votre entreprise : parlons-en.')}`,
+})
+
 // Contact
 PAGES.push({
   chemin: 'contact/',
@@ -564,7 +620,7 @@ PAGES.push({
 </section>
 <section class="section">
   <div class="conteneur contact-grille">
-    <form class="formulaire" id="form-contact" novalidate data-wa="${SITE.whatsapp}" data-email="${SITE.email}">
+    <form class="formulaire" id="form-contact" novalidate data-wa="${SITE.whatsapp}" data-email="${SITE.email}" data-produits="${esc(JSON.stringify(Object.fromEntries(PRODUITS.map((p) => [p.slug, `${p.nom} (${fcfa(p.prix)} ${p.periode})`]))))}">
       <div class="champs-2">
         <label>Nom et prénom *<input class="champ" name="nom" autocomplete="name" required></label>
         <label>Entreprise<input class="champ" name="entreprise" autocomplete="organization"></label>
