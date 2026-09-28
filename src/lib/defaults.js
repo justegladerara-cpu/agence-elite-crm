@@ -89,6 +89,7 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Signature', rang: 7, prospection: false },
     { nom: 'Paiement reçu', rang: 0, prospection: false },
     { nom: 'Vente additionnelle', rang: 0, prospection: false },
+    { nom: 'Commande boutique', rang: 0, prospection: false },
     { nom: 'Intervention', rang: 7, prospection: false },
     { nom: 'Onboarding - Contrat', rang: 0, prospection: false },
     { nom: 'Onboarding - Accès', rang: 0, prospection: false },

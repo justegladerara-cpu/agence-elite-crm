@@ -15,6 +15,9 @@ export const SITE = {
   instagram: 'https://www.instagram.com/agenceelitecg/',
   facebook: 'https://www.facebook.com/agenceelitecg',
   linkedin: 'https://www.linkedin.com/company/agenceelitecg',
+  // Base du CRM : catalogue et commandes d'Elite Store (clé publique, protégée par les règles d'accès de la base)
+  supabaseUrl: 'https://mylgnsuoppplmfaanyze.supabase.co',
+  supabaseCle: 'sb_publishable_IsrXE3PY3c3HFTfy6zGkyw_wGyYPXzA',
 }
 
 // Familles du méga-menu « Nos solutions »
@@ -370,77 +373,3 @@ export const PHOTOS = {
 export const CREDITS_PHOTOS =
   'Iwaria Inc., Christina Morillo (WOCinTech Chat), X (@disruptxn), Oyemike Princewill, Francis Odeyemi, Moise M, Ben Iwara, Ufoma Ojo, Micheal Ogungbe, Johnnathan Tshibangu, Emmanuel Ikwuegbu, Good Faces, Ali Mkumbwa, Muhammad-Taha Ibrahim, Cytonn Photography, Patrick Marah, Ace Maxwell, Emmanuel M, Reproductive Health Supplies Coalition'
 
-// Boutique. `paiement` = lien de paiement (CinetPay, Stripe, PayPal…) créé par Agence Elite pour ce produit.
-// Tant qu'il est vide, le bouton « Payer » est remplacé par « Commander » (WhatsApp ou formulaire).
-export const PRODUITS = [
-  {
-    slug: 'microsoft-365',
-    categorie: 'Licences',
-    nom: 'Licence Microsoft 365',
-    prix: 77000,
-    periode: 'par an',
-    description: 'Licence officielle Microsoft 365 pour un utilisateur : Word, Excel, PowerPoint, Outlook, Teams et 1 To OneDrive.',
-    inclus: ['Licence officielle, 1 utilisateur', 'Installation sur vos appareils', 'Adresse e-mail professionnelle configurée', 'Assistance par WhatsApp'],
-    solution: 'microsoft-365',
-    paiement: '',
-  },
-  {
-    slug: 'site-vitrine',
-    categorie: 'Sites internet',
-    nom: 'Site vitrine',
-    prix: 787000,
-    periode: 'une fois',
-    suivi: '+ 33 000 FCFA / mois (hébergement, maintenance)',
-    description: 'Un site professionnel pour présenter votre activité, vos services et vos coordonnées.',
-    inclus: ['Jusqu\'à 5 pages', 'Adapté au mobile', 'Référencement Google de base', 'Nom de domaine et hébergement'],
-    solution: 'agence-web',
-    paiement: '',
-  },
-  {
-    slug: 'site-reservation',
-    categorie: 'Sites internet',
-    nom: 'Site + réservation',
-    prix: 1181000,
-    periode: 'une fois',
-    suivi: '+ 59 000 FCFA / mois',
-    description: 'Votre site avec prise de rendez-vous ou réservation en ligne, pour restaurants, salons, cliniques et hôtels.',
-    inclus: ['Tout le site vitrine', 'Module de réservation', 'Notifications par e-mail', 'Formation à l\'utilisation'],
-    solution: 'agence-web',
-    paiement: '',
-  },
-  {
-    slug: 'site-seo-local',
-    categorie: 'Sites internet',
-    nom: 'Site + SEO local',
-    prix: 1574000,
-    periode: 'une fois',
-    suivi: '+ 98 500 FCFA / mois',
-    description: 'Un site optimisé pour apparaître en tête des recherches Google dans votre ville.',
-    inclus: ['Tout le site vitrine', 'Fiche Google Business optimisée', 'Pages par service et par quartier', 'Rapport mensuel de positionnement'],
-    solution: 'agence-web',
-    paiement: '',
-  },
-  {
-    slug: 'gestion-instagram',
-    categorie: 'Réseaux sociaux',
-    nom: 'Gestion Instagram',
-    prix: 295000,
-    periode: 'par mois',
-    description: 'Nous animons votre compte Instagram : calendrier, visuels, publications et réponses.',
-    inclus: ['Calendrier éditorial mensuel', 'Création des visuels', 'Publication et modération', 'Rapport de résultats'],
-    solution: 'communication-digitale',
-    paiement: '',
-  },
-  {
-    slug: 'pack-complet',
-    categorie: 'Packs',
-    nom: 'Pack complet',
-    prix: 1968000,
-    periode: 'une fois',
-    suivi: '+ 197 000 FCFA / mois',
-    description: 'Site, référencement local et réseaux sociaux : toute votre présence en ligne prise en charge.',
-    inclus: ['Site + SEO local', 'Gestion des réseaux sociaux', 'Identité visuelle', 'Suivi mensuel dédié'],
-    solution: 'communication-digitale',
-    paiement: '',
-  },
-]

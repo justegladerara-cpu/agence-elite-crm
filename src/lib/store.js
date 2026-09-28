@@ -48,7 +48,7 @@ export function mergeSettings(s) {
   }
   // Actions ajoutées après coup : on les complète dans les réglages déjà enregistrés
   const noms = new Set(m.actions.map((a) => a.nom))
-  const manquantes = DEFAULT_SETTINGS.actions.filter((a) => a.nom === 'Intervention' && !noms.has(a.nom))
+  const manquantes = DEFAULT_SETTINGS.actions.filter((a) => ['Intervention', 'Commande boutique'].includes(a.nom) && !noms.has(a.nom))
   if (manquantes.length) m.actions = [...m.actions, ...manquantes]
   // Résultat « A répondu » (prospection Instagram) ajouté après coup
   if (!m.resultats.some((r) => r.nom === 'A répondu')) m.resultats = [...m.resultats, DEFAULT_SETTINGS.resultats.find((r) => r.nom === 'A répondu')]

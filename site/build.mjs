@@ -4,7 +4,7 @@
 import { mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS, PRODUITS } from './data.mjs'
+import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS } from './data.mjs'
 
 const ici = dirname(fileURLToPath(import.meta.url))
 const OUT = process.argv[2] || join(ici, '..', 'site-dist')
@@ -65,7 +65,7 @@ const SOCIAL = {
 const waLink = (txt) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(txt)}`
 
 // ---------- Gabarit commun ----------
-function page({ chemin, titre, description, corps, actif = '', robots = '' }) {
+function page({ chemin, titre, description, corps, actif = '', robots = '', scripts = null }) {
   const prof = chemin === '' ? 0 : chemin.split('/').filter(Boolean).length
   const r = (p) => '../'.repeat(prof) + p
   const canon = SITE.url + '/' + chemin
@@ -143,10 +143,11 @@ ${robots ? `<meta name="robots" content="${robots}">` : `<link rel="canonical" h
           <a class="mm-lien simple" href="${r('agence/#partenaires')}">${ico('hands')}<span><strong>Nos partenaires</strong></span></a>
         </div></div>
       </div>
-      <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}">Boutique</a>
+      <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}">Elite Store</a>
       <a class="nav-btn nav-lien${actif === 'contact' ? ' actif' : ''}" href="${r('contact/')}">Contact</a>
       <a class="btn btn-rouge nav-cta" href="${r('contact/')}">Demander un devis</a>
     </nav>
+    <a class="panier-btn" href="${r('boutique/panier/')}" aria-label="Panier">${ico('bag')}<span class="panier-nb" id="panier-nb" hidden>0</span></a>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="nav">${ico('menu', 'i-ouvrir')}${ico('close', 'i-fermer')}</button>
   </div>
 </header>
@@ -167,7 +168,7 @@ ${corps(r)}
     </div>
     <div><div class="pied-titre">Solutions</div>${SOLUTIONS.map((s) => `<a href="${r('solutions/' + s.slug + '/')}">${esc(s.categorie)}</a>`).join('')}</div>
     <div><div class="pied-titre">L'agence</div>
-      <a href="${r('agence/#histoire')}">Notre histoire</a><a href="${r('agence/#valeurs')}">Nos valeurs</a><a href="${r('agence/#partenaires')}">Nos partenaires</a><a href="${r('secteurs/')}">Votre secteur</a><a href="${r('boutique/')}">Boutique</a><a href="${r('contact/')}">Contact</a></div>
+      <a href="${r('agence/#histoire')}">Notre histoire</a><a href="${r('agence/#valeurs')}">Nos valeurs</a><a href="${r('agence/#partenaires')}">Nos partenaires</a><a href="${r('secteurs/')}">Votre secteur</a><a href="${r('boutique/')}">Elite Store</a><a href="${r('contact/')}">Contact</a></div>
     <div><div class="pied-titre">Contact</div>
       <p class="pied-ligne">${ico('pin')}<span>${esc(SITE.adresse)}<br>${esc(SITE.ville)}<br>${esc(SITE.bp)}</span></p>
       <a class="pied-ligne" href="${telHref(SITE.tel1)}">${ico('phone')}<span>${esc(SITE.tel1)}</span></a>
@@ -179,6 +180,7 @@ ${corps(r)}
 </footer>
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
 <script src="${r('assets/site.js')}?v=${VERSION}" defer></script>
+${scripts ? scripts(r) : ''}
 </body>
 </html>
 `
@@ -198,25 +200,6 @@ const carteSolution = (s, r) => `
   <span class="cs-gain">${ico('check')}${esc(s.gain)}</span>
   <span class="lien-fleche">En savoir plus ${ico('arrow')}</span>
 </a>`
-
-const carteProduit = (p, r) => `
-<article class="produit" id="${p.slug}" data-cat="${esc(p.categorie)}">
-  <span class="pr-cat">${esc(p.categorie)}</span>
-  <h3>${esc(p.nom)}</h3>
-  <p class="pr-prix"><strong>${fcfa(p.prix)}</strong> <span>${esc(p.periode)}</span></p>
-  ${p.suivi ? `<p class="pr-suivi">${esc(p.suivi)}</p>` : ''}
-  <p class="pr-desc">${esc(p.description)}</p>
-  <ul class="pr-inclus">${p.inclus.map((x) => `<li>${ico('check')}${esc(x)}</li>`).join('')}</ul>
-  <div class="pr-actions">
-    ${
-      p.paiement
-        ? `<a class="btn btn-rouge" href="${esc(p.paiement)}" target="_blank" rel="noopener">Payer ${fcfa(p.prix)} ${ico('arrow')}</a>`
-        : `<a class="btn btn-rouge" href="${r('contact/?produit=' + p.slug)}">Commander ${ico('arrow')}</a>`
-    }
-    <a class="btn btn-rouge btn-demo" hidden href="${r('boutique/paiement/?demo=1&produit=' + p.slug)}">Payer ${fcfa(p.prix)} ${ico('arrow')}</a>
-    <a class="btn btn-ligne" href="${waLink(`Bonjour Agence Elite, je souhaite commander : ${p.nom} (${fcfa(p.prix)} ${p.periode}).`)}" target="_blank" rel="noopener">${SOCIAL.whatsapp} WhatsApp</a>
-  </div>
-</article>`
 
 const bandePartenaires = (r) => {
   const logos = PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}" loading="lazy"></li>`).join('')
@@ -453,12 +436,12 @@ for (const s of SOLUTIONS) {
   </div>
 </section>
 
-${PRODUITS.filter((p) => p.solution === s.slug && p.categorie === 'Licences')
-  .map(
-    (p) => `<section class="section section-sombre"><div class="conteneur offre-phare"><div><p class="surtitre">Disponible en boutique</p><h2>${esc(p.nom)} : ${fcfa(p.prix)} ${esc(p.periode)}</h2><p>${esc(p.description)}</p></div>
-    <a class="btn btn-rouge" href="${r('boutique/#' + p.slug)}">Commander ${ico('arrow')}</a></div></section>`,
-  )
-  .join('')}
+${
+  s.slug === 'microsoft-365'
+    ? `<section class="section section-sombre"><div class="conteneur offre-phare"><div><p class="surtitre">Disponible sur Elite Store</p><h2>Microsoft 365 Business Standard : 77 000 FCFA par an</h2><p>Licence officielle, e-mail professionnel, installation et configuration par nos techniciens.</p></div>
+    <a class="btn btn-rouge" href="${r('boutique/produit/?p=microsoft-365-business-standard')}">Commander ${ico('arrow')}</a></div></section>`
+    : ''
+}
 <section class="section section-douce">
   <div class="conteneur">
     <div class="titre-section gauche"><p class="surtitre">Ce que vous y gagnez</p><h2>${esc(s.gain)}</h2></div>
@@ -575,87 +558,118 @@ PAGES.push({
 ${blocCta(r)}`,
 })
 
-// Boutique
-const CATS = [...new Set(PRODUITS.map((p) => p.categorie))]
+// Elite Store : pages générées vides, remplies par assets/store.js à partir de la base (catalogue géré dans le CRM)
+const storeScript = (r) =>
+  `<script>window.AE_STORE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle, wa: SITE.whatsapp })}; window.AE_STORE.base = '${r('')}';</script><script src="${r('assets/store.js')}?v=${VERSION}" defer></script>`
+const rassurance = `<div class="rassurance">
+  <div>${ico('shield')}<span><strong>Licences officielles</strong><small>Achetées auprès de distributeurs agréés</small></span></div>
+  <div>${ico('clock')}<span><strong>Livraison rapide</strong><small>Clé ou compte activé sous 24 h ouvrées</small></span></div>
+  <div>${ico('chip')}<span><strong>Installation incluse</strong><small>Nous installons et configurons pour vous</small></span></div>
+  <div>${SOCIAL.whatsapp}<span><strong>Assistance WhatsApp</strong><small>${esc(SITE.tel1)}</small></span></div>
+</div>`
+
 PAGES.push({
   chemin: 'boutique/',
   actif: 'boutique',
-  titre: 'Boutique | Agence Elite',
-  description: 'Licences Microsoft 365 officielles, sites internet, gestion des réseaux sociaux : commandez en ligne auprès d\'Agence Elite.',
+  titre: 'Elite Store : licences et logiciels professionnels | Agence Elite',
+  description: 'Microsoft 365, Windows, Office, antivirus Kaspersky et ESET, Adobe, Canva, Google Workspace, AutoCAD : licences officielles en FCFA, livrées et installées par Agence Elite à Pointe-Noire.',
+  scripts: storeScript,
   corps: (r) => `
-<section class="bandeau">
+<section class="bandeau bandeau-store">
   <div class="conteneur">
-    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>Boutique</span></nav>
-    <h1>Boutique</h1>
-    <p class="hero-lead">Licences officielles et offres prêtes à démarrer. Prix en FCFA, taxes comprises.</p>
+    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>Elite Store</span></nav>
+    <p class="surtitre">Elite Store</p>
+    <h1>Les logiciels de votre entreprise, en FCFA</h1>
+    <p class="hero-lead">Licences officielles Microsoft, Google, Adobe, Kaspersky et bien d'autres, livrées, installées et suivies par nos techniciens.</p>
+    <label class="recherche-store">${ico('target')}<span class="sr-only">Rechercher un produit</span><input id="store-recherche" type="search" placeholder="Rechercher : Windows, Office, antivirus…" autocomplete="off"></label>
   </div>
 </section>
-<section class="section">
+<section class="section section-store">
   <div class="conteneur">
-    <div class="filtres" role="group" aria-label="Filtrer les produits">
-      <button class="filtre actif" data-filtre="">Tout</button>${CATS.map((c) => `<button class="filtre" data-filtre="${esc(c)}">${esc(c)}</button>`).join('')}
-    </div>
-    <div class="grille-produits">${PRODUITS.map((p) => carteProduit(p, r)).join('')}</div>
-    <div class="paiement-info">
-      ${ico('shield', 'grand')}
-      <div><strong>Paiement sécurisé</strong><p>Vous réglez par carte bancaire ou Mobile Money sur la page sécurisée de notre prestataire de paiement : vos coordonnées bancaires ne transitent jamais par notre site. Vous pouvez aussi commander sur WhatsApp et payer par virement ou Mobile Money.</p></div>
-    </div>
+    ${rassurance}
+    <div class="filtres" id="store-cats" role="group" aria-label="Catégories"></div>
+    <p class="store-compte" id="store-compte" aria-live="polite"></p>
+    <div class="grille-produits" id="store-grille"><p class="store-charge">Chargement du catalogue…</p></div>
+    <noscript><p>Activez JavaScript pour afficher la boutique, ou commandez sur WhatsApp au ${esc(SITE.tel1)}.</p></noscript>
   </div>
 </section>
-${blocCta(r, 'Besoin d\'une offre sur mesure ?', 'Plusieurs licences, un projet particulier ou un devis pour votre entreprise : parlons-en.')}`,
+${blocCta(r, 'Plusieurs postes à équiper ?', 'Parc informatique, licences en volume ou migration complète : nous préparons un devis adapté à votre entreprise.')}`,
 })
 
-// Paiement simulé (démonstration, non référencé) : aucune donnée bancaire n'est saisie ni envoyée
 PAGES.push({
-  chemin: 'boutique/paiement/',
+  chemin: 'boutique/produit/',
   actif: 'boutique',
-  robots: 'noindex, nofollow',
-  titre: 'Paiement (démonstration) | Agence Elite',
-  description: 'Démonstration du parcours de paiement.',
+  titre: 'Produit | Elite Store | Agence Elite',
+  description: 'Licence officielle livrée et installée par Agence Elite.',
+  scripts: storeScript,
+  corps: (r) => `
+<section class="section section-fiche">
+  <div class="conteneur">
+    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><a href="${r('boutique/')}">Elite Store</a><span>/</span><span id="fil-produit">Produit</span></nav>
+    <div id="store-fiche"><p class="store-charge">Chargement du produit…</p></div>
+    ${rassurance}
+    <div id="store-similaires"></div>
+  </div>
+</section>`,
+})
+
+PAGES.push({
+  chemin: 'boutique/panier/',
+  actif: 'boutique',
+  robots: 'noindex',
+  titre: 'Panier | Elite Store | Agence Elite',
+  description: 'Votre panier Elite Store.',
+  scripts: storeScript,
   corps: (r) => `
 <section class="section paiement">
   <div class="conteneur">
-    <div class="demo-banniere" role="note">${ico('shield')}<span><strong>Mode démonstration.</strong> Aucun paiement réel : la carte de test est pré-remplie et aucune donnée n'est envoyée.</span></div>
-    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><a href="${r('boutique/?demo=1')}">Boutique</a><span>/</span><span>Paiement</span></nav>
-    <div class="paie-grille" id="paie" data-produits="${esc(JSON.stringify(Object.fromEntries(PRODUITS.map((p) => [p.slug, { nom: p.nom, prix: p.prix, periode: p.periode, suivi: p.suivi || '' }]))))}">
-      <form class="formulaire" id="form-paie" novalidate>
+    <div class="demo-banniere" id="store-demo" hidden role="note">${ico('shield')}<span><strong>Mode démonstration.</strong> La carte de test est pré-remplie, aucun paiement réel n'est effectué et la commande est marquée « démo » dans le CRM.</span></div>
+    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><a href="${r('boutique/')}">Elite Store</a><span>/</span><span>Panier</span></nav>
+    <div class="paie-grille" id="store-caisse">
+      <form class="formulaire" id="form-commande" novalidate>
         <h1 class="paie-titre">Finaliser la commande</h1>
         <fieldset>
           <legend>Vos coordonnées</legend>
           <div class="champs-2">
             <label>Nom et prénom *<input class="champ" name="nom" autocomplete="name" required></label>
-            <label>Téléphone *<input class="champ" name="tel" type="tel" autocomplete="tel" required></label>
+            <label>Téléphone / WhatsApp *<input class="champ" name="tel" type="tel" autocomplete="tel" required></label>
           </div>
-          <label>E-mail<input class="champ" name="email" type="email" autocomplete="email"></label>
+          <div class="champs-2">
+            <label>E-mail<input class="champ" name="email" type="email" autocomplete="email"></label>
+            <label>Entreprise<input class="champ" name="entreprise" autocomplete="organization"></label>
+          </div>
         </fieldset>
         <fieldset>
-          <legend>Paiement par carte <span class="tag-demo">carte de test</span></legend>
-          <label>Numéro de carte<input class="champ verrou" value="4242 4242 4242 4242" readonly tabindex="-1" aria-readonly="true"></label>
-          <div class="champs-2">
-            <label>Expiration<input class="champ verrou" value="12 / 30" readonly tabindex="-1" aria-readonly="true"></label>
-            <label>Cryptogramme<input class="champ verrou" value="123" readonly tabindex="-1" aria-readonly="true"></label>
+          <legend>Mode de paiement</legend>
+          <div class="modes">
+            <label class="mode"><input type="radio" name="paiement" value="mobile_money" checked><span><strong>Mobile Money</strong><small>MTN MoMo ou Airtel Money : nous vous envoyons le numéro de paiement.</small></span></label>
+            <label class="mode"><input type="radio" name="paiement" value="virement"><span><strong>Virement bancaire</strong><small>Nous vous envoyons la facture avec nos coordonnées bancaires.</small></span></label>
+            <label class="mode"><input type="radio" name="paiement" value="especes"><span><strong>Espèces à l'agence</strong><small>10 avenue Stéphane Tchitchelle, Pointe-Noire.</small></span></label>
+            <label class="mode" id="mode-carte"><input type="radio" name="paiement" value="carte" disabled><span><strong>Carte bancaire</strong><small id="carte-info">Bientôt disponible.</small></span></label>
+          </div>
+          <div class="carte-test" id="carte-test" hidden>
+            <label>Numéro de carte<input class="champ verrou" value="4242 4242 4242 4242" readonly tabindex="-1"></label>
+            <div class="champs-2"><label>Expiration<input class="champ verrou" value="12 / 30" readonly tabindex="-1"></label><label>Cryptogramme<input class="champ verrou" value="123" readonly tabindex="-1"></label></div>
           </div>
         </fieldset>
-        <p class="form-erreur" id="paie-erreur" role="alert" hidden>Indiquez votre nom et votre téléphone.</p>
-        <button class="btn btn-rouge btn-large" type="submit" id="btn-payer">Payer</button>
-        <p class="petit">${ico('shield')} Démonstration : aucun montant ne sera débité.</p>
+        <p class="form-erreur" id="commande-erreur" role="alert" hidden></p>
+        <button class="btn btn-rouge btn-large" type="submit" id="btn-commander">Valider la commande</button>
+        <p class="petit">${ico('shield')} Vos informations servent uniquement à traiter votre commande.</p>
       </form>
       <aside class="recap">
-        <h2>Votre commande</h2>
-        <div class="recap-ligne"><span id="recap-nom">Choisissez un produit</span><strong id="recap-prix"></strong></div>
-        <p class="petit" id="recap-suivi"></p>
-        <label class="recap-choix">Produit
-          <select class="champ" id="choix-produit">${PRODUITS.map((p) => `<option value="${p.slug}">${esc(p.nom)} : ${fcfa(p.prix)}</option>`).join('')}</select>
-        </label>
-        <div class="recap-total"><span>Total</span><strong id="recap-total"></strong></div>
+        <h2>Votre panier</h2>
+        <div id="panier-lignes"><p class="petit">Votre panier est vide.</p></div>
+        <div class="recap-total"><span>Total</span><strong id="panier-total">0 FCFA</strong></div>
+        <a class="lien-fleche" href="${r('boutique/')}">Continuer mes achats ${ico('arrow')}</a>
       </aside>
     </div>
-    <div class="confirmation" id="confirmation" hidden tabindex="-1">
+    <div class="confirmation" id="store-confirmation" hidden tabindex="-1">
       <span class="conf-ico">${ico('check')}</span>
-      <h1>Paiement accepté</h1>
-      <p>Merci <strong id="conf-nom"></strong>, votre commande <strong id="conf-num"></strong> est confirmée.</p>
-      <div class="recap conf-recap"><div class="recap-ligne"><span id="conf-produit"></span><strong id="conf-prix"></strong></div><p class="petit">Carte •••• 4242 · Simulation, aucun montant débité.</p></div>
-      <div class="boutons"><a class="btn btn-rouge" href="${r('boutique/?demo=1')}">Retour à la boutique</a><a class="btn btn-ligne" href="${r('')}">Accueil</a></div>
+      <h1 id="conf-titre">Commande enregistrée</h1>
+      <p>Merci <strong id="conf-nom"></strong>. Votre commande <strong id="conf-num"></strong> est bien enregistrée.</p>
+      <div class="recap conf-recap" id="conf-lignes"></div>
+      <p id="conf-suite"></p>
+      <div class="boutons"><a class="btn btn-rouge" id="conf-wa" target="_blank" rel="noopener">${SOCIAL.whatsapp} Confirmer sur WhatsApp</a><a class="btn btn-ligne" href="${r('boutique/')}">Retour à la boutique</a></div>
     </div>
   </div>
 </section>`,
@@ -677,7 +691,7 @@ PAGES.push({
 </section>
 <section class="section">
   <div class="conteneur contact-grille">
-    <form class="formulaire" id="form-contact" novalidate data-wa="${SITE.whatsapp}" data-email="${SITE.email}" data-produits="${esc(JSON.stringify(Object.fromEntries(PRODUITS.map((p) => [p.slug, `${p.nom} (${fcfa(p.prix)} ${p.periode})`]))))}">
+    <form class="formulaire" id="form-contact" novalidate data-wa="${SITE.whatsapp}" data-email="${SITE.email}">
       <div class="champs-2">
         <label>Nom et prénom *<input class="champ" name="nom" autocomplete="name" required></label>
         <label>Entreprise<input class="champ" name="entreprise" autocomplete="organization"></label>

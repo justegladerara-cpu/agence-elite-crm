@@ -20,6 +20,7 @@ import { Paiements, Depenses } from './pages/Finances'
 import Scripts from './pages/Scripts'
 import Recherche from './pages/Recherche'
 import Calendrier from './pages/Calendrier'
+import Boutique from './pages/Boutique'
 import { syncRappels } from './lib/rappels'
 
 // Menu groupé : piloter, vendre, facturer, régler
@@ -56,6 +57,13 @@ const NAV = [
       },
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
+      {
+        path: 'boutique',
+        memo: 'boutique',
+        label: 'Elite Store',
+        ico: 'tag',
+        sub: [['?onglet=commandes', 'Commandes'], ['?onglet=produits', 'Produits'], ['?onglet=cles', 'Clés de licence']],
+      },
     ],
   },
   {
@@ -389,6 +397,7 @@ function Crm() {
   else if (page === 'factures' || page === 'devis') content = <Factures key={route} type={page === 'devis' ? 'devis' : 'facture'} filtre={q.get('filtre')} />
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
+  else if (page === 'boutique') content = <Boutique key={route} onglet={q.get('onglet')} />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else content = <Dashboard key={route} onglet={q.get('onglet')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
