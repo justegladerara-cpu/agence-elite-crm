@@ -2043,3 +2043,5 @@ table.t tr:hover td, table.zt tr:hover td { background: #f9f7f9; }
 .tb-crumb { flex: none; max-width: 38%; }
 .topbar .tb-search { flex: 1 1 260px; max-width: 380px; min-width: 0; }
 .topbar .tb-org { flex: 0 1 auto; min-width: 0; }
+.apps-demo { margin: 40px auto 0; max-width: 720px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; text-align: center; padding: 12px 16px; border: 1px dashed var(--brand-line); border-radius: 12px; background: rgba(255, 255, 255, .7); color: var(--muted); font-size: 13px; }
+.apps-demo span { display: inline-flex; align-items: center; gap: 6px; }

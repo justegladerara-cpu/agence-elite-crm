@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, go } from '../ui'
-import { MODULES, modulesDe, etablissements, isLocal } from '../lib/store'
+import { MODULES, modulesDe, etablissements, isLocal, peut } from '../lib/store'
 
 // Couleur et icône de chaque entrée de l'écran d'accueil (applications installées et administration)
 const TUILES = {
@@ -38,6 +38,7 @@ export function Accueil({ apps }) {
         })}
       </div>
       {!tuiles.length && <p className="apps-vide">Aucune application n'est installée pour toi dans cet établissement. Demande au superadmin.</p>}
+      {profil?.espace === 'demo' && peut(profil, 'articles') && <DemoBar />}
     </div>
   )
 }
@@ -113,5 +114,28 @@ export function Applications() {
         ))}
       </div>
     </>
+  )
+}
+
+// Espace de démonstration : 6 mois d'activité fictive, régénérables à la date du jour
+function DemoBar() {
+  const { api, toast } = useApp()
+  const [busy, setBusy] = useState(false)
+  const regenerer = async () => {
+    if (!window.confirm("Effacer toutes les données de l'hôtel de démonstration et recréer 6 mois d'activité fictive à la date d'aujourd'hui ?")) return
+    setBusy(true)
+    try {
+      await api.regenererDemo()
+      toast('Données de démonstration régénérées ✓')
+    } catch {
+      /* erreur déjà affichée */
+    }
+    setBusy(false)
+  }
+  return (
+    <div className="apps-demo">
+      <span><Icon n="star" size={15} /> Hôtel de démonstration : 6 mois d'activité fictive (séjours, passages, restaurant, bar, devis, dépenses).</span>
+      <button className="btn sm" disabled={busy} onClick={regenerer}>{busy ? 'Régénération…' : 'Régénérer à la date du jour'}</button>
+    </div>
   )
 }

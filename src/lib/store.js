@@ -196,6 +196,12 @@ const local = {
     db.actions = []
     writeLocal(db)
   },
+  async viderDemo() {
+    const db = readLocal()
+    db.documents = []
+    db.actions = []
+    writeLocal(db)
+  },
 }
 
 // ---------- Supabase ----------
@@ -257,6 +263,11 @@ const remote = {
   async wipe() {
     check(await supabase.from(T.actions).delete().not('id', 'is', null))
     check(await supabase.from(T.prospects).delete().not('id', 'is', null))
+  },
+  // Espace de démonstration uniquement : tout effacer avant de régénérer des données fictives
+  async viderDemo() {
+    check(await supabase.from(T.documents).delete().eq('espace', 'demo'))
+    check(await supabase.from(T.actions).delete().eq('espace', 'demo'))
   },
 }
 
@@ -527,6 +538,11 @@ const offline = {
     if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
     await flush()
     await remote.wipe()
+  },
+  async viderDemo() {
+    if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
+    await flush()
+    await remote.viderDemo()
   },
 }
 

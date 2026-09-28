@@ -169,7 +169,7 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Autre', montant: 0 },
   ],
   categoriesArticles: ['Robinetterie', 'Vannes', 'EPI', 'Tôles noires', 'Chiffons', 'Peinture', 'Tiges', 'Outillage', 'Consommables', 'Autre'],
-  categoriesDepenses: ['Achat de marchandises', 'Transport / dédouanement', 'Loyer', 'Salaires', 'Électricité / eau', 'Carburant', 'Téléphone / internet', 'Entretien', 'Autre'],
+  categoriesDepenses: ['Salaires', 'Achats cuisine', 'Boissons', 'Électricité / eau', 'Carburant groupe', "Produits d'entretien", 'Entretien / réparations', 'Équipement', 'Téléphone / internet', 'Taxes et impôts', 'Loyer', 'Autre'],
   modesPaiement: ['Espèces', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque', 'Carte'],
   // Hôtel : tarifs de passage (chambre louée quelques heures, payée tout de suite) ; catégorie vide = toutes les chambres
   passages: [

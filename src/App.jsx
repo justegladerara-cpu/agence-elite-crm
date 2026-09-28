@@ -364,9 +364,20 @@ function Crm() {
     }),
     loadHotelDemo: wrap(async () => {
       const { genererHotel } = await import('./lib/demoHotel')
-      const { docs, actions } = genererHotel(state)
+      const { docs, actions, categoriesDepenses } = genererHotel(state)
       await db.saveDocs(docs)
       await db.addActions(actions)
+      // Catégories de dépenses de l'hôtel ajoutées aux réglages si elles manquent
+      const cats = state.settings.categoriesDepenses || []
+      const manquantes = categoriesDepenses.filter((c) => !cats.includes(c))
+      if (manquantes.length && peut(profil, 'reglages')) await db.saveSettings({ ...state.settings, categoriesDepenses: [...cats.filter((c) => c !== 'Autre'), ...manquantes, 'Autre'].slice(0, 20) })
+      await reload()
+    }),
+    // Démo : on efface l'espace de démonstration, les données fictives se régénèrent à la date du jour
+    regenererDemo: wrap(async () => {
+      if (profil?.espace !== 'demo') throw new Error("Réservé à l'espace de démonstration")
+      await db.viderDemo()
+      window.__hotelSeeded = false
       await reload()
     }),
     clearSeed: wrap(async () => {
