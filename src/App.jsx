@@ -12,6 +12,7 @@ import { Paiements, Depenses } from './pages/Finances'
 import Recherche from './pages/Recherche'
 import { syncRappels } from './lib/rappels'
 import Caisse from './pages/Caisse'
+import Hotel from './pages/Hotel'
 import Articles from './pages/Articles'
 import Ventes from './pages/Ventes'
 import Equipe from './pages/Equipe'
@@ -43,6 +44,10 @@ const NAV = [
       { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
       { path: 'clients', label: 'Clients', ico: 'users' },
     ],
+  },
+  {
+    titre: 'Hôtel',
+    items: [{ path: 'hotel', label: 'Point de vente hôtel', ico: 'grid', droit: 'vendre' }],
   },
   {
     titre: 'Stock',
@@ -274,6 +279,14 @@ function Crm() {
     api.loadDemo().then(() => toast('Données de démonstration chargées ✓')).catch(() => {})
   }, [demoVide]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Hôtel de l'espace démo vide : chambres, tables, carte, clients en séjour et un mois de ventes
+  const hotelVide = !!state && !demoVide && profil?.espace === 'demo' && peut(profil, 'articles') && (state.documents || []).some((d) => d.type === 'produit') && !(state.documents || []).some((d) => d.type === 'chambre')
+  useEffect(() => {
+    if (!hotelVide || window.__hotelSeeded) return
+    window.__hotelSeeded = true
+    api.loadHotelDemo().then(() => toast("Hôtel de démonstration chargé ✓")).catch(() => {})
+  }, [hotelVide]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const wrap = (fn) => async (...args) => {
     try {
       return await fn(...args)
@@ -362,6 +375,13 @@ function Crm() {
       await db.addActions(actions)
       await reload()
     }),
+    loadHotelDemo: wrap(async () => {
+      const { genererHotel } = await import('./lib/demoHotel')
+      const { docs, actions } = genererHotel(state)
+      await db.saveDocs(docs)
+      await db.addActions(actions)
+      await reload()
+    }),
     clearSeed: wrap(async () => {
       const ex = state.prospects.filter(isExample)
       for (const p of ex) await db.deleteProspect(p.id)
@@ -430,6 +450,7 @@ function Crm() {
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'caisse') content = <Caisse />
+  else if (page === 'hotel') content = <Hotel />
   else if (page === 'articles') content = <Articles />
   else if (page === 'clients') content = <ClientsMagasin nom={q.get('c')} />
   else if (page === 'equipe') content = <Equipe />
@@ -494,7 +515,7 @@ function Crm() {
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className={`app ${page === 'caisse' ? 'pos-on' : ''}`}>
+      <div className={`app ${page === 'caisse' || page === 'hotel' ? 'pos-on' : ''}`}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
             <Logo size={36} />
