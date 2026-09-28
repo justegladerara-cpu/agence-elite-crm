@@ -97,6 +97,34 @@ const BOTTOM = [
   { path: 'parametres', short: 'Réglages', ico: 'settings', droit: 'reglages' },
   { path: 'paiements', short: 'Paiements', ico: 'wallet', sans: 'reglages' },
 ]
+// Nouveau mot de passe du compte connecté
+function MotDePasse({ onClose, toast }) {
+  const [a, setA] = useState('')
+  const [b, setB] = useState('')
+  const [busy, setBusy] = useState(false)
+  const valider = async () => {
+    if (a.length < 8) return toast('Au moins 8 caractères', true)
+    if (a !== b) return toast('Les deux mots de passe ne sont pas identiques', true)
+    setBusy(true)
+    const { error } = await supabase.auth.updateUser({ password: a })
+    setBusy(false)
+    if (error) return toast(`Changement impossible : ${error.message}`, true)
+    toast('Mot de passe changé ✓')
+    onClose()
+  }
+  return (
+    <Modal title="Changer mon mot de passe" onClose={onClose}>
+      <div className="stack">
+        <input className="input" type="password" autoComplete="new-password" placeholder="Nouveau mot de passe (8 caractères minimum)" value={a} onChange={(e) => setA(e.target.value)} autoFocus />
+        <input className="input" type="password" autoComplete="new-password" placeholder="Le même, une seconde fois" value={b} onChange={(e) => setB(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && valider()} />
+        <button className="btn primary" disabled={busy} onClick={valider}>
+          {busy ? 'Enregistrement…' : 'Enregistrer'}
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
 // Une rubrique est visible avec l'un de ses droits (et sans le droit « sans », qui la remplace par une autre)
 const permis = (n, profil) => (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
@@ -146,6 +174,7 @@ function Crm() {
     monProfil().then(setProfil).catch(() => setProfil({ role: null }))
   }, [])
   const [recherche, setRecherche] = useState(false)
+  const [motDePasse, setMotDePasse] = useState(false)
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action
   useEffect(() => {
     const k = (e) => {
@@ -547,7 +576,10 @@ function Crm() {
               items={[
                 ...(isLocal
                   ? Object.entries(ROLES).map(([r, l]) => ({ label: `Voir en tant que : ${l}`, icon: r === role ? 'check' : 'users', onClick: () => { setRoleDemo(r); window.location.hash = '/'; window.location.reload() } }))
-                  : [{ label: 'Se déconnecter', icon: 'logout', onClick: async () => { clearOffline(); await supabase.auth.signOut() } }]),
+                  : [
+                      { label: 'Changer mon mot de passe', icon: 'settings', onClick: () => setMotDePasse(true) },
+                      { label: 'Se déconnecter', icon: 'logout', onClick: async () => { clearOffline(); await supabase.auth.signOut() } },
+                    ]),
               ]}
             />
           </header>
@@ -593,6 +625,7 @@ function Crm() {
           </div>
         )}
       </div>
+      {motDePasse && <MotDePasse onClose={() => setMotDePasse(false)} toast={toast} />}
       {recherche && <Recherche onClose={() => setRecherche(false)} pages={tousItems.filter((n) => permis(n, profil))} />}
       {toastNode}
     </AppCtx.Provider>
