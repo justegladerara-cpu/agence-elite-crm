@@ -93,6 +93,12 @@ const readLocal = () => {
 }
 const writeLocal = (db) => localStorage.setItem(LS, JSON.stringify(db))
 
+// Stock : on ajoute (ou retire) des quantités, sans écraser ce qu'un autre appareil a vendu entre-temps
+export function stockApplique(documents, lignes) {
+  const d = Object.fromEntries(lignes.map((l) => [l.id, Number(l.delta) || 0]))
+  return documents.map((x) => (x.type === 'produit' && d[x.id] ? { ...x, data: { ...x.data, stock: (Number(x.data?.stock) || 0) + d[x.id] } } : x))
+}
+
 const local = {
   async load() {
     const db = readLocal()
@@ -116,6 +122,11 @@ const local = {
   async deleteDoc(id) {
     const db = readLocal()
     db.documents = db.documents.filter((x) => x.id !== id)
+    writeLocal(db)
+  },
+  async stock(lignes) {
+    const db = readLocal()
+    db.documents = stockApplique(db.documents, lignes)
     writeLocal(db)
   },
   async saveDocs(docs) {
@@ -311,6 +322,7 @@ function applyLocal(c, op) {
   if (op.t === 'saveSettings') c.settings = op.settings
   if (op.t === 'saveDoc') c.documents = [...(c.documents || []).filter((x) => x.id !== op.row.id), op.row]
   if (op.t === 'deleteDoc') c.documents = (c.documents || []).filter((x) => x.id !== op.id)
+  if (op.t === 'stock') c.documents = stockApplique(c.documents || [], op.lignes)
   if (op.t === 'saveDocs') {
     const ids = new Set(op.rows.map((r) => r.id))
     c.documents = [...(c.documents || []).filter((x) => !ids.has(x.id)), ...op.rows]
@@ -329,6 +341,7 @@ async function sendRemote(op) {
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
   if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
   if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
+  if (op.t === 'stock') check(await supabase.rpc('ajuster_stock', { lignes: op.lignes }))
   if (op.t === 'saveDocs') for (let i = 0; i < op.rows.length; i += 50) check(await supabase.from('documents').upsert(op.rows.slice(i, i + 50), { onConflict: 'id' }))
   if (op.t === 'upload') {
     const m = readRecus()
@@ -470,6 +483,9 @@ const offline = {
   async deleteDoc(id) {
     await queued({ t: 'deleteDoc', id })
   },
+  async stock(lignes) {
+    await queued({ t: 'stock', lignes })
+  },
   async saveDocs(docs) {
     const rows = docs.map((doc) => {
       const row = { created_at: nowIso(), ...doc, id: doc.id || uid() }
@@ -532,6 +548,28 @@ export const ROLES = {
   caisse: 'Caisse / assistante',
   comptable: 'Comptable',
 }
+// Droits réglables personne par personne ; le rôle donne les valeurs de départ (même règle que la base : droit_defaut)
+export const DROITS = [
+  ['vendre', 'Vendre à la caisse', 'Point de vente et « Mes ventes du jour ».'],
+  ['remises', 'Faire des remises et changer les prix', 'Touches « % Rem. » et « Prix » de la caisse.'],
+  ['credit', 'Vendre à crédit', 'Le client paie plus tard.'],
+  ['sansStock', 'Vendre un article en rupture', 'Sinon la caisse bloque quand le stock ne suffit pas.'],
+  ['articles', 'Créer et modifier les articles', 'Photo, prix, quantité en stock.'],
+  ['annuler', 'Annuler ou supprimer une vente, un paiement', 'Les articles reviennent en stock.'],
+  ['finances', 'Voir le tableau de bord et les finances', "Chiffre d'affaires, dépenses, soldes."],
+  ['depenses', 'Enregistrer des dépenses', "Sorties d'argent avec justificatif."],
+  ['equipe', "Gérer l'équipe et les accès", 'Ajouter des personnes, régler leurs droits.'],
+  ['reglages', 'Modifier les paramètres', 'Logo, factures, catégories, modes de paiement.'],
+]
+const DEFAUT = { caisse: ['vendre', 'remises', 'credit', 'articles'], comptable: ['annuler', 'finances', 'depenses'] }
+export const droitDefaut = (role, d) => role === 'superadmin' || role === 'pdg' || (DEFAUT[role] || []).includes(d)
+export function peut(profil, d) {
+  if (!profil?.role) return false
+  if (profil.role === 'superadmin') return true
+  const v = profil.droits?.[d]
+  return typeof v === 'boolean' ? v : droitDefaut(profil.role, d)
+}
+
 export async function monProfil() {
   if (!supabase) {
     let role = 'superadmin'
@@ -540,7 +578,7 @@ export async function monProfil() {
     } catch {
       /* rôle par défaut */
     }
-    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : 'Démo', role, espace: 'demo' }
+    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : role === 'comptable' ? 'ITOUA' : 'Démo', role, espace: 'demo', droits: readJson(`kgr-droits-${role}`, {}) }
   }
   const { data } = await supabase.auth.getSession()
   const email = (data?.session?.user?.email || '').toLowerCase()
@@ -569,7 +607,7 @@ export const membres = {
     return check(await supabase.from('membres').select('*').order('created_at'))
   },
   async save(m) {
-    const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role, ...(m.espace ? { espace: m.espace } : {}) }
+    const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role, droits: m.droits || {}, ...(m.espace ? { espace: m.espace } : {}) }
     if (!supabase) {
       writeJson('kgr-membres-demo', [...readJson('kgr-membres-demo', []).filter((x) => x.email !== row.email), row])
       return row

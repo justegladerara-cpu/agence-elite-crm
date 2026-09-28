@@ -2,6 +2,8 @@
 import { today, addDays } from './dates'
 
 // Nombre saisi : accepte « 150 000 », « 12,5 »… (espaces et virgule)
+// Saisie numérique lisible (« 25 000 », « 12,5 ») ; vide accepté
+export const estNombre = (v) => v === null || v === undefined || String(v).trim() === '' || !isNaN(Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.')))
 export const num = (v) => {
   if (v === null || v === undefined || v === '') return 0
   const n = Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'))

@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, LienProspect, LienDoc } from '../ui'
 import { ProspectPicker } from './Saisie'
-import { totals, paiementsDe, num } from '../lib/invoice'
+import { peut } from '../lib/store'
+import { totals, paiementsDe, num, estNombre } from '../lib/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
 
 
@@ -142,7 +143,7 @@ function RecuField({ value, onChange }) {
 // ---------- Formulaire : paiement reçu ----------
 export function PaiementForm({ prefill = {}, edit, onDone }) {
   const { documents, actions, settings, api, toast, profil } = useApp()
-  const chef = ['superadmin', 'pdg', 'comptable'].includes(profil?.role)
+  const chef = peut(profil, 'annuler')
   const [f, setF] = useState(() =>
     edit
       ? { ...edit, montant: edit.montant ?? '', mode: edit.mode || '', reference: edit.reference || '', facture: edit.facture || '', notes: edit.notes || '' }
@@ -171,7 +172,10 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
     set({ facture: numero, ...(x && !f.prospect_id ? { prospect_id: x.d.prospect_id } : {}), ...(x && !num(f.montant) ? { montant: String(x.reste) } : {}) })
   }
   const save = async () => {
-    if (!num(f.montant)) return toast('Indique le montant reçu', true)
+    if (!estNombre(f.montant) || num(f.montant) <= 0) return toast('Indique le montant reçu', true)
+    if (f.date > today()) return toast('La date du paiement est dans le futur', true)
+    const fx = f.facture && ouvertes.find((o) => o.d.numero === f.facture)
+    if (fx && num(f.montant) > fx.reste) return toast(`Le montant dépasse le reste à payer de cette facture (${eur(fx.reste)})`, true)
     setBusy(true)
     try {
       const row = { prospect_id: f.prospect_id || null, date: f.date || today(), canal: 'Autre', action: 'Paiement reçu', montant: f.montant, mode: f.mode, reference: f.reference, facture: f.facture, notes: f.notes }
@@ -254,7 +258,9 @@ export function DepenseForm({ prefill = {}, edit, onDone }) {
   const [busy, setBusy] = useState(false)
   const set = (patch) => setF((x) => ({ ...x, ...patch }))
   const save = async () => {
-    if (!num(f.montant)) return toast('Indique le montant', true)
+    if (!estNombre(f.montant) || num(f.montant) <= 0) return toast('Indique le montant', true)
+    if (!f.categorie) return toast('Choisis la catégorie de la dépense', true)
+    if (f.date > today()) return toast('La date de la dépense est dans le futur', true)
     setBusy(true)
     try {
       const row = { prospect_id: f.prospect_id || null, date: f.date || today(), canal: 'Autre', action: 'Dépense', montant: f.montant, categorie: f.categorie, fournisseur: f.fournisseur, mode: f.mode, notes: f.notes, recu: f.recu }
@@ -384,7 +390,7 @@ export function PaiementsTab() {
           <div className="list">
             {liste.length === 0 && <Empty>Aucun paiement sur cette période.</Empty>}
             {liste.map((a) => (
-              <div key={a.id} className="list-item click" onClick={() => setModal({ edit: a })}>
+              <div key={a.id} className={`list-item ${saisir ? 'click' : ''}`} onClick={() => saisir && setModal({ edit: a })}>
                 <div className="li-main">
                   <div className="li-title">{a.prospect_id ? <LienProspect id={a.prospect_id} /> : a.notes || 'Paiement sans client'}</div>
                   <div className="li-sub">
@@ -423,7 +429,9 @@ export function PaiementsTab() {
 
 // ---------- Onglet Dépenses ----------
 export function DepensesTab() {
-  const { actions, data, settings } = useApp()
+  const { actions, data, profil } = useApp()
+  const saisir = peut(profil, 'depenses')
+  const voirFinances = peut(profil, 'finances')
   const [periode, setPeriode] = useState('mois')
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(null)
@@ -437,29 +445,30 @@ export function DepensesTab() {
   }, [toutes, periode, q, data])
   const total = liste.reduce((m, a) => m + num(a.montant), 0)
   const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && inPeriode(a.date, periode)).reduce((m, a) => m + num(a.montant), 0)
-  const fixes = (settings.depensesFixes || []).reduce((m, d) => m + num(d.montant), 0)
 
   return (
     <>
-      <div className="grid grid-4">
+      <div className={`grid ${voirFinances ? 'grid-4' : 'grid-2'}`}>
         <Kpi label="Dépenses (période)" value={eur(total)} navy />
-        <Kpi label="Encaissé (période)" value={eur(encaisse)} navy />
-        <Kpi label="Bénéfice (encaissé − dépenses)" value={eur(encaisse - total)} />
-        <Kpi label="Dépenses fixes / mois" value={eur(fixes)} />
+        {voirFinances && <Kpi label="Encaissé (période)" value={eur(encaisse)} navy />}
+        {voirFinances && <Kpi label="Solde (encaissé − dépenses)" value={eur(encaisse - total)} />}
+        <Kpi label="Nombre de dépenses" value={nb(liste.length)} />
       </div>
       <div className="grid fin-grid">
         <div className="card">
           <div className="row" style={{ marginBottom: 10 }}>
             <input className="input" style={{ flex: '1 1 200px' }} placeholder="Rechercher : catégorie, fournisseur…" value={q} onChange={(e) => setQ(e.target.value)} />
             <PeriodeTabs value={periode} onChange={setPeriode} />
-            <button className="btn gold" onClick={() => setModal({})}>
-              + Dépense
-            </button>
+            {saisir && (
+              <button className="btn gold" onClick={() => setModal({})}>
+                + Dépense
+              </button>
+            )}
           </div>
           <div className="list">
             {liste.length === 0 && <Empty>Aucune dépense sur cette période.</Empty>}
             {liste.map((a) => (
-              <div key={a.id} className="list-item click" onClick={() => setModal({ edit: a })}>
+              <div key={a.id} className={`list-item ${saisir ? 'click' : ''}`} onClick={() => saisir && setModal({ edit: a })}>
                 <div className="li-main">
                   <div className="li-title">{a.notes || a.fournisseur || a.categorie || 'Dépense'}</div>
                   <div className="li-sub">
@@ -472,9 +481,6 @@ export function DepensesTab() {
                 </div>
               </div>
             ))}
-          </div>
-          <div className="tiny muted" style={{ marginTop: 8 }}>
-            Les dépenses fixes mensuelles (réglées dans Paramètres) s'ajoutent automatiquement au tableau de bord.
           </div>
         </div>
         <div className="card">
@@ -500,7 +506,7 @@ export function Paiements() {
       <div className="page-head">
         <div>
           <h1>Paiements reçus</h1>
-          <div className="sub">Tout ce que tes clients t'ont réglé, par période et par mode de paiement.</div>
+          <div className="sub">Tout ce que les clients ont réglé, par période et par mode de paiement.</div>
         </div>
       </div>
       <PaiementsTab />
@@ -513,7 +519,7 @@ export function Depenses() {
       <div className="page-head">
         <div>
           <h1>Dépenses</h1>
-          <div className="sub">Tes achats et frais, avec les reçus, pour connaître ton vrai bénéfice.</div>
+          <div className="sub">Achats, transport, loyer, salaires… avec la photo du justificatif.</div>
         </div>
       </div>
       <DepensesTab />

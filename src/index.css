@@ -1655,3 +1655,12 @@ table.ztable td { white-space: normal; }
   .pos-mbar span:last-child { margin-left: auto; }
   .pos-ticket { padding-bottom: 70px; }
 }
+.pv:disabled { opacity: .35; cursor: not-allowed; }
+.art-card:disabled { cursor: default; }
+.art-card:disabled:hover { border-color: var(--line); }
+.droits-liste { display: flex; flex-direction: column; gap: 6px; }
+.droit-ligne { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.droit-ligne > span:first-of-type { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.droit-ligne.perso { border-color: var(--orange, #d99a00); background: rgba(217, 154, 0, .06); }
+.droit-ligne input { width: 18px; height: 18px; flex: none; }
+.droits-table td, .droits-table th { padding: 6px 8px; }

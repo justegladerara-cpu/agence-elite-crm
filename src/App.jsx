@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel } from './ui'
-import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, monProfil, setRoleDemo, ROLES, clearOffline } from './lib/store'
+import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, monProfil, setRoleDemo, ROLES, clearOffline, stockApplique, peut } from './lib/store'
 import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
@@ -24,14 +24,14 @@ const NAV = [
   {
     titre: 'Pilotage',
     items: [
-      { path: 'ventes', memo: 'ventes-periode', label: 'Tableau de bord', ico: 'chart', sub: [['?periode=jour', "Aujourd'hui"], ['?periode=7j', '7 jours'], ['?periode=mois', 'Ce mois']], roles: ['superadmin', 'pdg', 'comptable'] },
-      { path: 'journal', label: 'Mes ventes du jour', ico: 'chart', roles: ['caisse'] },
+      { path: 'ventes', memo: 'ventes-periode', label: 'Tableau de bord', ico: 'chart', sub: [['?periode=jour', "Aujourd'hui"], ['?periode=7j', '7 jours'], ['?periode=mois', 'Ce mois']], droit: 'finances' },
+      { path: 'journal', label: 'Mes ventes du jour', ico: 'chart', droit: 'vendre', sans: 'finances' },
     ],
   },
   {
     titre: 'Ventes',
     items: [
-      { path: 'caisse', label: 'Point de vente', ico: 'coins', roles: ['superadmin', 'pdg', 'caisse'] },
+      { path: 'caisse', label: 'Point de vente', ico: 'coins', droit: 'vendre' },
       {
         path: 'factures',
         memo: 'liste-facture',
@@ -50,18 +50,18 @@ const NAV = [
   },
   {
     titre: 'Finances',
-    items: [{ path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', roles: ['superadmin', 'pdg', 'comptable'] }],
+    items: [{ path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', droit: ['finances', 'depenses'] }],
   },
 ]
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
-const EQUIPE = { path: 'equipe', label: 'Équipe et accès', ico: 'users', roles: ['superadmin', 'pdg'] }
+const EQUIPE = { path: 'equipe', label: 'Équipe et accès', ico: 'users', droit: 'equipe' }
 PAGES.equipe = EQUIPE.label
 PAGES.journal = 'Mes ventes du jour'
 const PARAMETRES = {
   path: 'parametres',
-  roles: ['superadmin', 'pdg'],
+  droit: 'reglages',
   label: 'Paramètres',
   ico: 'settings',
   sub: [['/identite', 'Identité'], ['/magasin', 'Magasin'], ['/facturation', 'Facturation'], ['/compte', 'Compte']],
@@ -89,15 +89,16 @@ PAGES.saisie = 'Nouvelle action'
 PAGES.facture = 'Facture'
 // Barre du bas sur téléphone : Ventes, Articles, Caisse (au centre), Factures, Réglages
 const BOTTOM = [
-  { path: 'ventes', short: 'Ventes', ico: 'chart', roles: ['superadmin', 'pdg', 'comptable'] },
-  { path: 'journal', short: 'Ventes', ico: 'chart', roles: ['caisse'] },
+  { path: 'ventes', short: 'Ventes', ico: 'chart', droit: 'finances' },
+  { path: 'journal', short: 'Ventes', ico: 'chart', droit: 'vendre', sans: 'finances' },
   { path: 'articles', short: 'Articles', ico: 'layers' },
-  { path: 'caisse', short: 'Vendre', ico: 'plus', cta: true, roles: ['superadmin', 'pdg', 'caisse'] },
+  { path: 'caisse', short: 'Vendre', ico: 'plus', cta: true, droit: 'vendre' },
   { path: 'factures', short: 'Factures', ico: 'file' },
-  { path: 'parametres', short: 'Réglages', ico: 'settings', roles: ['superadmin', 'pdg'] },
-  { path: 'paiements', short: 'Paiements', ico: 'wallet', roles: ['caisse', 'comptable'] },
+  { path: 'parametres', short: 'Réglages', ico: 'settings', droit: 'reglages' },
+  { path: 'paiements', short: 'Paiements', ico: 'wallet', sans: 'reglages' },
 ]
-const permis = (n, role) => !n.roles || n.roles.includes(role)
+// Une rubrique est visible avec l'un de ses droits (et sans le droit « sans », qui la remplace par une autre)
+const permis = (n, profil) => (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
 const enSaisie = (e) => {
   const t = e.target
@@ -296,6 +297,11 @@ function Crm() {
       setState((s) => ({ ...s, documents: [...s.documents.filter((x) => !ids.has(x.id)), ...rows] }))
       return rows
     }),
+    stock: wrap(async (lignes) => {
+      if (!lignes.length) return
+      await db.stock(lignes)
+      setState((s) => ({ ...s, documents: stockApplique(s.documents, lignes) }))
+    }),
     deleteDoc: wrap(async (id) => {
       await db.deleteDoc(id)
       setState((s) => ({ ...s, documents: s.documents.filter((x) => x.id !== id) }))
@@ -359,7 +365,7 @@ function Crm() {
       </div>
     )
   const role = profil.role
-  const accueil = role === 'caisse' ? 'caisse' : 'ventes'
+  const accueil = peut(profil, 'finances') ? 'ventes' : peut(profil, 'vendre') ? 'caisse' : 'factures'
 
   setDevise(state.settings.devise)
   setBrand(state.settings.apparence)
@@ -382,7 +388,7 @@ function Crm() {
   const [chemin, query = ''] = route.split('?')
   const tousItems = [...NAV.flatMap((g) => g.items), EQUIPE, PARAMETRES]
   const pageDemandee = chemin.split('/')[0] || accueil
-  const interdite = tousItems.find((n) => n.path === pageDemandee && !permis(n, role))
+  const interdite = tousItems.find((n) => n.path === pageDemandee && !permis(n, profil))
   const [page, arg = ''] = (interdite || !chemin ? accueil : chemin).split(/\/(.*)/s)
   const q = new URLSearchParams(query)
   const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
@@ -398,7 +404,7 @@ function Crm() {
   else if (page === 'clients') content = <ClientsMagasin nom={q.get('c')} />
   else if (page === 'equipe') content = <Equipe />
   else if (page === 'journal') content = <Ventes key={route} caisse />
-  else if (role === 'caisse') content = <Caisse />
+  else if (!peut(profil, 'finances')) content = peut(profil, 'vendre') ? <Caisse /> : <Factures key={route} type="facture" />
   else content = <Ventes key={route} periode={q.get('periode')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
@@ -472,13 +478,13 @@ function Crm() {
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          {permis({ roles: ['superadmin', 'pdg', 'caisse'] }, role) && (
+          {peut(profil, 'vendre') && (
             <button className="nav-new" onClick={() => go('/caisse')} aria-keyshortcuts="N">
               <Icon n="plus" size={17} /> Nouvelle vente <kbd>N</kbd>
             </button>
           )}
           <nav className="nav-scroll">
-            {NAV.filter((g) => g.items.some((n) => permis(n, role))).map((g, i) => {
+            {NAV.filter((g) => g.items.some((n) => permis(n, profil))).map((g, i) => {
               const replie = g.titre && replies.includes(g.titre) && !g.items.some((n) => n.path === current)
               return (
                 <div key={i} className={`nav-group ${replie ? 'replie' : ''}`}>
@@ -488,16 +494,16 @@ function Crm() {
                       <Icon n="chevron" size={11} />
                     </button>
                   )}
-                  {!replie && g.items.filter((n) => permis(n, role)).map(navBtn)}
+                  {!replie && g.items.filter((n) => permis(n, profil)).map(navBtn)}
                 </div>
               )
             })}
           </nav>
-          {permis(PARAMETRES, role) && (
+          {(permis(EQUIPE, profil) || permis(PARAMETRES, profil)) && (
             <div className="nav-group nav-admin">
               <div className="nav-title">Administration</div>
-              {navBtn(EQUIPE)}
-              {navBtn(PARAMETRES)}
+              {permis(EQUIPE, profil) && navBtn(EQUIPE)}
+              {permis(PARAMETRES, profil) && navBtn(PARAMETRES)}
             </div>
           )}
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
@@ -521,7 +527,7 @@ function Crm() {
               <Icon n="search" size={15} /> Rechercher une facture, un article…
             </button>
             <div className="tb-org">{state.settings.facturation?.nom || brand.nom}</div>
-            {permis({ roles: ['superadmin', 'pdg', 'caisse'] }, role) && (
+            {peut(profil, 'vendre') && (
               <button className="btn primary sm tb-new" onClick={() => go('/caisse')}>
                 <Icon n="plus" size={15} /> Nouvelle vente
               </button>
@@ -558,7 +564,7 @@ function Crm() {
           {content}
         </main>
         <nav className="bottom-nav" aria-label="Navigation principale">
-          {BOTTOM.filter((n) => permis(n, role)).map((n) => (
+          {BOTTOM.filter((n) => permis(n, profil)).map((n) => (
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => go(`/${n.path}`)}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
               {n.short}
@@ -569,7 +575,7 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" role="dialog" aria-label="Toutes les pages" onClick={(e) => e.stopPropagation()}>
-              {[...NAV, { titre: 'Administration', items: [EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, role)) })).filter((g) => g.items.length).map((g) => (
+              {[...NAV, { titre: 'Administration', items: [EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
                 <div key={g.titre} className="sheet-group">
                   <div className="nav-title">{g.titre}</div>
                   <div className="sheet-grid">
@@ -587,7 +593,7 @@ function Crm() {
           </div>
         )}
       </div>
-      {recherche && <Recherche onClose={() => setRecherche(false)} pages={tousItems.filter((n) => permis(n, role))} />}
+      {recherche && <Recherche onClose={() => setRecherche(false)} pages={tousItems.filter((n) => permis(n, profil))} />}
       {toastNode}
     </AppCtx.Provider>
   )

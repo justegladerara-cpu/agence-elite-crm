@@ -6,6 +6,7 @@ import { nowTime } from '../lib/dates'
 import { getBrand } from '../lib/theme'
 import { articlesDe, enregistrerVente, A_CREDIT } from '../lib/magasin'
 import { Vignette, ArticleForm } from './Articles'
+import { peut, membres } from '../lib/store'
 
 const lirePref = (k, d) => {
   try {
@@ -42,7 +43,7 @@ export async function facturePdf(doc, { settings, actions }, action = 'imprimer'
 }
 
 
-const PAVE = [['1', '2', '3', 'qte'], ['4', '5', '6', 'remise'], ['7', '8', '9', 'prix'], ['+/-', '0', ',', 'del']]
+const PAVE = [['1', '2', '3', 'qte'], ['4', '5', '6', 'remise'], ['7', '8', '9', 'prix'], ['C', '0', ',', 'del']]
 const MODE_LBL = { qte: 'Qté', remise: '% Rem.', prix: 'Prix' }
 const prixNet = (l) => num(l.prix) * (1 - Math.min(100, num(l.remise)) / 100)
 const totalLigne = (l) => num(l.qte) * prixNet(l)
@@ -51,10 +52,23 @@ const totalLigne = (l) => num(l.qte) * prixNet(l)
 export default function Caisse() {
   const ctx = useApp()
   const { documents, settings, toast, actions, profil } = ctx
-  const chef = ['superadmin', 'pdg'].includes(profil?.role)
+  // Qui gère l'équipe peut enregistrer une vente au nom d'un autre vendeur
+  const chef = peut(profil, 'equipe')
+  const droitRemise = peut(profil, 'remises')
+  const sansStock = peut(profil, 'sansStock')
   const articles = useMemo(() => articlesDe(documents), [documents])
-  const equipe = settings.equipe?.length ? settings.equipe : ['Narcie KANGOU', 'Achille KANGOU', 'ITOUA']
-  const modes = [...(settings.modesPaiement || ['Espèces']), A_CREDIT]
+  const [equipe, setEquipe] = useState(() => [profil?.nom].filter(Boolean))
+  useEffect(() => {
+    if (!chef) return
+    membres
+      .list()
+      .then((l) => {
+        const noms = l.filter((m) => peut(m, 'vendre') && m.nom).map((m) => m.nom)
+        if (noms.length) setEquipe([...new Set([profil?.nom, ...noms].filter(Boolean))])
+      })
+      .catch(() => {})
+  }, [chef, profil?.nom])
+  const modes = [...(settings.modesPaiement || ['Espèces']), ...(peut(profil, 'credit') ? [A_CREDIT] : [])]
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
   const [panier, setPanier] = useState([])
@@ -91,7 +105,10 @@ export default function Caisse() {
   })
   const clientsConnus = useMemo(() => [...new Set(documents.filter((d) => d.type === 'facture' || d.type === 'devis').map((d) => d.data?.client?.nom).filter((n) => n && n !== 'Client comptoir'))].sort((a, b) => a.localeCompare(b, 'fr')), [documents])
 
+  // Quantité de chaque article déjà dans le ticket
+  const dansTicket = (id, p = panier) => p.filter((x) => x.id === id).reduce((m, x) => m + num(x.qte), 0)
   const ajouter = (a) => {
+    if (!sansStock && dansTicket(a.id) + 1 > a.stock) return toast(a.stock > 0 ? `Plus que ${nb(a.stock)} « ${a.nom} » en stock` : `« ${a.nom} » est en rupture de stock`, true)
     setPanier((p) => {
       const l = p.find((x) => x.id === a.id && !num(x.remise))
       if (l) return p.map((x) => (x === l ? { ...x, qte: num(x.qte) + 1 } : x))
@@ -105,6 +122,7 @@ export default function Caisse() {
   const changer = (key, patch) => setPanier((p) => p.map((x) => (x.key === key ? { ...x, ...patch } : x)))
   const touche = (k) => {
     if (['qte', 'remise', 'prix'].includes(k)) {
+      if (k !== 'qte' && !droitRemise) return toast("Tu n'as pas le droit de faire des remises ni de changer les prix", true)
       setPave(k)
       setBuffer(null)
       return
@@ -125,11 +143,14 @@ export default function Caisse() {
       changer(ligneSel.key, { [champ]: num(v) })
       return
     }
-    if (k === '+/-') {
-      changer(ligneSel.key, { [champ]: -num(ligneSel[champ]) })
+    if (k === 'C') {
+      setBuffer('')
+      changer(ligneSel.key, { [champ]: 0 })
       return
     }
-    const v = ((buffer ?? '') + (k === ',' ? '.' : k)).replace(/^0+(?=\d)/, '')
+    let v = ((buffer ?? '') + (k === ',' ? '.' : k)).replace(/^0+(?=\d)/, '')
+    if ((v.match(/\./g) || []).length > 1) return
+    if (champ === 'remise' && num(v) > 100) v = '100'
     setBuffer(v)
     changer(ligneSel.key, { [champ]: num(v) })
   }
@@ -146,6 +167,10 @@ export default function Caisse() {
   const payer = () => {
     if (!panier.length) return toast('Ajoute au moins un article', true)
     if (panier.some((l) => num(l.qte) <= 0)) return toast('Une quantité est à zéro', true)
+    if (!sansStock) {
+      const trop = [...new Set(panier.map((l) => l.id))].map((id) => articles.find((a) => a.id === id)).find((a) => a && dansTicket(a.id) > a.stock)
+      if (trop) return toast(`Stock insuffisant : il reste ${nb(Math.max(0, trop.stock))} « ${trop.nom} »`, true)
+    }
     setRecu('')
     setEcran('paiement')
   }
@@ -205,10 +230,12 @@ export default function Caisse() {
             <span className="pos-vendeur">{vendeur}</span>
           )}
           <span className="pos-heure">{heure}</span>
-          <button className="pos-btn" onClick={() => setNouvel(true)} title="Ajouter un article">
-            <Icon n="plus" size={16} /> <span>Article</span>
-          </button>
-          <button className="pos-btn" onClick={() => go(profil?.role === 'caisse' ? '/journal' : '/ventes')} title="Quitter la caisse">
+          {peut(profil, 'articles') && (
+            <button className="pos-btn" onClick={() => setNouvel(true)} title="Ajouter un article">
+              <Icon n="plus" size={16} /> <span>Article</span>
+            </button>
+          )}
+          <button className="pos-btn" onClick={() => go(peut(profil, 'finances') ? '/ventes' : '/journal')} title="Quitter la caisse">
             <Icon n="logout" size={16} /> <span>Quitter</span>
           </button>
         </div>
@@ -231,7 +258,8 @@ export default function Caisse() {
             </div>
             {!articles.length ? (
               <Empty>
-                Aucun article encore. <button className="toggle-link" onClick={() => setNouvel(true)}>Ajoute le premier en photo</button>
+                Aucun article encore.{' '}
+                {peut(profil, 'articles') && <button className="toggle-link" onClick={() => setNouvel(true)}>Ajoute le premier en photo</button>}
               </Empty>
             ) : !liste.length ? (
               <Empty>Aucun article ne correspond.</Empty>
@@ -300,7 +328,7 @@ export default function Caisse() {
             </div>
             <div className="pt-pave">
               {PAVE.flat().map((k) => (
-                <button key={k} className={`pv ${MODE_LBL[k] ? 'pv-mode' : ''} ${pave === k ? 'on' : ''} ${k === 'del' ? 'pv-del' : ''}`} onClick={() => touche(k)}>
+                <button key={k} className={`pv ${MODE_LBL[k] ? 'pv-mode' : ''} ${pave === k ? 'on' : ''} ${k === 'del' ? 'pv-del' : ''}`} disabled={(k === 'remise' || k === 'prix') && !droitRemise} onClick={() => touche(k)}>
                   {k === 'del' ? <Icon n="x" size={18} /> : MODE_LBL[k] || k}
                 </button>
               ))}

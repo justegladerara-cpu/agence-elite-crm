@@ -5,7 +5,8 @@ import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { facturePdf } from './Caisse'
 import { annulerVente, articlesDe, ajusterStock } from '../lib/magasin'
-import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
+import { peut } from '../lib/store'
+import { num, estNombre, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
 
@@ -178,7 +179,7 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
 // ---------- Création / modification ----------
 export function DocEditor({ id, query }) {
   const { documents, actions, data, settings, api, toast, profil } = useApp()
-  const chef = ['superadmin', 'pdg', 'comptable'].includes(profil?.role)
+  const chef = peut(profil, 'annuler')
   const fact = settings.facturation
   const catalogue = useMemo(() => articlesDe(documents).sort((a, b) => a.nom.localeCompare(b.nom)), [documents])
   const existing = id && id !== 'new' ? documents.find((d) => d.id === id) : null
@@ -250,6 +251,13 @@ export function DocEditor({ id, query }) {
   const save = async () => {
     if (!d.client?.nom?.trim()) return toast('Indique le client', true)
     if (!t.lignes.some((l) => (l.designation || '').trim())) return toast('Ajoute au moins une ligne', true)
+    const pleines = d.lignes.filter((l) => (l.designation || '').trim())
+    if (pleines.some((l) => !estNombre(l.qte) || !estNombre(l.pu))) return toast('Une quantité ou un prix contient autre chose que des chiffres', true)
+    if (pleines.some((l) => num(l.qte) <= 0)) return toast('Chaque ligne doit avoir une quantité supérieure à zéro', true)
+    if (pleines.some((l) => num(l.pu) < 0)) return toast('Un prix ne peut pas être négatif', true)
+    if (!estNombre(d.remise) || num(d.remise) < 0 || num(d.remise) > t.sousTotal) return toast('La remise doit être comprise entre 0 et le sous-total', true)
+    if (!estNombre(d.tva) || num(d.tva) < 0 || num(d.tva) > 100) return toast('La TVA doit être comprise entre 0 et 100 %', true)
+    if (d.echeance && d.date && d.echeance < d.date) return toast("L'échéance est avant la date de la facture", true)
     if (!doc.numero.trim()) return toast('Numéro manquant', true)
     if (documents.some((x) => x.type === doc.type && x.numero === doc.numero.trim() && x.id !== doc.id)) return toast('Ce numéro existe déjà', true)
     setBusy('save')
@@ -641,7 +649,7 @@ export function DocEditor({ id, query }) {
           </div>
           <div>
             <span>Remise</span>
-            <input className="input" inputMode="decimal" value={d.remise ?? ''} placeholder="0" onChange={(e) => setD({ remise: e.target.value })} />
+            <input className="input" inputMode="decimal" value={d.remise ?? ''} placeholder="0" disabled={!peut(profil, 'remises')} title={peut(profil, 'remises') ? '' : 'Remise non autorisée pour ton compte'} onChange={(e) => setD({ remise: e.target.value })} />
           </div>
           <div>
             <span>TVA / taxes (%)</span>

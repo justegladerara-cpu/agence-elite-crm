@@ -126,3 +126,79 @@ insert into public.membres (email, nom, role, espace) values
   ('admin@lekangourou.com', 'Achille KANGOU', 'pdg', 'kangourou'),
   ('demo@lekangourou.com', 'Compte démo', 'pdg', 'demo')
 on conflict (email) do nothing;
+
+-- ---------- Droits réglables par personne (ajouté après la V1 ; remplace les règles ci-dessus) ----------
+alter table public.membres add column if not exists droits jsonb not null default '{}'::jsonb;
+create or replace function public.droit_defaut(r text, d text) returns boolean
+language sql immutable set search_path = '' as $$
+  select case
+    when r in ('superadmin', 'pdg') then true
+    when r = 'caisse' then d in ('vendre', 'remises', 'credit', 'articles')
+    when r = 'comptable' then d in ('annuler', 'finances', 'depenses')
+    else false end
+$$;
+create or replace function public.mon_droit(d text) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select coalesce(
+    (select case when m.role = 'superadmin' then true else coalesce((m.droits ->> d)::boolean, public.droit_defaut(m.role, d)) end
+       from public.membres m where m.email = lower(coalesce((select auth.jwt() ->> 'email'), ''))),
+    false)
+$$;
+revoke execute on function public.mon_droit(text) from public, anon;
+grant execute on function public.mon_droit(text) to authenticated;
+
+drop policy if exists "documents ajout" on public.documents;
+drop policy if exists "documents modif" on public.documents;
+drop policy if exists "documents suppression" on public.documents;
+create policy "documents ajout" on public.documents for insert to authenticated
+  with check (espace = (select mon_espace()) and (select mon_role()) is not null and (type <> 'produit' or (select mon_droit('articles'))));
+create policy "documents modif" on public.documents for update to authenticated
+  using (espace = (select mon_espace()))
+  with check (espace = (select mon_espace()) and (type <> 'produit' or (select mon_droit('articles'))));
+create policy "documents suppression" on public.documents for delete to authenticated
+  using (espace = (select mon_espace()) and (select mon_droit('annuler')));
+
+drop policy if exists "actions lecture" on public.actions;
+drop policy if exists "actions ajout" on public.actions;
+drop policy if exists "actions modif" on public.actions;
+drop policy if exists "actions suppression" on public.actions;
+create policy "actions lecture" on public.actions for select to authenticated
+  using (espace = (select mon_espace()) and (action <> 'Dépense' or (select mon_droit('finances')) or (select mon_droit('depenses'))));
+create policy "actions ajout" on public.actions for insert to authenticated
+  with check (espace = (select mon_espace()) and (select mon_role()) is not null and (action <> 'Dépense' or (select mon_droit('depenses'))));
+create policy "actions modif" on public.actions for update to authenticated
+  using (espace = (select mon_espace()) and (action <> 'Dépense' or (select mon_droit('depenses'))))
+  with check (espace = (select mon_espace()) and (action <> 'Dépense' or (select mon_droit('depenses'))));
+create policy "actions suppression" on public.actions for delete to authenticated
+  using (espace = (select mon_espace()) and ((select mon_droit('annuler')) or (action = 'Dépense' and (select mon_droit('depenses')))));
+
+drop policy if exists "prospects suppression" on public.prospects;
+create policy "prospects suppression" on public.prospects for delete to authenticated
+  using (espace = (select mon_espace()) and (select mon_droit('annuler')));
+
+drop policy if exists "settings ecriture" on public.settings;
+drop policy if exists "settings modif" on public.settings;
+create policy "settings ecriture" on public.settings for insert to authenticated with check (espace = (select mon_espace()) and (select mon_droit('reglages')));
+create policy "settings modif" on public.settings for update to authenticated using (espace = (select mon_espace()) and (select mon_droit('reglages'))) with check (espace = (select mon_espace()));
+
+drop policy if exists "membres lisent" on public.membres;
+create policy "membres lisent" on public.membres for select to authenticated
+  using ((select mon_role()) = 'superadmin' or (espace = (select mon_espace()) and role <> 'superadmin') or email = lower(coalesce((select auth.jwt() ->> 'email'), '')));
+create policy "equipe gere membres" on public.membres for all to authenticated
+  using ((select mon_droit('equipe')) and espace = (select mon_espace()) and role <> 'superadmin' and ((select mon_role()) = 'pdg' or role <> 'pdg'))
+  with check ((select mon_droit('equipe')) and espace = (select mon_espace()) and role <> 'superadmin' and ((select mon_role()) = 'pdg' or role <> 'pdg'));
+
+create or replace function public.ajuster_stock(lignes jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+declare l jsonb;
+begin
+  if (select public.mon_role()) is null then raise exception 'Accès refusé'; end if;
+  for l in select * from jsonb_array_elements(lignes) loop
+    update public.documents
+       set data = jsonb_set(data, '{stock}', to_jsonb(coalesce(nullif(data ->> 'stock', '')::numeric, 0) + (l ->> 'delta')::numeric))
+     where id = (l ->> 'id')::uuid and type = 'produit' and espace = public.mon_espace();
+  end loop;
+end;
+$$;
+revoke execute on function public.ajuster_stock(jsonb) from public, anon;
+grant execute on function public.ajuster_stock(jsonb) to authenticated;

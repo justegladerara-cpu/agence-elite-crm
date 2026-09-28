@@ -75,45 +75,25 @@ export async function enregistrerVente({ panier, client, mode, vendeur, remise }
     await api.addActions([{ prospect_id: null, date: today(), time: nowTime(), canal: 'Autre', action: 'Paiement reçu', montant: total, mode, facture: numero, notes: 'Vente au comptoir' }])
   // Stock : on retire les quantités vendues
   const parArticle = {}
-  panier.forEach((l) => (parArticle[l.id] = (parArticle[l.id] || 0) + num(l.qte)))
-  const maj = Object.entries(parArticle)
-    .map(([id, q]) => {
-      const p = documents.find((d) => d.id === id && d.type === 'produit')
-      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) - q } }
-    })
-    .filter(Boolean)
-  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
+  panier.forEach((l) => l.id && (parArticle[l.id] = (parArticle[l.id] || 0) - num(l.qte)))
+  await api.stock(Object.entries(parArticle).map(([id, delta]) => ({ id, delta })))
   return { doc, total }
 }
 
 // Facture modifiée : écart de quantités par article entre l'ancienne et la nouvelle version
-export async function ajusterStock(avant = [], apres = [], { documents, api }) {
+export async function ajusterStock(avant = [], apres = [], { api }) {
   const ecart = {}
   ;(avant || []).forEach((l) => l.produitId && (ecart[l.produitId] = (ecart[l.produitId] || 0) + num(l.qte)))
   ;(apres || []).forEach((l) => l.produitId && (ecart[l.produitId] = (ecart[l.produitId] || 0) - num(l.qte)))
-  const maj = Object.entries(ecart)
-    .filter(([, q]) => q)
-    .map(([id, q]) => {
-      const p = documents.find((d) => d.id === id && d.type === 'produit')
-      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) + q } }
-    })
-    .filter(Boolean)
-  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
+  await api.stock(Object.entries(ecart).filter(([, q]) => q).map(([id, delta]) => ({ id, delta })))
 }
 
 // Vente annulée ou supprimée : les articles reviennent en stock et ses paiements sont retirés
-export async function annulerVente(doc, { documents, actions, api }) {
+export async function annulerVente(doc, { actions, api }) {
   const parArticle = {}
   ;(doc.data?.lignes || []).forEach((l) => l.produitId && (parArticle[l.produitId] = (parArticle[l.produitId] || 0) + num(l.qte)))
-  const maj = Object.entries(parArticle)
-    .map(([id, q]) => {
-      const p = documents.find((d) => d.id === id && d.type === 'produit')
-      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) + q } }
-    })
-    .filter(Boolean)
-  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
+  await api.stock(Object.entries(parArticle).map(([id, delta]) => ({ id, delta })))
   for (const a of actions.filter((a) => a.action === 'Paiement reçu' && a.facture === doc.numero)) await api.deleteAction(a.id)
-  return maj.length
 }
 
 // ---------- Statistiques ----------

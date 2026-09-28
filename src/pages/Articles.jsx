@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Chips, Choix, eur, nb } from '../ui'
-import { num } from '../lib/invoice'
+import { num, estNombre } from '../lib/invoice'
 import { articlesDe, nextRef, statutStock, enAlerte, photoArticle, CATEGORIES_ARTICLES } from '../lib/magasin'
+import { peut } from '../lib/store'
 
 // Vignette d'un article : sa photo, sinon ses initiales sur une pastille
 export function Vignette({ a, size = 56 }) {
@@ -46,11 +47,16 @@ export function ArticleForm({ article, onDone }) {
     }
   }
   const save = async (encore) => {
-    if (!f.nom.trim()) return toast("Indique le nom de l'article", true)
-    if (!num(f.prix)) return toast('Indique le prix de vente', true)
+    const nom = f.nom.trim()
+    if (!nom) return toast("Indique le nom de l'article", true)
+    if (!estNombre(f.prix) || !estNombre(f.stock) || !estNombre(f.prixAchat) || !estNombre(f.seuil)) return toast('Un prix ou une quantité contient autre chose que des chiffres', true)
+    if (num(f.prix) <= 0) return toast('Indique le prix de vente', true)
+    if (num(f.stock) < 0 || num(f.seuil) < 0 || num(f.prixAchat) < 0) return toast('Les quantités et les prix ne peuvent pas être négatifs', true)
+    const doublon = articlesDe(documents).find((a) => a.id !== article?.id && a.nom.trim().toLowerCase() === nom.toLowerCase())
+    if (doublon) return toast(`Un article porte déjà ce nom (${doublon.numero})`, true)
     setBusy(true)
     try {
-      const data = { ...(article?.doc?.data || {}), ...f, nom: f.nom.trim(), prix: num(f.prix), stock: num(f.stock), prixAchat: f.prixAchat === '' ? '' : num(f.prixAchat), seuil: num(f.seuil) }
+      const data = { ...(article?.doc?.data || {}), ...f, nom, prix: num(f.prix), stock: num(f.stock), prixAchat: f.prixAchat === '' ? '' : num(f.prixAchat), seuil: num(f.seuil) }
       await api.saveDoc(article ? { ...article.doc, data } : { type: 'produit', numero: nextRef(documents), prospect_id: null, data })
       toast(article ? 'Article mis à jour ✓' : `${data.nom} ajouté au magasin ✓`)
       if (encore) {
@@ -109,6 +115,7 @@ export function ArticleForm({ article, onDone }) {
         <div className="grid grid-2">
           <Field label="Prix d'achat (€)">
             <input className="input" id="art-achat" inputMode="numeric" value={f.prixAchat} onChange={(e) => set({ prixAchat: e.target.value })} />
+            {num(f.prixAchat) > 0 && num(f.prix) > 0 && num(f.prixAchat) >= num(f.prix) && <div className="tiny orange">Prix d'achat supérieur ou égal au prix de vente : aucune marge.</div>}
           </Field>
           <Field label="Alerte quand il en reste">
             <input className="input" id="art-seuil" inputMode="numeric" value={f.seuil} onChange={(e) => set({ seuil: e.target.value })} />
@@ -148,7 +155,8 @@ export function ArticleForm({ article, onDone }) {
 }
 
 export default function Articles() {
-  const { documents } = useApp()
+  const { documents, profil } = useApp()
+  const modifier = peut(profil, 'articles')
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
   const [filtre, setFiltre] = useState('')
@@ -167,11 +175,13 @@ export default function Articles() {
       <div className="page-head">
         <div>
           <h1>Articles du magasin</h1>
-          <div className="sub">Une photo, un nom, un prix, une quantité : l'article apparaît aussitôt dans la caisse.</div>
+          <div className="sub">{modifier ? "Une photo, un nom, un prix, une quantité : l'article apparaît aussitôt dans la caisse." : 'Prix et quantités en stock (consultation).'}</div>
         </div>
-        <button className="btn primary" onClick={() => setModal({})}>
-          <Icon n="plus" size={16} /> Nouvel article
-        </button>
+        {modifier && (
+          <button className="btn primary" onClick={() => setModal({})}>
+            <Icon n="plus" size={16} /> Nouvel article
+          </button>
+        )}
       </div>
       <div className="grid grid-4">
         <Kpi label="Articles" value={nb(tous.length)} navy />
@@ -190,7 +200,7 @@ export default function Articles() {
         </div>
         {cats.length > 1 && <Chips small options={cats} value={cat} onChange={setCat} />}
         {!tous.length ? (
-          <Empty>Aucun article pour l'instant. Touche « Nouvel article » et prends le premier en photo.</Empty>
+          <Empty>{modifier ? "Aucun article pour l'instant. Touche « Nouvel article » et prends le premier en photo." : "Aucun article pour l'instant."}</Empty>
         ) : !liste.length ? (
           <Empty>Aucun article ne correspond.</Empty>
         ) : (
@@ -198,7 +208,7 @@ export default function Articles() {
             {liste.map((a) => {
               const [st, tone] = statutStock(a)
               return (
-                <button key={a.id} className="art-card" onClick={() => setModal({ article: a })}>
+                <button key={a.id} className="art-card" disabled={!modifier} onClick={() => modifier && setModal({ article: a })}>
                   <Vignette a={a} size={64} />
                   <div className="art-body">
                     <div className="art-nom">{a.nom}</div>
