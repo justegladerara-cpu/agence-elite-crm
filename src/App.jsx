@@ -9,7 +9,7 @@ import Login from './pages/Login'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
 import { MiniListe } from './pages/Prospects'
-import Hub from './pages/Hub'
+import Hub, { ESPACES } from './pages/Hub'
 import { lienHub } from './lib/hub'
 import Fiche from './pages/Fiche'
 import Dashboard from './pages/Dashboard'
@@ -49,12 +49,13 @@ const NAV = [
   {
     titre: 'Commercial',
     items: [
+      { path: 'acquisition', memo: 'acquisition', label: 'Prospects', ico: 'target', sub: [['?onglet=potentiels', 'En cours'], ['?onglet=perdus', 'Perdus']] },
       {
         path: 'clients',
         memo: 'hub',
         label: 'Clients',
         ico: 'briefcase',
-        sub: [['?onglet=potentiels', 'Potentiels'], ['?onglet=nouveaux', 'Nouveaux clients'], ['?onglet=actifs', 'Clients actifs'], ['?onglet=anciens', 'Anciens clients'], ['?onglet=perdus', 'Perdus'], ['?onglet=tous', 'Tous']],
+        sub: [['?onglet=nouveaux', 'Nouveaux clients'], ['?onglet=actifs', 'Clients actifs'], ['?onglet=anciens', 'Anciens clients'], ['?onglet=tous', 'Tous les clients']],
       },
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
@@ -117,8 +118,19 @@ PAGES.apps = 'Applications'
 // Applications (façon Odoo / Zoho One) : chaque module a son icône, sa couleur et ses propres pages
 const ITEM = Object.fromEntries([...NAV.flatMap((g) => g.items), PARAMETRES].map((n) => [n.path, n]))
 const APPS = [
-  { id: 'journee', nom: 'Ma journée', desc: 'Relances, objectifs et routine du jour', ico: 'sun', couleur: '#e8890c', pages: ['journee'] },
-  { id: 'crm', nom: 'CRM', desc: 'Clients, prospects, appels et scripts', ico: 'briefcase', couleur: '#2f6fed', pages: ['clients', 'session', 'scripts'] },
+  {
+    id: 'commercial',
+    nom: 'Commercial',
+    desc: 'Ma journée, prospection et suivi des clients',
+    ico: 'briefcase',
+    couleur: '#2f6fed',
+    pages: ['journee', 'acquisition', 'session', 'scripts', 'clients'],
+    groupes: [
+      [null, ['journee']],
+      ['Acquisition', ['acquisition', 'session', 'scripts']],
+      ['Suivi des clients', ['clients']],
+    ],
+  },
   { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures, paiements et dépenses', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements', 'depenses'] },
   { id: 'analytics', nom: 'Tableau de bord', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'] },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
@@ -132,8 +144,8 @@ const BOTTOM = [
   { path: 'apps', short: 'Applis', ico: 'grid' },
   { path: 'journee', short: 'Journée', ico: 'sun' },
   { path: 'saisie', short: 'Saisir', ico: 'plus', cta: true },
+  { path: 'acquisition', short: 'Prospects', ico: 'target' },
   { path: 'clients', short: 'Clients', ico: 'briefcase' },
-  { path: 'factures', short: 'Factures', ico: 'file' },
 ]
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
 const enSaisie = (e) => {
@@ -386,7 +398,11 @@ function Crm() {
   const [page, arg = ''] = chemin.split(/\/(.*)/s)
   const q = new URLSearchParams(query)
   const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
-  const current = page === 'prospect' || page === 'prospects' ? 'clients' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
+  // Prospect ou client : la fiche s'ouvre dans l'espace Acquisition ou Clients du hub Commercial
+  const estClient = (id) => data.clients.some((c) => c.id === id)
+  const ongletAcq = page === 'clients' && ESPACES.acquisition.cats.includes(q.get('onglet'))
+  const current =
+    page === 'prospect' ? (estClient(arg) ? 'clients' : 'acquisition') : page === 'prospects' || ongletAcq ? 'acquisition' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
@@ -411,7 +427,7 @@ function Crm() {
       </div>
     )
   else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
-  else if (page === 'clients') content = <Hub key={route} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} />
+  else if (page === 'clients' || page === 'acquisition') content = <Hub key={route} espace={current === 'acquisition' ? 'acquisition' : 'clients'} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} />
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
@@ -498,10 +514,12 @@ function Crm() {
           </button>
           <nav className="nav-scroll">
             {appli ? (
-              <div className="nav-group">
-                <div className="nav-title">Menu {appli.nom}</div>
-                {appli.items.map(navBtn)}
-              </div>
+              (appli.groupes || [[`Menu ${appli.nom}`, appli.pages]]).map(([titre, pages]) => (
+                <div key={titre || 'accueil'} className="nav-group">
+                  {titre && <div className="nav-title">{titre}</div>}
+                  {pages.map((x) => navBtn(ITEM[x]))}
+                </div>
+              ))
             ) : (
               <div className="nav-group">
                 <div className="nav-title">Applications</div>

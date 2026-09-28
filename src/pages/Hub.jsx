@@ -71,9 +71,18 @@ const initiales = (n) =>
     .toUpperCase()
 const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? 's' : ''}`
 
-export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: vueDemandee, filtre: filtreDemande, nouveau }) {
+// Le hub Commercial a deux espaces : Acquisition (prospects en cours et perdus) et Clients (le portefeuille)
+export const ESPACES = {
+  acquisition: { cats: ['potentiels', 'perdus'], defaut: 'potentiels', memo: 'acquisition' },
+  clients: { cats: ['nouveaux', 'actifs', 'anciens', 'tous'], defaut: 'actifs', memo: 'hub' },
+}
+export const espaceDe = (cat) => (ESPACES.acquisition.cats.includes(cat) ? 'acquisition' : 'clients')
+
+export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, etape: etapeDemandee, vue: vueDemandee, filtre: filtreDemande, nouveau }) {
   const { data, settings, openAction, toast } = useApp()
-  const [onglet, setOngletBrut] = useTab('hub', 'potentiels', ongletDemande)
+  const E = ESPACES[esp]
+  const [ongletMemo, setOngletBrut] = useTab(E.memo, E.defaut, E.cats.includes(ongletDemande) ? ongletDemande : undefined)
+  const onglet = E.cats.includes(ongletMemo) ? ongletMemo : E.defaut
   useState(() => {
     // Un lien (menu, tableau de bord) impose l'étape ou le filtre
     if (ongletDemande) memo.etape = etapeDemandee || 'Toutes'
@@ -120,7 +129,8 @@ export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: 
   const parCat = useMemo(() => {
     const m = Object.fromEntries(CATEGORIES.map((c) => [c.id, []]))
     fiches.forEach((x) => m[x.cat].push(x))
-    m.tous = fiches
+    // Dans l'espace Clients, « Tous » = tous les clients (les prospects sont dans Acquisition)
+    m.tous = fiches.filter((x) => x.c)
     return m
   }, [fiches])
 
@@ -132,7 +142,7 @@ export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: 
     actifs: `${eur(somme(parCat.actifs, (x) => x.c.abonnement))}/mois`,
     anciens: 'à reconquérir',
     perdus: `${nb(parCat.perdus.filter((x) => x.p.alerte === 'À recontacter (perdu)').length)} à recontacter`,
-    tous: pluriel(fiches.length, 'fiche'),
+    tous: pluriel(parCat.tous.length, 'client'),
   }
 
   // Liste filtrée
@@ -198,26 +208,37 @@ export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: 
     <div className="hub">
       <div className="page-head">
         <div>
-          <h1>Clients</h1>
-          <div className="sub">Prospects, clients et perdus au même endroit, du premier contact au client fidèle.</div>
+          <h1>{esp === 'acquisition' ? 'Prospects' : 'Clients'}</h1>
+          <div className="sub">
+            {esp === 'acquisition'
+              ? 'Trouver et convertir : tes prospects du premier contact à la signature. Un prospect gagné passe tout seul dans Clients.'
+              : 'Garder et faire grandir : onboarding, interventions, encaissements et fidélisation de tes clients.'}
+          </div>
         </div>
         <div className="row head-actions">
-          <button className="btn" onClick={() => setModal('client')}>
-            <Icon n="user-plus" size={15} /> Nouveau client
-          </button>
-          <button className="btn" onClick={() => setModal('fiche')}>
-            <Icon n="note" size={15} /> Fiche complète
-          </button>
-          <button className="btn gold" onClick={() => setModal('insta')}>
-            <Icon n="instagram" size={15} /> Prospect Instagram
-          </button>
+          {esp === 'acquisition' ? (
+            <>
+              <button className="btn" onClick={() => setModal('fiche')}>
+                <Icon n="note" size={15} /> Fiche complète
+              </button>
+              <button className="btn gold" onClick={() => setModal('insta')}>
+                <Icon n="instagram" size={15} /> Prospect Instagram
+              </button>
+            </>
+          ) : (
+            <button className="btn gold" onClick={() => setModal('client')}>
+              <Icon n="user-plus" size={15} /> Nouveau client
+            </button>
+          )}
         </div>
       </div>
 
       <div className="hub-cards" role="tablist" aria-label="Catégories">
-        {CATEGORIES.map((c, i) => (
-          <HubCarte key={c.id} c={c} n={parCat[c.id].length} indic={indic[c.id]} on={onglet === c.id} lien={c.parcours && CATEGORIES[i + 1]?.parcours} onClick={() => setOnglet(c.id)} />
-        ))}
+        {E.cats.map((id, i) => {
+          const c = CATEGORIES.find((x) => x.id === id)
+          const suivant = CATEGORIES.find((x) => x.id === E.cats[i + 1])
+          return <HubCarte key={id} c={id === 'tous' ? { ...c, label: 'Tous les clients' } : c} n={parCat[id].length} indic={indic[id]} on={onglet === id} lien={c.parcours && suivant?.parcours} onClick={() => setOnglet(id)} />
+        })}
       </div>
 
       <div className="card flush hub-panel">
@@ -288,7 +309,7 @@ export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: 
                 const n = k === 'tous' ? null : base.filter((x) => x.c && f(x.c)).length
                 return (
                   <button key={k} className={`chip sm ${filtre === k ? 'on' : ''}`} aria-pressed={filtre === k} onClick={() => setFiltre(k)}>
-                    {k === 'tous' && onglet === 'tous' ? 'Toutes les fiches' : l}
+                    {l}
                     {n !== null && <span className="chip-n">{n}</span>}
                   </button>
                 )
@@ -332,7 +353,7 @@ export default function Hub({ onglet: ongletDemande, etape: etapeDemandee, vue: 
                   <input type="checkbox" aria-label="Tout sélectionner" checked={tousCoches} ref={(el) => el && (el.indeterminate = choisis.length > 0 && !tousCoches)} onChange={() => setSel(tousCoches ? new Set() : new Set(cochables.map((x) => x.p.id)))} />
                 </label>
                 <span>
-                  {pluriel(liste.length, onglet === 'tous' ? 'fiche' : estClients ? 'client' : 'prospect')}
+                  {pluriel(liste.length, esp === 'clients' ? 'client' : 'prospect')}
                   {filtreActif && base.length !== liste.length ? ` sur ${base.length}` : ''}
                 </span>
               </div>
@@ -642,7 +663,7 @@ function Vide({ onglet, filtre, reinit, ouvrir, n }) {
     actifs: ['Aucun client actif depuis plus de 90 jours.', 'Tes nouveaux clients arrivent ici automatiquement après 90 jours.', 'Ajouter un client existant', 'client'],
     anciens: ['Aucun ancien client.', 'Les clients qui ont résilié apparaissent ici, pour les reconquérir plus tard.', null],
     perdus: ['Aucun prospect perdu.', 'Les prospects notés « Perdu » arrivent ici avec leur date pour les recontacter.', null],
-    tous: ['Ton CRM est vide.', 'Commence par ajouter un prospect ou un client existant.', 'Ajouter un prospect Instagram', 'insta'],
+    tous: ['Aucun client pour le moment.', 'Un prospect devient client dès que tu saisis sa signature, ou ajoute un client existant.', 'Ajouter un client', 'client'],
   }[onglet]
   return (
     <div className="hub-empty">

@@ -32,7 +32,7 @@ export default function Recherche({ onClose, pages = [] }) {
     const rapides = [
       { key: 'a-action', groupe: 'Actions rapides', titre: 'Nouvelle action', sous: 'Appel, DM, relance, RDV, signature… (touche N)', ico: 'plus', run: () => openAction() },
       { key: 'a-client', groupe: 'Actions rapides', titre: 'Nouveau client', sous: 'Ajouter un client existant', ico: 'user-plus', path: '/clients?onglet=nouveaux&nouveau=client' },
-      { key: 'a-insta', groupe: 'Actions rapides', titre: 'Prospect Instagram', sous: 'Ajout express depuis un @', ico: 'instagram', path: '/clients?onglet=potentiels&nouveau=insta' },
+      { key: 'a-insta', groupe: 'Actions rapides', titre: 'Prospect Instagram', sous: 'Ajout express depuis un @', ico: 'instagram', path: '/acquisition?onglet=potentiels&nouveau=insta' },
       { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
     ]
     const pagesRes = pages.flatMap((n) => [

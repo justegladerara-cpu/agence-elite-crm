@@ -20,7 +20,7 @@ export function PipelineEtapes({ canal = 'Tous' }) {
   const total = lignes.reduce((m, l) => m + l.n, 0)
   const [hover, setHover] = useState(null)
   if (!total) return <div className="empty">Aucun prospect en cours : ajoute tes premiers prospects.</div>
-  const lien = (e) => go(`/clients?onglet=potentiels&etape=${encodeURIComponent(e)}&vue=liste`)
+  const lien = (e) => go(`/acquisition?onglet=potentiels&etape=${encodeURIComponent(e)}&vue=liste`)
   return (
     <div className="pipe">
       <div className="pipe-bar" role="img" aria-label={lignes.map((l) => `${l.e} ${l.n}`).join(', ')}>
