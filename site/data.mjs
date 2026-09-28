@@ -27,6 +27,7 @@ export const FAMILLES = [
 export const SOLUTIONS = [
   {
     slug: 'agence-web',
+    photo: '1531482615713-2afd69097998',
     icone: 'web',
     categorie: 'Agence web',
     titre: 'Des sites internet qui travaillent pour vous',
@@ -56,6 +57,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'communication-digitale',
+    photo: '1634313946050-3fefb86a710b',
     icone: 'megaphone',
     categorie: 'Communication digitale',
     titre: 'Des réseaux sociaux qui font grandir votre marque',
@@ -85,6 +87,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'creation-graphique',
+    photo: '1655720348598-526764cd2bca',
     icone: 'pen',
     categorie: 'Création graphique',
     titre: 'Une identité visuelle qui vous ressemble',
@@ -112,6 +115,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'creation-audiovisuelle',
+    photo: '1771402899941-155687f230be',
     icone: 'camera',
     categorie: 'Création audiovisuelle',
     titre: 'Des vidéos qui racontent votre histoire',
@@ -179,6 +183,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'intelligence-artificielle',
+    photo: '1652702954883-622efc786f70',
     icone: 'spark',
     categorie: 'Intelligence artificielle',
     titre: "L'intelligence artificielle au service de votre activité",
@@ -205,6 +210,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'services-informatiques',
+    photo: '1728167087497-23d18400d6b9',
     icone: 'chip',
     categorie: 'Services informatiques',
     titre: 'Votre partenaire technologique',
@@ -239,6 +245,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'microsoft-365',
+    photo: '1573497161249-42447f9f6706',
     icone: 'cloud',
     categorie: 'Microsoft 365',
     titre: 'Optimisez votre productivité avec Microsoft 365',
@@ -271,6 +278,7 @@ export const SOLUTIONS = [
   },
   {
     slug: 'erp',
+    photo: '1687422808311-a776f467a468',
     icone: 'grid',
     categorie: 'Solution de gestion intégrée',
     titre: 'Un ERP pour automatiser la gestion de votre entreprise',
@@ -304,15 +312,15 @@ export const SOLUTIONS = [
 ]
 
 export const SECTEURS = [
-  { slug: 'commerce', icone: 'bag', titre: 'Commerce et distribution', besoin: "Attirer du monde en boutique, vendre en ligne et suivre vos stocks.", solutions: ['communication-digitale', 'agence-web', 'erp', 'impression'] },
-  { slug: 'restauration', icone: 'fork', titre: 'Restauration et hôtellerie', besoin: 'Remplir vos tables et vos chambres, recevoir des réservations et soigner vos avis.', solutions: ['communication-digitale', 'agence-web', 'creation-audiovisuelle', 'intelligence-artificielle'] },
-  { slug: 'sante-beaute', icone: 'heart', titre: 'Santé, beauté et bien-être', besoin: 'Prise de rendez-vous en ligne, image rassurante et fidélisation de la clientèle.', solutions: ['agence-web', 'communication-digitale', 'creation-graphique', 'intelligence-artificielle'] },
-  { slug: 'immobilier-btp', icone: 'building', titre: 'Immobilier et BTP', besoin: 'Présenter vos biens et vos chantiers, générer des contacts qualifiés.', solutions: ['agence-web', 'creation-audiovisuelle', 'impression', 'erp'] },
-  { slug: 'transport-logistique', icone: 'truck', titre: 'Transport et logistique', besoin: 'Suivi des opérations, informatique fiable et image professionnelle auprès des clients.', solutions: ['services-informatiques', 'erp', 'microsoft-365', 'creation-graphique'] },
-  { slug: 'industrie-energie', icone: 'factory', titre: 'Industrie, pétrole et énergie', besoin: 'Sécurité des données, signalétique conforme et outils collaboratifs pour les équipes.', solutions: ['services-informatiques', 'microsoft-365', 'impression', 'creation-audiovisuelle'] },
-  { slug: 'services-conseil', icone: 'briefcase', titre: 'Services et cabinets conseil', besoin: 'Crédibilité, organisation interne et visibilité auprès des décideurs.', solutions: ['agence-web', 'microsoft-365', 'creation-graphique', 'intelligence-artificielle'] },
-  { slug: 'associations-ong', icone: 'hands', titre: 'Associations et ONG', besoin: 'Faire connaître vos actions, mobiliser les donateurs et rendre compte des résultats.', solutions: ['communication-digitale', 'creation-audiovisuelle', 'agence-web', 'impression'] },
-  { slug: 'education', icone: 'cap', titre: 'Éducation et formation', besoin: 'Recruter des élèves, communiquer avec les familles et outiller les équipes.', solutions: ['agence-web', 'communication-digitale', 'microsoft-365', 'erp'] },
+  { slug: 'commerce', photo: '1687422808565-929533931584', icone: 'bag', titre: 'Commerce et distribution', besoin: "Attirer du monde en boutique, vendre en ligne et suivre vos stocks.", solutions: ['communication-digitale', 'agence-web', 'erp', 'impression'] },
+  { slug: 'restauration', photo: '1687422808277-2334638f09fb', icone: 'fork', titre: 'Restauration et hôtellerie', besoin: 'Remplir vos tables et vos chambres, recevoir des réservations et soigner vos avis.', solutions: ['communication-digitale', 'agence-web', 'creation-audiovisuelle', 'intelligence-artificielle'] },
+  { slug: 'sante-beaute', photo: '1702236240794-58dc4c6895e5', icone: 'heart', titre: 'Santé, beauté et bien-être', besoin: 'Prise de rendez-vous en ligne, image rassurante et fidélisation de la clientèle.', solutions: ['agence-web', 'communication-digitale', 'creation-graphique', 'intelligence-artificielle'] },
+  { slug: 'immobilier-btp', photo: '1621905251918-48416bd8575a', icone: 'building', titre: 'Immobilier et BTP', besoin: 'Présenter vos biens et vos chantiers, générer des contacts qualifiés.', solutions: ['agence-web', 'creation-audiovisuelle', 'impression', 'erp'] },
+  { slug: 'transport-logistique', photo: '1573207535342-8c0f9506112e', icone: 'truck', titre: 'Transport et logistique', besoin: 'Suivi des opérations, informatique fiable et image professionnelle auprès des clients.', solutions: ['services-informatiques', 'erp', 'microsoft-365', 'creation-graphique'] },
+  { slug: 'industrie-energie', photo: '1621905251189-08b45d6a269e', icone: 'factory', titre: 'Industrie, pétrole et énergie', besoin: 'Sécurité des données, signalétique conforme et outils collaboratifs pour les équipes.', solutions: ['services-informatiques', 'microsoft-365', 'impression', 'creation-audiovisuelle'] },
+  { slug: 'services-conseil', photo: '1573164574511-73c773193279', icone: 'briefcase', titre: 'Services et cabinets conseil', besoin: 'Crédibilité, organisation interne et visibilité auprès des décideurs.', solutions: ['agence-web', 'microsoft-365', 'creation-graphique', 'intelligence-artificielle'] },
+  { slug: 'associations-ong', photo: '1783408355447-b01a88767e6a', icone: 'hands', titre: 'Associations et ONG', besoin: 'Faire connaître vos actions, mobiliser les donateurs et rendre compte des résultats.', solutions: ['communication-digitale', 'creation-audiovisuelle', 'agence-web', 'impression'] },
+  { slug: 'education', photo: '1632215861513-130b66fe97f4', icone: 'cap', titre: 'Éducation et formation', besoin: 'Recruter des élèves, communiquer avec les familles et outiller les équipes.', solutions: ['agence-web', 'communication-digitale', 'microsoft-365', 'erp'] },
 ]
 
 export const VALEURS = [
@@ -339,3 +347,25 @@ export const PARTENAIRES = [
   ['levy-services', 'Levy Services'],
   ['sam-service-africa', 'Sam Service Africa'],
 ]
+
+// Photos libres de droits (licence Unsplash), affichées depuis images.unsplash.com
+export const PHOTOS = {
+  hero: ['1655720357872-ce227e4164ba', 'Équipe réunie autour d\'un ordinateur portable dans un bureau'],
+  cta: ['1521791136064-7986c2920216', 'Poignée de main entre un client et un conseiller'],
+  terrain: [
+    ['1761370571806-886404629697', 'Commerçant dans sa boutique'],
+    ['1717089256239-dc2ed4d9dfc6', 'Barbier au travail dans son salon'],
+    ['1648977910041-f263fda3f0fe', 'Vidéaste en tournage'],
+    ['1642929295388-81948818c28f', 'Femme travaillant sur une tablette au bureau'],
+  ],
+  agence: [
+    ['1573164574572-cb89e39749b4', 'Équipe en réunion autour d\'une table'],
+    ['1573166953836-06864dc70a21', 'Professionnelle travaillant sur son ordinateur'],
+    ['1612299273045-362a39972259', 'Échange en visioconférence'],
+    ['1528901166007-3784c7dd3653', 'Développeurs travaillant ensemble'],
+    ['1634246386903-2098864bb3b1', 'Créative au travail avec son casque'],
+    ['1573164574397-dd250bc8a598', 'Trois collègues travaillant ensemble'],
+  ],
+}
+export const CREDITS_PHOTOS =
+  'Iwaria Inc., Christina Morillo (WOCinTech Chat), X (@disruptxn), Oyemike Princewill, Francis Odeyemi, Moise M, Ben Iwara, Ufoma Ojo, Micheal Ogungbe, Johnnathan Tshibangu, Emmanuel Ikwuegbu, Good Faces, Ali Mkumbwa, Muhammad-Taha Ibrahim, Cytonn Photography, Patrick Marah, Ace Maxwell, Emmanuel M, Reproductive Health Supplies Coalition'
