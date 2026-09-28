@@ -171,6 +171,11 @@ export const DEFAULT_SETTINGS = {
   categoriesArticles: ['Robinetterie', 'Vannes', 'EPI', 'Tôles noires', 'Chiffons', 'Peinture', 'Tiges', 'Outillage', 'Consommables', 'Autre'],
   categoriesDepenses: ['Achat de marchandises', 'Transport / dédouanement', 'Loyer', 'Salaires', 'Électricité / eau', 'Carburant', 'Téléphone / internet', 'Entretien', 'Autre'],
   modesPaiement: ['Espèces', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque', 'Carte'],
+  // Hôtel : tarifs de passage (chambre louée quelques heures, payée tout de suite) ; catégorie vide = toutes les chambres
+  passages: [
+    { id: 'p2', nom: '2 heures', heures: 2, prix: 5000, categorie: '' },
+    { id: 'p4', nom: '4 heures', heures: 4, prix: 10000, categorie: '' },
+  ],
   // Prospection Instagram express : signaux repérés sur la pub et messages prêts à copier
   signaux: [
     'Belle offre, pub moyenne',

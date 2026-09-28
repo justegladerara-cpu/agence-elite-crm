@@ -55,6 +55,9 @@ export const couleursDe = (a = {}) => {
 export function palette(principal, accent) {
   let p = hex(principal) || [11, 24, 48]
   const a = hex(accent) || [201, 162, 78]
+  // Couleur de marque telle quelle (barre du haut façon Odoo, boutons principaux), assombrie seulement si trop claire
+  let b = [...p]
+  for (let i = 0; i < 12 && lum(b) > 0.18; i++) b = mix(b, K, 0.15)
   for (let i = 0; i < 12 && lum(p) > 0.05; i++) p = mix(p, K, 0.2)
   const a2 = mix(a, W, 0.35)
   return {
@@ -64,6 +67,12 @@ export function palette(principal, accent) {
     '--navy-ink': toHex(mix(p, W, 0.1)),
     '--navy-deep': toHex(mix(p, K, 0.3)),
     '--navy-rgb': p.map(Math.round).join(', '),
+    '--brand': toHex(b),
+    '--brand-2': toHex(mix(b, K, 0.15)),
+    '--brand-rgb': b.map(Math.round).join(', '),
+    '--brand-soft': toHex(mix(b, W, 0.9)),
+    '--brand-line': toHex(mix(b, W, 0.75)),
+    '--brand-ink': toHex(mix(b, K, 0.1)),
     '--gold': toHex(a),
     '--gold-2': toHex(a2),
     '--gold-3': toHex(mix(a, K, 0.18)),

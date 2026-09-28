@@ -492,7 +492,7 @@ function Crm() {
       <div className={`app ${page === 'hotel' ? 'pos-on' : ''}`}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
-            <Logo size={36} />
+            <Logo size={36} dark={false} />
             {avecNom && (
               <div style={{ minWidth: 0 }}>
                 <div className="brand-name">{brand.nom}</div>
@@ -549,6 +549,12 @@ function Crm() {
             </button>
           </header>
           <header className="topbar">
+            {/* Fil d'Ariane façon Odoo : groupe du menu › page */}
+            <div className="tb-crumb">
+              <span>{NAV.find((g) => g.items.some((n) => n.path === current))?.titre || 'Administration'}</span>
+              <Icon n="chevron" size={12} />
+              <strong>{PAGES[current] || brand.nom}</strong>
+            </div>
             <button className="tb-search" onClick={() => setRecherche(true)}>
               <Icon n="search" size={15} /> Rechercher une facture, un client…
             </button>

@@ -62,7 +62,8 @@ export const nuitsPrevues = (s) => Math.max(1, diffDays(s.depart || s.arrivee, s
 
 export function folio(sejour, jusqua = today()) {
   const s = sejour.data || sejour
-  const nuits = nuitsDe(s, jusqua)
+  // Passage : payé à l'entrée, seule la note des extras reste ouverte
+  const nuits = s.passage ? 0 : nuitsDe(s, jusqua)
   const hebergement = nuits * num(s.prixNuit)
   const extras = (s.lignes || []).reduce((m, l) => m + num(l.qte) * num(l.pu), 0)
   const acomptes = (s.acomptes || []).reduce((m, a) => m + num(a.montant), 0)
@@ -143,6 +144,7 @@ export const totalLignes = (lignes) => lignes.reduce((m, l) => m + num(l.qte) * 
 // Départ : facture de l'hébergement et des extras, acomptes déduits, chambre à nettoyer
 export async function depart(sejourDoc, { mode, vendeur }, ctx) {
   const s = sejourDoc.data
+  if (s.passage) return libererPassage(sejourDoc, { mode, vendeur }, ctx)
   const f = folio(s)
   const lignes = [
     { designation: `Hébergement chambre ${s.chambre}`, description: `Du ${fr(s.arrivee)} au ${fr(today())} · ${f.nuits} nuit${f.nuits > 1 ? 's' : ''}`, qte: f.nuits, pu: num(s.prixNuit) },
@@ -156,6 +158,82 @@ export async function depart(sejourDoc, { mode, vendeur }, ctx) {
 }
 
 const fr = (iso) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : '')
+
+// ---------- Passages ----------
+// Chambre louée quelques heures à prix fixe (5 000, 10 000…), payée tout de suite, sans identité.
+// Le passage ne compte pas comme une nuitée ; la facture est faite à l'entrée.
+export const hhmm = (iso) => (iso ? new Date(iso).toTimeString().slice(0, 5) : '')
+export const tarifsPassage = (settings, categorie) => (settings.passages || []).filter((t) => num(t.prix) > 0 && (!t.categorie || t.categorie === categorie))
+// Minutes restantes (négatif : passage dépassé)
+export const resteMinutes = (s, maintenant = Date.now()) => Math.round((new Date(s.fin).getTime() - maintenant) / 60000)
+const plusHeures = (base, h) => new Date(Math.max(Date.now(), new Date(base || Date.now()).getTime()) + num(h) * 3600000).toISOString()
+
+export async function passage({ chambre, tarif, prix, mode, client, par }, ctx) {
+  const debut = new Date().toISOString()
+  const fin = plusHeures(debut, tarif.heures)
+  const nom = client?.trim() || 'Client de passage'
+  const r = await encaisser(
+    { lignes: [{ designation: `Passage chambre ${chambre.nom}`, description: `${tarif.nom} · ${hhmm(debut)} → ${hhmm(fin)}`, qte: 1, pu: Math.round(num(prix)) }], client: nom, mode, vendeur: par, objet: `Passage chambre ${chambre.nom}` },
+    ctx,
+  )
+  const sejour = await ctx.api.saveDoc({
+    type: 'sejour',
+    numero: numeroInterne(ctx.documents, 'sejour', 'SEJ'),
+    prospect_id: null,
+    data: {
+      statut: 'en cours',
+      passage: true,
+      chambreId: chambre.id,
+      chambre: chambre.nom,
+      client: { nom, tel: '', piece: '' },
+      personnes: 1,
+      arrivee: today(),
+      heureArrivee: nowTime(),
+      depart: today(),
+      debut,
+      fin,
+      tarif: tarif.nom,
+      paye: [{ facture: r.doc.numero, montant: Math.round(num(prix)), tarif: tarif.nom, heure: nowTime() }],
+      prixNuit: 0,
+      lignes: [],
+      acomptes: [],
+      par: par || '',
+    },
+  })
+  return { ...r, sejour }
+}
+export const payePassage = (s) => (s.paye || []).reduce((m, p) => m + num(p.montant), 0)
+
+// Le client reste plus longtemps : nouveau tarif encaissé tout de suite, heure de fin repoussée
+export async function prolongerPassage(sejourDoc, { tarif, prix, mode, par }, ctx) {
+  const s = sejourDoc.data
+  const fin = plusHeures(s.fin, tarif.heures)
+  const r = await encaisser(
+    { lignes: [{ designation: `Passage chambre ${s.chambre}`, description: `Prolongation ${tarif.nom} · jusqu'à ${hhmm(fin)}`, qte: 1, pu: Math.round(num(prix)) }], client: s.client?.nom, mode, vendeur: par, objet: `Passage chambre ${s.chambre}` },
+    ctx,
+  )
+  await ctx.api.saveDoc({ ...sejourDoc, data: { ...s, fin, paye: [...(s.paye || []), { facture: r.doc.numero, montant: Math.round(num(prix)), tarif: tarif.nom, heure: nowTime() }] } })
+  return r
+}
+
+// Le client finalement dort sur place : le passage devient un séjour, ce qui est déjà payé est déduit
+export async function passageEnNuitee(sejourDoc, { depart: dep, prixNuit }, ctx) {
+  const s = sejourDoc.data
+  const deja = payePassage(s)
+  const deduction = deja ? [{ id: uid(), date: today(), heure: nowTime(), designation: 'Passage déjà réglé', qte: 1, pu: -deja, origine: (s.paye || []).map((p) => p.facture).join(', '), par: '' }] : []
+  return ctx.api.saveDoc({ ...sejourDoc, data: { ...s, passage: false, passageConverti: true, depart: dep, prixNuit: num(prixNuit), lignes: [...(s.lignes || []), ...deduction] } })
+}
+
+// Fin du passage : les extras éventuels sont facturés, la chambre part au ménage
+export async function libererPassage(sejourDoc, { mode, vendeur }, ctx) {
+  const s = sejourDoc.data
+  const lignes = (s.lignes || []).map((l) => ({ designation: l.designation, description: [fr(l.date), l.origine].filter(Boolean).join(' · '), qte: num(l.qte), pu: num(l.pu) }))
+  const r = lignes.length ? await encaisser({ lignes, client: s.client?.nom, mode, vendeur, objet: `Passage chambre ${s.chambre} · extras`, acomptes: s.acomptes || [], extra: { sejour: sejourDoc.numero } }, ctx) : null
+  await ctx.api.saveDoc({ ...sejourDoc, data: { ...s, statut: 'clos', departReel: today(), heureDepart: nowTime(), ...(r ? { factureNumero: r.doc.numero } : {}) } })
+  const ch = ctx.documents.find((d) => d.id === s.chambreId)
+  if (ch) await ctx.api.saveDoc({ ...ch, data: { ...ch.data, menage: true } })
+  return r
+}
 
 // ---------- Tickets imprimés (bon cuisine, addition) ----------
 // Petite page 80 mm ouverte dans une fenêtre, prête à imprimer
@@ -184,7 +262,9 @@ export function etatHotel(documents) {
     total: chambres.length,
     occupees: chambres.filter((c) => occ.has(c.id)).length,
     aNettoyer: chambres.filter((c) => !occ.has(c.id) && c.menage).length,
-    departs: sejours.filter((s) => s.data.depart && s.data.depart <= t).length,
+    departs: sejours.filter((s) => !s.data.passage && s.data.depart && s.data.depart <= t).length,
+    passages: sejours.filter((s) => s.data.passage).length,
+    depasses: sejours.filter((s) => s.data.passage && resteMinutes(s.data) < 0).length,
     arrivees: sejours.filter((s) => s.data.arrivee === t).length,
     attendues: reservationsDe(documents).filter((r) => r.data.arrivee <= t).length,
   }
@@ -199,7 +279,10 @@ export function occupation(documents, t = today()) {
   const out = []
   documents.forEach((d) => {
     const x = d.data || {}
-    if (d.type === 'sejour' && x.statut === 'en cours') out.push({ doc: d, kind: 'sejour', chambreId: x.chambreId, debut: x.arrivee, fin: x.depart && x.depart > t ? x.depart : addDays(t, 1), client: x.client?.nom })
+    // Passages : quelques heures, ne bloquent pas la nuit ; seuls ceux en cours apparaissent au planning
+    if (d.type === 'sejour' && x.passage) {
+      if (x.statut === 'en cours') out.push({ doc: d, kind: 'passage', chambreId: x.chambreId, debut: x.arrivee, fin: addDays(x.arrivee, 1), client: `Passage · ${hhmm(x.fin)}` })
+    } else if (d.type === 'sejour' && x.statut === 'en cours') out.push({ doc: d, kind: 'sejour', chambreId: x.chambreId, debut: x.arrivee, fin: x.depart && x.depart > t ? x.depart : addDays(t, 1), client: x.client?.nom })
     else if (d.type === 'sejour' && x.statut === 'clos') out.push({ doc: d, kind: 'clos', chambreId: x.chambreId, debut: x.arrivee, fin: x.departReel && x.departReel > x.arrivee ? x.departReel : addDays(x.arrivee, 1), client: x.client?.nom })
     else if (d.type === 'reservation' && x.statut === 'confirmee') out.push({ doc: d, kind: 'reservation', chambreId: x.chambreId, debut: x.arrivee, fin: x.depart, client: x.client?.nom })
   })
@@ -207,7 +290,7 @@ export function occupation(documents, t = today()) {
 }
 // Une chambre est-elle déjà prise sur ces nuits ? (renvoie ce qui gêne)
 export function conflit(documents, chambreId, debut, fin, sauf) {
-  return occupation(documents).find((o) => o.kind !== 'clos' && o.chambreId === chambreId && o.doc.id !== sauf && o.debut < fin && debut < o.fin)
+  return occupation(documents).find((o) => o.kind !== 'clos' && o.kind !== 'passage' && o.chambreId === chambreId && o.doc.id !== sauf && o.debut < fin && debut < o.fin)
 }
 export async function enregistrerReservation(r, { documents, api }) {
   const doc = r.id ? documents.find((d) => d.id === r.id) : null
@@ -234,20 +317,27 @@ export async function enregistrerReservation(r, { documents, api }) {
 // ---------- Tableau de bord hôtel ----------
 // Répartit les factures de l'hôtel : hébergement, restaurant, bar, terrasse, extras de chambre
 export function chiffresHotel(ventes) {
-  const parts = { Hébergement: 0, Restaurant: 0, Bar: 0, Terrasse: 0, 'Extras chambres': 0, 'Vente directe': 0 }
+  const parts = { Hébergement: 0, Passages: 0, Restaurant: 0, Bar: 0, Terrasse: 0, 'Extras chambres': 0, 'Vente directe': 0 }
   let nuitees = 0
+  let passages = 0
   const plats = {}
   const modes = {}
   let n = 0
   ventes.forEach((v) => {
     const objet = v.doc.data?.objet || ''
-    const sejour = objet.startsWith('Séjour chambre')
+    const sejour = objet.startsWith('Séjour chambre') || objet.startsWith('Passage chambre')
     const zone = ZONES.find((z) => objet.startsWith(`${z} ·`)) || (objet === 'Vente directe' ? 'Vente directe' : null)
     if (!sejour && !zone) return
     n++
     modes[v.mode || 'Autre'] = (modes[v.mode || 'Autre'] || 0) + v.total
     ;(v.doc.data.lignes || []).forEach((l) => {
       const m = num(l.qte) * num(l.pu)
+      // Passage vendu (ou déduit quand il devient une nuitée)
+      if (sejour && String(l.designation).startsWith('Passage')) {
+        parts.Passages += m
+        if (m > 0 && !String(l.description || '').startsWith('Prolongation')) passages++
+        return
+      }
       if (sejour && String(l.designation).startsWith('Hébergement')) {
         parts['Hébergement'] += m
         nuitees += num(l.qte)
@@ -261,11 +351,11 @@ export function chiffresHotel(ventes) {
     })
   })
   const total = Object.values(parts).reduce((a, b) => a + b, 0)
-  return { parts, total, nuitees, prixMoyen: nuitees ? parts['Hébergement'] / nuitees : 0, top: Object.values(plats).sort((a, b) => b.montant - a.montant).slice(0, 8), modes, n }
+  return { parts, total, nuitees, passages, passageMoyen: passages ? parts.Passages / passages : 0, prixMoyen: nuitees ? parts['Hébergement'] / nuitees : 0, top: Object.values(plats).sort((a, b) => b.montant - a.montant).slice(0, 8), modes, n }
 }
 // Taux d'occupation par nuit sur une période
 export function occupationParJour(documents, nbChambres, debut, jours) {
-  const occ = occupation(documents).filter((o) => o.kind !== 'reservation')
+  const occ = occupation(documents).filter((o) => o.kind === 'sejour' || o.kind === 'clos')
   const res = occupation(documents).filter((o) => o.kind === 'reservation')
   return Array.from({ length: jours }, (_, i) => {
     const d = addDays(debut, i)

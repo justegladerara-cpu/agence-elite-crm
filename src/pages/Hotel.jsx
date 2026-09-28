@@ -10,7 +10,7 @@ import { facturePdf } from './Caisse'
 import {
   ZONES, CATEGORIES_CHAMBRE, CATEGORIES_CARTE, TEINTES,
   chambresDe, tablesDe, platsDe, sejoursEnCours, commandesOuvertes, numeroInterne,
-  folio, nuitsPrevues, arrivee, reservationsDe, occupation, conflit, enregistrerReservation, chiffresHotel, occupationParJour, ajouterSurNote, encaisser, depart, lignesCommande, prixNet, totalLignes, imprimerTicket, etatHotel,
+  folio, nuitsPrevues, arrivee, reservationsDe, passage, prolongerPassage, passageEnNuitee, payePassage, tarifsPassage, resteMinutes, hhmm, occupation, conflit, enregistrerReservation, chiffresHotel, occupationParJour, ajouterSurNote, encaisser, depart, lignesCommande, prixNet, totalLignes, imprimerTicket, etatHotel,
 } from '../lib/hotel'
 
 const PAVE = [['1', '2', '3', 'qte'], ['4', '5', '6', 'remise'], ['7', '8', '9', 'prix'], ['C', '0', ',', 'del']]
@@ -29,6 +29,7 @@ const ecrire = (k, v) => {
     /* préférence non gardée */
   }
 }
+const duree = (m) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}` : ''}`)
 const depuis = (iso) => {
   if (!iso) return ''
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
@@ -331,7 +332,7 @@ export default function Hotel() {
       if (paiement.kind === 'depart') {
         const s = documents.find((d) => d.id === paiement.sejourId)
         r = await depart(s, { mode, vendeur: moi }, ctx)
-        setFin({ ...r, rendu, retour: 'chambres', titre: `Départ enregistré · chambre ${s.data.chambre}` })
+        setFin({ ...r, rendu, retour: 'chambres', titre: s.data.passage ? `Passage terminé · chambre ${s.data.chambre}` : `Départ enregistré · chambre ${s.data.chambre}` })
       } else {
         const lieu = table ? `${table.zone} · ${table.nom}` : 'Vente directe'
         r = await encaisser({ lignes: lignesCommande(lignes), client: client || (table ? `Client ${table.zone.toLowerCase()}` : 'Client de passage'), mode, vendeur: moi, objet: lieu }, ctx)
@@ -427,7 +428,7 @@ export default function Hotel() {
           onNouvelle={(chambre, arrivee) => setModal({ t: 'reservation', chambre, arrivee })}
           onOuvrir={(o) => {
             if (o.kind === 'reservation') setModal({ t: 'reservation', doc: o.doc })
-            else if (o.kind === 'sejour') {
+            else if (o.kind === 'sejour' || o.kind === 'passage') {
               setFolioId(o.doc.id)
               setVue('folio')
             }
@@ -444,8 +445,20 @@ export default function Hotel() {
           onRetour={() => setVue('chambres')}
           onExtras={() => ouvrirChambre(folioDoc)}
           onAcompte={() => setModal({ t: 'acompte', sejour: folioDoc })}
-          onProlonger={() => setModal({ t: 'prolonger', sejour: folioDoc })}
-          onDepart={() => { setPaiement({ kind: 'depart', sejourId: folioDoc.id, total: folio(folioDoc).reste }); setVue('paiement') }}
+          onProlonger={() => setModal({ t: folioDoc.data.passage ? 'prolongerPassage' : 'prolonger', sejour: folioDoc })}
+          onNuitee={() => setModal({ t: 'nuitee', sejour: folioDoc })}
+          onDepart={async () => {
+            const reste = folio(folioDoc).reste
+            // Passage sans extras : rien à encaisser, la chambre part directement au ménage
+            if (folioDoc.data.passage && !(folioDoc.data.lignes || []).length) {
+              await depart(folioDoc, { mode: modes[0], vendeur: moi }, ctx)
+              toast(`Chambre ${folioDoc.data.chambre} libérée · à nettoyer ✓`)
+              setVue('chambres')
+              return
+            }
+            setPaiement({ kind: 'depart', sejourId: folioDoc.id, total: reste })
+            setVue('paiement')
+          }}
           onRetirer={async (id) => { await api.saveDoc({ ...folioDoc, data: { ...folioDoc.data, lignes: folioDoc.data.lignes.filter((l) => l.id !== id) } }); toast('Ligne retirée de la note') }}
           onImprimer={() => {
             const s = folioDoc.data
@@ -589,7 +602,7 @@ export default function Hotel() {
             <button className="pos-btn light" onClick={() => setVue(paiement.kind === 'depart' ? 'folio' : 'commande')}>
               <Icon n="chevron" size={16} style={{ transform: 'rotate(180deg)' }} /> Retour
             </button>
-            <h2>{paiement.kind === 'depart' ? 'Départ et encaissement' : 'Paiement'}</h2>
+            <h2>{paiement.kind === 'depart' ? (documents.find((d) => d.id === paiement.sejourId)?.data.passage ? 'Extras du passage' : 'Départ et encaissement') : 'Paiement'}</h2>
             <button className="pay-valider" disabled={busy} onClick={valider}>
               {busy ? 'Enregistrement…' : 'Valider'} <Icon n="check" size={18} />
             </button>
@@ -699,7 +712,17 @@ export default function Hotel() {
           onArrivee={(res, ch) => setModal({ t: 'arrivee', chambre: ch, reservation: res })}
         />
       )}
-      {modal?.t === 'arrivee' && <Arrivee chambre={modal.chambre} reservation={modal.reservation} onClose={() => setModal(null)} onDone={(s) => { setModal(null); setFolioId(s.id); setVue('folio') }} />}
+      {modal?.t === 'arrivee' && (
+        <Arrivee
+          chambre={modal.chambre}
+          reservation={modal.reservation}
+          onClose={() => setModal(null)}
+          onDone={(s) => { setModal(null); setFolioId(s.id); setVue('folio') }}
+          onPassage={(r) => { setModal(null); setFin({ ...r, rendu: 0, retour: 'chambres', titre: `Passage · chambre ${r.sejour.data.chambre} jusqu'à ${hhmm(r.sejour.data.fin)}` }); setVue('fin') }}
+        />
+      )}
+      {modal?.t === 'prolongerPassage' && <ProlongerPassage sejour={modal.sejour} onClose={() => setModal(null)} />}
+      {modal?.t === 'nuitee' && <EnNuitee sejour={modal.sejour} chambres={chambres} onClose={() => setModal(null)} />}
       {modal?.t === 'acompte' && <Acompte sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'prolonger' && <Prolonger sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'reglages' && <Reglages mods={mods} zonesOk={zonesOk} onglet={modal.onglet} onClose={() => setModal(null)} />}
@@ -769,9 +792,10 @@ function Salle({ zonesOk, tables, commandeDe, onTable, onDirect, config, onConfi
 }
 
 // ---------- Chambres ----------
-const FILTRES = [['', 'Toutes'], ['libre', 'Libres'], ['occ', 'Occupées'], ['menage', 'À nettoyer'], ['depart', 'Départs du jour']]
+const FILTRES = [['', 'Toutes'], ['libre', 'Libres'], ['occ', 'Occupées'], ['passage', 'Passages'], ['menage', 'À nettoyer'], ['depart', 'Départs du jour']]
 function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccupee, onMenage }) {
-  const { documents } = useApp()
+  const { documents, settings } = useApp()
+  const tarifs = (c) => tarifsPassage(settings, c.categorie)
   const [filtre, setFiltre] = useState('')
   const t = today()
   // Client attendu aujourd'hui (ou en retard) sur une chambre libre
@@ -779,6 +803,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
   const attenduDe = (id) => attendus.find((r) => r.data.chambreId === id)
   const statut = (c) => {
     const s = sejourDe(c.id)
+    if (s?.data.passage) return 'passage'
     if (s) return s.data.depart && s.data.depart <= t ? 'depart' : 'occ'
     return c.menage ? 'menage' : 'libre'
   }
@@ -792,6 +817,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
         <div className="ho-kpi"><span>Libres</span><strong>{etat.total - etat.occupees - etat.aNettoyer}</strong><em>prêtes à louer</em></div>
         <div className="ho-kpi warn"><span>À nettoyer</span><strong>{etat.aNettoyer}</strong><em>après un départ</em></div>
         <div className="ho-kpi"><span>Départs du jour</span><strong>{etat.departs}</strong><em>{etat.attendues} arrivée{etat.attendues > 1 ? 's' : ''} attendue{etat.attendues > 1 ? 's' : ''}</em></div>
+        <div className={`ho-kpi ${etat.depasses ? 'warn' : ''}`}><span>Passages en cours</span><strong>{etat.passages}</strong><em>{etat.depasses ? `${etat.depasses} dépassé${etat.depasses > 1 ? 's' : ''}` : 'chambres louées à l’heure'}</em></div>
       </div>
       <div className="ho-bar">
         <div className="ho-zones">
@@ -815,13 +841,20 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
                 const s = sejourDe(c.id)
                 const st = statut(c)
                 const f = s ? folio(s) : null
+                const mn = s?.data.passage ? resteMinutes(s.data) : 0
                 return (
-                  <button key={c.id} className={`ho-room st-${st} ${!s && attenduDe(c.id) ? 'attendu' : ''}`} onClick={() => (s ? onOccupee(s) : c.menage ? onMenage(c) : onLibre(c, attenduDe(c.id)))}>
+                  <button key={c.id} className={`ho-room st-${st} ${!s && attenduDe(c.id) ? 'attendu' : ''} ${s?.data.passage && mn < 0 ? 'retard' : ''}`} onClick={() => (s ? onOccupee(s) : c.menage ? onMenage(c) : onLibre(c, attenduDe(c.id)))}>
                     <span className="hr-top">
                       <strong>{c.nom}</strong>
                       <span className="hr-cat">{c.categorie}</span>
                     </span>
-                    {s ? (
+                    {s?.data.passage ? (
+                      <>
+                        <span className="hr-client">Passage · {s.data.tarif}</span>
+                        <span className="hr-info">{mn < 0 ? `Dépassé de ${duree(-mn)}` : `Jusqu'à ${hhmm(s.data.fin)} · reste ${duree(mn)}`}</span>
+                        <span className="hr-solde">{f.reste > 0 ? `${eur(f.reste)} d'extras` : `Payé ${eur(payePassage(s.data))}`}</span>
+                      </>
+                    ) : s ? (
                       <>
                         <span className="hr-client">{s.data.client?.nom}</span>
                         <span className="hr-info">
@@ -843,7 +876,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
                     ) : (
                       <>
                         <span className="hr-client">Libre</span>
-                        <span className="hr-info">{eur(c.prix)} / nuit</span>
+                        <span className="hr-info">{eur(c.prix)} / nuit{tarifs(c).length ? ` · passage dès ${eur(Math.min(...tarifs(c).map((x) => num(x.prix))))}` : ''}</span>
                       </>
                     )}
                   </button>
@@ -857,6 +890,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
         <span><i className="st-libre" /> Libre</span>
         <span><i className="st-occ" /> Occupée</span>
         <span><i className="st-depart" /> Départ du jour</span>
+        <span><i className="st-passage" /> Passage</span>
         <span><i className="st-menage" /> À nettoyer</span>
       </div>
     </div>
@@ -864,8 +898,9 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
 }
 
 // ---------- Note de la chambre ----------
-function Folio({ doc, profil, onRetour, onExtras, onAcompte, onProlonger, onDepart, onRetirer, onImprimer }) {
+function Folio({ doc, profil, onRetour, onExtras, onAcompte, onProlonger, onNuitee, onDepart, onRetirer, onImprimer }) {
   const s = doc.data
+  if (s.passage) return <FolioPassage doc={doc} profil={profil} onRetour={onRetour} onExtras={onExtras} onProlonger={onProlonger} onNuitee={onNuitee} onDepart={onDepart} onRetirer={onRetirer} />
   const f = folio(s)
   const lignes = [...(s.lignes || [])].sort((a, b) => `${b.date} ${b.heure}`.localeCompare(`${a.date} ${a.heure}`))
   const prevues = nuitsPrevues(s)
@@ -944,9 +979,93 @@ function Folio({ doc, profil, onRetour, onExtras, onAcompte, onProlonger, onDepa
   )
 }
 
+// Note d'un passage : déjà payé à l'entrée ; extras, prolongation, nuitée ou libération
+function FolioPassage({ doc, profil, onRetour, onExtras, onProlonger, onNuitee, onDepart, onRetirer }) {
+  const s = doc.data
+  const f = folio(s)
+  const mn = resteMinutes(s)
+  const paye = payePassage(s)
+  return (
+    <div className="ho-page ho-folio">
+      <div className="hf-head">
+        <button className="pos-btn light" onClick={onRetour}>
+          <Icon n="chevron" size={16} style={{ transform: 'rotate(180deg)' }} /> Chambres
+        </button>
+        <div className="hf-titre">
+          <h2>Chambre {s.chambre} · passage</h2>
+          <span className="muted">{doc.numero} · {s.client?.nom}</span>
+        </div>
+        <span className={`badge ${mn < 0 ? 'b-red' : 'b-green'}`}>{mn < 0 ? `Dépassé de ${duree(-mn)}` : `Reste ${duree(mn)}`}</span>
+      </div>
+      <div className="hf-grid">
+        <div className="card hf-card">
+          <div className="hf-dates">
+            <div><span>Entrée</span><strong>{hhmm(s.debut)}</strong><em>{fmtDate(s.arrivee)}</em></div>
+            <div><span>Fin prévue</span><strong>{hhmm(s.fin)}</strong><em>{s.tarif}</em></div>
+            <div><span>Déjà payé</span><strong>{eur(paye)}</strong><em>à l'entrée</em></div>
+          </div>
+          <table className="hf-table">
+            <thead>
+              <tr><th>Heure</th><th>Désignation</th><th className="num">Qté</th><th className="num">Montant</th><th /></tr>
+            </thead>
+            <tbody>
+              {(s.paye || []).map((p, i) => (
+                <tr key={i} className="hf-heb">
+                  <td>{p.heure}</td>
+                  <td>{i ? 'Prolongation' : 'Passage'} · {p.tarif}<div className="muted sm">Payé · {p.facture}</div></td>
+                  <td className="num">1</td>
+                  <td className="num">{eur(p.montant)}</td>
+                  <td />
+                </tr>
+              ))}
+              {(s.lignes || []).map((l) => (
+                <tr key={l.id}>
+                  <td>{l.heure}</td>
+                  <td>{l.designation}<div className="muted sm">{l.origine}{l.par ? ` · ${l.par}` : ''}</div></td>
+                  <td className="num">{nb(num(l.qte), 2)}</td>
+                  <td className="num">{eur(num(l.qte) * num(l.pu))}</td>
+                  <td>
+                    {peut(profil, 'annuler') && (
+                      <button className="icon-btn" title="Retirer de la note" onClick={() => window.confirm(`Retirer « ${l.designation} » de la note ?`) && onRetirer(l.id)}>
+                        <Icon n="trash" size={14} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="hf-side">
+          <div className="card hf-tot">
+            <div><span>Passage (payé)</span><strong>{eur(paye)}</strong></div>
+            <div><span>Extras</span><strong>{eur(f.extras)}</strong></div>
+            <div className="hf-reste"><span>Reste à payer</span><strong>{eur(f.reste)}</strong></div>
+          </div>
+          <button className="ho-action" onClick={onExtras}><Icon n="plus" size={18} /> Ajouter des extras<em>Boissons, room service</em></button>
+          <button className="ho-action" onClick={onProlonger}><Icon n="clock" size={18} /> Prolonger le passage<em>Nouveau tarif payé tout de suite</em></button>
+          <button className="ho-action" onClick={onNuitee}><Icon n="calendar" size={18} /> Le client reste la nuit<em>Le passage payé est déduit</em></button>
+          <button className="pt-payer ho-depart" onClick={onDepart}>
+            <span>{f.reste > 0 ? `Encaisser ${eur(f.reste)} et libérer` : 'Libérer la chambre'}</span>
+            <Icon n="chevron" size={20} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function DetailDepart({ doc }) {
   if (!doc) return null
   const f = folio(doc)
+  if (doc.data.passage)
+    return (
+      <div className="pay-info ho-detail">
+        <strong>Chambre {doc.data.chambre} · passage</strong>
+        <span>Passage déjà payé : {eur(payePassage(doc.data))}</span>
+        <span>Extras à régler : {eur(f.extras)}</span>
+      </div>
+    )
   return (
     <div className="pay-info ho-detail">
       <strong>Chambre {doc.data.chambre} · {doc.data.client?.nom}</strong>
@@ -995,10 +1114,16 @@ function ChoixChambre({ sejours, total, onChoix, onClose }) {
   )
 }
 
-function Arrivee({ chambre, reservation, onDone, onClose }) {
+function Arrivee({ chambre, reservation, onDone, onPassage, onClose }) {
   const ctx = useApp()
   const { settings, toast, profil, documents } = ctx
   const r = reservation?.data
+  const tarifs = reservation ? [] : tarifsPassage(settings, chambre.categorie)
+  const [type, setTypeState] = useState(() => (tarifs.length && lire('hotel-vente', 'nuitee') === 'passage' ? 'passage' : 'nuitee'))
+  const setType = (v) => {
+    setTypeState(v)
+    ecrire('hotel-vente', v)
+  }
   const [f, setF] = useState({ client: r?.client?.nom || '', tel: r?.client?.tel || '', piece: '', personnes: r?.personnes || 1, depart: r?.depart > today() ? r.depart : addDays(today(), 1), prixNuit: r?.prixNuit || chambre.prix, acompte: '', mode: (settings.modesPaiement || ['Espèces'])[0] })
   const [busy, setBusy] = useState(false)
   const set = (p) => setF((x) => ({ ...x, ...p }))
@@ -1019,9 +1144,25 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
       setBusy(false)
     }
   }
+  const bascule = tarifs.length > 0 && (
+    <div className="ho-seg">
+      <button className={type === 'passage' ? 'on' : ''} onClick={() => setType('passage')}><Icon n="clock" size={15} /> Passage</button>
+      <button className={type === 'nuitee' ? 'on' : ''} onClick={() => setType('nuitee')}><Icon n="calendar" size={15} /> Nuitée</button>
+    </div>
+  )
+  if (type === 'passage')
+    return (
+      <Modal title={`Chambre ${chambre.nom} (${chambre.categorie})`} onClose={onClose}>
+        <div className="stack">
+          {bascule}
+          <VentePassage chambre={chambre} tarifs={tarifs} onDone={onPassage} />
+        </div>
+      </Modal>
+    )
   return (
-    <Modal title={`Arrivée · chambre ${chambre.nom} (${chambre.categorie})`} onClose={onClose}>
+    <Modal title={`${reservation ? 'Arrivée' : 'Chambre'} ${chambre.nom} (${chambre.categorie})`} onClose={onClose}>
       <div className="stack">
+        {bascule}
         <label className="field"><span>Nom du client (facultatif)</span><input className="input" placeholder="Vide = client de passage, sans identité" value={f.client} onChange={(e) => set({ client: e.target.value })} autoFocus /></label>
         <div className="ho-2">
           <label className="field"><span>Téléphone (facultatif)</span><input className="input" inputMode="tel" value={f.tel} onChange={(e) => set({ tel: e.target.value })} /></label>
@@ -1056,6 +1197,125 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
         <button className="btn primary" disabled={busy} onClick={valider}>
           {busy ? 'Enregistrement…' : f.paye ? `Encaisser ${eur(Math.max(0, nuits * num(f.prixNuit) - num(r?.acompte)))} et donner la clé` : 'Enregistrer l’arrivée'}
         </button>
+      </div>
+    </Modal>
+  )
+}
+
+// Tarifs de passage en grosses tuiles, prix modifiable avec le droit « remises », paiement immédiat
+function TarifsPassage({ tarifs, choix, onChoix }) {
+  return (
+    <div className="ho-tarifs">
+      {tarifs.map((t) => (
+        <button key={t.id || t.nom} className={choix?.nom === t.nom ? 'on' : ''} onClick={() => onChoix(t)}>
+          <strong>{eur(num(t.prix))}</strong>
+          <span>{t.nom}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+function VentePassage({ chambre, tarifs, onDone }) {
+  const ctx = useApp()
+  const { settings, toast, profil } = ctx
+  const modes = settings.modesPaiement || ['Espèces']
+  const [tarif, setTarif] = useState(tarifs[0])
+  const [prix, setPrix] = useState(tarifs[0]?.prix || 0)
+  const [mode, setMode] = useState(modes[0])
+  const [client, setClient] = useState('')
+  const [busy, setBusy] = useState(false)
+  const valider = async () => {
+    if (!tarif) return toast('Choisis un tarif', true)
+    if (num(prix) <= 0) return toast('Indique le prix', true)
+    setBusy(true)
+    try {
+      const r = await passage({ chambre, tarif, prix, mode, client, par: profil?.nom || profil?.email }, ctx)
+      toast(`Passage encaissé · chambre ${chambre.nom} ✓`)
+      onDone(r)
+    } catch {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <TarifsPassage tarifs={tarifs} choix={tarif} onChoix={(t) => { setTarif(t); setPrix(t.prix) }} />
+      <div className="ho-2">
+        <label className="field"><span>Prix encaissé</span><input className="input" inputMode="numeric" disabled={!peut(profil, 'remises')} value={prix} onChange={(e) => setPrix(e.target.value)} /></label>
+        <label className="field"><span>Nom (facultatif)</span><input className="input" placeholder="Client de passage" value={client} onChange={(e) => setClient(e.target.value)} /></label>
+      </div>
+      <div className="ho-modes">
+        {modes.map((m) => (
+          <button key={m} className={`chip ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}</button>
+        ))}
+      </div>
+      <div className="ho-estim">Sans identité · reçu imprimable · la chambre passe « à nettoyer » quand tu la libères.</div>
+      <button className="btn primary big" disabled={busy} onClick={valider}>
+        {busy ? 'Enregistrement…' : `Encaisser ${eur(num(prix))} et donner la clé`}
+      </button>
+    </>
+  )
+}
+function ProlongerPassage({ sejour, onClose }) {
+  const ctx = useApp()
+  const { settings, toast, profil, documents } = ctx
+  const ch = chambresDe(documents).find((c) => c.id === sejour.data.chambreId)
+  const tarifs = tarifsPassage(settings, ch?.categorie)
+  const modes = settings.modesPaiement || ['Espèces']
+  const [tarif, setTarif] = useState(tarifs[0])
+  const [prix, setPrix] = useState(tarifs[0]?.prix || 0)
+  const [mode, setMode] = useState(modes[0])
+  const [busy, setBusy] = useState(false)
+  const valider = async () => {
+    if (!tarif || num(prix) <= 0) return toast('Choisis un tarif', true)
+    setBusy(true)
+    try {
+      await prolongerPassage(sejour, { tarif, prix, mode, par: profil?.nom || profil?.email }, ctx)
+      toast(`Passage prolongé de ${tarif.nom} ✓`)
+      onClose()
+    } catch {
+      setBusy(false)
+    }
+  }
+  return (
+    <Modal title={`Prolonger · chambre ${sejour.data.chambre}`} onClose={onClose}>
+      <div className="stack">
+        {!tarifs.length ? <p className="muted">Aucun tarif de passage pour cette chambre (Réglages → Passages).</p> : <TarifsPassage tarifs={tarifs} choix={tarif} onChoix={(t) => { setTarif(t); setPrix(t.prix) }} />}
+        <label className="field"><span>Prix encaissé</span><input className="input" inputMode="numeric" disabled={!peut(profil, 'remises')} value={prix} onChange={(e) => setPrix(e.target.value)} /></label>
+        <div className="ho-modes">
+          {modes.map((m) => <button key={m} className={`chip ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}</button>)}
+        </div>
+        <button className="btn primary" disabled={busy || !tarifs.length} onClick={valider}>{busy ? 'Enregistrement…' : `Encaisser ${eur(num(prix))}`}</button>
+      </div>
+    </Modal>
+  )
+}
+function EnNuitee({ sejour, chambres, onClose }) {
+  const ctx = useApp()
+  const { toast, profil, documents } = ctx
+  const ch = chambres.find((c) => c.id === sejour.data.chambreId)
+  const [dep, setDep] = useState(addDays(today(), 1))
+  const [prixNuit, setPrixNuit] = useState(ch?.prix || 0)
+  const deja = payePassage(sejour.data)
+  const nuits = Math.max(1, diffDays(dep, today()))
+  const valider = async () => {
+    if (dep <= today()) return toast('Le départ doit être après aujourd’hui', true)
+    const gene = conflit(documents, sejour.data.chambreId, today(), dep, sejour.id)
+    if (gene && !window.confirm(`Attention : chambre réservée pour ${gene.client} à partir du ${fmtDate(gene.debut)}. Continuer ?`)) return
+    await passageEnNuitee(sejour, { depart: dep, prixNuit }, ctx)
+    toast(`Chambre ${sejour.data.chambre} : le passage devient une nuitée ✓`)
+    onClose()
+  }
+  return (
+    <Modal title={`Le client reste la nuit · chambre ${sejour.data.chambre}`} onClose={onClose}>
+      <div className="stack">
+        <div className="ho-2">
+          <label className="field"><span>Départ prévu</span><input className="input" type="date" min={addDays(today(), 1)} value={dep} onChange={(e) => setDep(e.target.value)} /></label>
+          <label className="field"><span>Prix par nuit</span><input className="input" inputMode="numeric" disabled={!peut(profil, 'remises')} value={prixNuit} onChange={(e) => setPrixNuit(e.target.value)} /></label>
+        </div>
+        <div className="ho-estim">
+          {nuits} nuit{nuits > 1 ? 's' : ''} × {eur(num(prixNuit))} = {eur(nuits * num(prixNuit))} · passage déjà payé − {eur(deja)} · <strong>reste {eur(Math.max(0, nuits * num(prixNuit) - deja))}</strong> au départ
+        </div>
+        <button className="btn primary" onClick={valider}>Transformer en nuitée</button>
       </div>
     </Modal>
   )
@@ -1113,11 +1373,11 @@ function Prolonger({ sejour, onClose }) {
 
 // ---------- Réglages : chambres, tables, carte ----------
 function Reglages({ mods, zonesOk, onglet = 'carte', onClose }) {
-  const { documents } = useApp()
-  const onglets = [['carte', 'Carte'], ...(mods.restaurant || mods.bar ? [['tables', 'Tables']] : []), ...(mods.hebergement ? [['chambres', 'Chambres']] : [])]
+  const { documents, settings, profil } = useApp()
+  const onglets = [['carte', 'Carte'], ...(mods.restaurant || mods.bar ? [['tables', 'Tables']] : []), ...(mods.hebergement ? [['chambres', 'Chambres']] : []), ...(mods.hebergement && peut(profil, 'reglages') ? [['passages', 'Passages']] : [])]
   const [tab, setTab] = useState(onglets.some((o) => o[0] === onglet) ? onglet : 'carte')
   const [edit, setEdit] = useState(null)
-  const listes = { chambres: chambresDe(documents), tables: tablesDe(documents), carte: platsDe(documents) }
+  const listes = { chambres: chambresDe(documents), tables: tablesDe(documents), carte: platsDe(documents), passages: settings.passages || [] }
   const liste = listes[tab]
   return (
     <Modal title="Réglages de l'hôtel" onClose={onClose} large>
@@ -1128,7 +1388,9 @@ function Reglages({ mods, zonesOk, onglet = 'carte', onClose }) {
           </button>
         ))}
       </div>
-      {edit ? (
+      {tab === 'passages' ? (
+        <ReglagesPassages />
+      ) : edit ? (
         <Fiche type={tab} zonesOk={zonesOk} item={edit === 'new' ? null : edit} onDone={() => setEdit(null)} />
       ) : (
         <div className="stack">
@@ -1152,6 +1414,48 @@ function Reglages({ mods, zonesOk, onglet = 'carte', onClose }) {
         </div>
       )}
     </Modal>
+  )
+}
+
+// Tarifs de passage : durée, prix, catégorie de chambre (vide = toutes)
+function ReglagesPassages() {
+  const { settings, api, toast } = useApp()
+  const [l, setL] = useState(() => (settings.passages || []).map((t) => ({ ...t })))
+  const [busy, setBusy] = useState(false)
+  const set = (i, p) => setL((x) => x.map((t, k) => (k === i ? { ...t, ...p } : t)))
+  const enregistrer = async () => {
+    const propres = l.filter((t) => String(t.nom).trim() && num(t.prix) > 0).map((t) => ({ id: t.id || uid(), nom: t.nom.trim(), heures: num(t.heures) || 1, prix: num(t.prix), categorie: t.categorie || '' }))
+    setBusy(true)
+    try {
+      await api.saveSettings({ ...settings, passages: propres })
+      setL(propres)
+      toast('Tarifs de passage enregistrés ✓')
+    } catch {
+      /* erreur déjà affichée */
+    }
+    setBusy(false)
+  }
+  return (
+    <div className="stack">
+      <p className="muted sm">Chambre louée quelques heures, payée tout de suite, sans pièce d'identité. Le passage n'est pas compté comme une nuitée.</p>
+      <div className="ho-pass-l ho-pass-h"><span>Nom</span><span>Durée (h)</span><span>Prix</span><span>Chambres</span><span /></div>
+      {l.map((t, i) => (
+        <div key={t.id || i} className="ho-pass-l">
+          <input className="input" value={t.nom} placeholder="2 heures" onChange={(e) => set(i, { nom: e.target.value })} />
+          <input className="input" inputMode="decimal" value={t.heures} onChange={(e) => set(i, { heures: e.target.value })} />
+          <input className="input" inputMode="numeric" value={t.prix} onChange={(e) => set(i, { prix: e.target.value })} />
+          <select className="input" value={t.categorie || ''} onChange={(e) => set(i, { categorie: e.target.value })}>
+            <option value="">Toutes</option>
+            {CATEGORIES_CHAMBRE.map((c) => <option key={c}>{c}</option>)}
+          </select>
+          <button className="icon-btn" aria-label="Supprimer ce tarif" onClick={() => setL((x) => x.filter((_, k) => k !== i))}><Icon n="trash" size={14} /></button>
+        </div>
+      ))}
+      <div className="ho-btns">
+        <button className="btn" onClick={() => setL((x) => [...x, { id: uid(), nom: '', heures: 2, prix: '', categorie: '' }])}><Icon n="plus" size={14} /> Ajouter un tarif</button>
+        <button className="btn primary" disabled={busy} onClick={enregistrer}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+      </div>
+    </div>
   )
 }
 
@@ -1326,6 +1630,7 @@ function Planning({ chambres, onNouvelle, onOuvrir }) {
         <span><i className="k-sejour" /> Client dans l'hôtel</span>
         <span><i className="k-reservation" /> Réservation</span>
         <span><i className="k-clos" /> Séjour terminé</span>
+        <span><i className="k-passage" /> Passage en cours</span>
       </div>
     </div>
   )
@@ -1427,7 +1732,7 @@ function Reservation({ doc, chambre, arrivee: arr, chambres, onClose, onArrivee 
 
 // ---------- Tableau de bord de l'hôtel ----------
 const PERIODES = [['jour', "Aujourd'hui"], ['7j', '7 jours'], ['mois', 'Ce mois'], ['annee', 'Cette année']]
-const COULEURS = { Hébergement: '#2f5bd3', Restaurant: '#b8903f', Bar: '#8b5cf6', Terrasse: '#0f7b55', 'Extras chambres': '#d98a00', 'Vente directe': '#64748b' }
+const COULEURS = { Hébergement: '#2f5bd3', Passages: '#017e84', Restaurant: '#b8903f', Bar: '#8b5cf6', Terrasse: '#0f7b55', 'Extras chambres': '#d98a00', 'Vente directe': '#64748b' }
 function TableauHotel({ mods, chambres, onChambres, onPlanning }) {
   const { documents, actions } = useApp()
   const [periode, setPeriode] = useState(() => lire('hotel-periode', 'mois'))
@@ -1458,6 +1763,7 @@ function TableauHotel({ mods, chambres, onChambres, onPlanning }) {
         <div className="ho-kpi navy"><span>Chiffre d'affaires</span><strong>{eur(c.total)}</strong><em>{c.n} facture{c.n > 1 ? 's' : ''}</em></div>
         {mods.hebergement && <div className="ho-kpi"><span>Occupation ce soir</span><strong>{Math.round(auj.taux * 100)} %</strong><em>{auj.occupees} occupée{auj.occupees > 1 ? 's' : ''}{auj.reservees ? ` + ${auj.reservees} réservée${auj.reservees > 1 ? 's' : ''}` : ''} / {chambres.length}</em></div>}
         {mods.hebergement && <div className="ho-kpi"><span>Nuitées vendues</span><strong>{nb(c.nuitees)}</strong><em>prix moyen {eur(c.prixMoyen)} / nuit</em></div>}
+        {mods.hebergement && <div className="ho-kpi"><span>Passages</span><strong>{nb(c.passages)}</strong><em>{eur(c.parts.Passages)} · moyenne {eur(c.passageMoyen)}</em></div>}
         {mods.hebergement && <div className="ho-kpi"><span>Revenu par chambre</span><strong>{eur(revpar)}</strong><em>hébergement ÷ chambres ÷ jours</em></div>}
         {!mods.hebergement && <div className="ho-kpi"><span>Ticket moyen</span><strong>{eur(c.n ? c.total / c.n : 0)}</strong><em>par addition</em></div>}
         {mods.hebergement && <div className="ho-kpi warn"><span>À encaisser (clients présents)</span><strong>{eur(aEncaisser)}</strong><em>{sejours.length} note{sejours.length > 1 ? 's' : ''} ouverte{sejours.length > 1 ? 's' : ''}</em></div>}

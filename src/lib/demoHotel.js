@@ -147,6 +147,19 @@ export function genererHotel({ documents, settings }) {
     }
   }
 
+  // Passages (chambre louée quelques heures, payée à l'entrée, sans identité) : 30 derniers jours
+  const heure = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+  for (let j = 30; j >= 0; j--) {
+    const d = addDays(t, -j)
+    for (let k = 0; k < (j ? 2 + Math.floor(r() * 4) : 3); k++) {
+      const ch = pick(chambres).data
+      const long = r() < 0.4
+      const h = 10 + Math.floor(r() * (j ? 12 : 3))
+      const m = Math.floor(r() * 60)
+      facture(d, heure(h, m), `Passage chambre ${ch.nom}`, 'Client de passage', [{ designation: `Passage chambre ${ch.nom}`, description: `${long ? '4 heures' : '2 heures'} · ${heure(h, m)} → ${heure(h + (long ? 4 : 2), m)}`, qte: 1, pu: long ? 10000 : 5000 }], pick(MODES))
+    }
+  }
+
   // Aujourd'hui : quelques additions déjà encaissées (petit-déjeuner, déjeuner)
   ;['08:05', '08:40', '09:15', '12:30', '13:10'].forEach((h, k) => {
     const tb = tables[[0, 2, 8, 1, 13][k]].data
@@ -181,6 +194,22 @@ export function genererHotel({ documents, settings }) {
         acomptes: k % 2 ? [{ id: uid(), date: arr, heure: '14:35', montant: ch.data.prix, mode: pick(MODES), par: 'Grâce (réception)' }] : [],
         par: 'Grâce (réception)',
       },
+    })
+  })
+  // Deux passages en cours (dont un qui a dépassé son heure)
+  ;[[9, '2 heures', 5000, 35, 2], [14, '4 heures', 10000, 250, 4]].forEach(([i, tarif, prix, minutes, heures], k) => {
+    const ch = chambres[i]
+    const debut = new Date(Date.now() - minutes * 60000)
+    const fin = new Date(debut.getTime() + heures * 3600000)
+    const hm = (x) => x.toTimeString().slice(0, 5)
+    const numero = `${prefixe}${String(n).padStart(6, '0')}`
+    facture(t, hm(debut), `Passage chambre ${ch.data.nom}`, 'Client de passage', [{ designation: `Passage chambre ${ch.data.nom}`, description: `${tarif} · ${hm(debut)} → ${hm(fin)}`, qte: 1, pu: prix }], 'Espèces')
+    docs.push({
+      id: uid(),
+      type: 'sejour',
+      numero: `SEJ-${String(50 + k).padStart(6, '0')}`,
+      prospect_id: null,
+      data: { statut: 'en cours', passage: true, chambreId: ch.id, chambre: ch.data.nom, client: { nom: 'Client de passage', tel: '', piece: '' }, personnes: 1, arrivee: t, heureArrivee: hm(debut), depart: t, debut: debut.toISOString(), fin: fin.toISOString(), tarif, paye: [{ facture: numero, montant: prix, tarif, heure: hm(debut) }], prixNuit: 0, lignes: k ? [{ ...extra(t, 'Minibar'), heure: hm(new Date(debut.getTime() + 40 * 60000)) }] : [], acomptes: [], par: 'Grâce (réception)' },
     })
   })
   // Deux chambres à nettoyer
