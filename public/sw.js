@@ -38,6 +38,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url)
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com'
   if (url.origin !== self.location.origin && !fonts) return // Supabase : jamais mis en cache
+  if (url.pathname.startsWith('/site/')) return // Aperçu du site vitrine : hors du CRM
 
   // Navigation : dernière version en ligne, sinon la copie locale
   if (req.mode === 'navigate') {
