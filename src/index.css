@@ -1390,3 +1390,54 @@ table.t tr:hover td { background: #f7f8fa; }
   .dash-filters { width: 100%; }
   .dash-filters .input { flex: 1 1 140px; min-height: 44px; }
 }
+
+/* ---------- Applications (façon Odoo / Zoho One) ---------- */
+.app-switch {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 10px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.04); color: #fff; font-weight: 700; font-size: 13.5px; text-align: left; cursor: pointer;
+}
+.app-switch:hover { background: rgba(255, 255, 255, 0.08); }
+.app-switch > svg:last-child { margin-left: auto; color: var(--on-dark-2); flex: none; }
+.app-switch-ic { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; flex: none; background: var(--c, rgba(255, 255, 255, 0.12)); color: #fff; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15); }
+.app-switch-nom { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-item.active { box-shadow: inset 3px 0 0 var(--app); }
+.nav-appli .ico { width: 22px; height: 22px; border-radius: 6px; background: var(--c); color: #fff !important; }
+.page-head h1::after { background: var(--app); }
+
+.lanceur { max-width: 1080px; margin: 0 auto; padding: 24px 0 40px; }
+.lanceur-tete { margin-bottom: 26px; }
+.lanceur-tete h1 { margin: 4px 0 0; font-family: var(--serif); font-size: 26px; color: var(--navy); letter-spacing: -0.01em; }
+.lanceur-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.appli {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 20px; border-radius: 16px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--navy-ink); transition: transform .15s, box-shadow .15s, border-color .15s;
+}
+.appli:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 45%, var(--line)); box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--c) 70%, transparent); }
+.appli:focus-visible { outline: 3px solid color-mix(in srgb, var(--c) 40%, transparent); outline-offset: 2px; }
+.appli-ic {
+  position: relative; width: 60px; height: 60px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 10px; color: #fff;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--c) 78%, #fff), var(--c) 55%, color-mix(in srgb, var(--c) 80%, #000));
+  box-shadow: 0 8px 18px -10px var(--c), inset 0 -3px 0 rgba(0, 0, 0, 0.14);
+}
+.appli-pastille { position: absolute; top: -6px; right: -8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; font-size: 11.5px; font-weight: 800; background: var(--navy); color: #fff; border: 2px solid var(--card); }
+.appli-pastille.hot { background: var(--red); }
+.appli-nom { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; color: var(--navy); }
+.appli-nom svg { color: var(--muted); }
+.appli-desc { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.app-onglets { display: none; }
+@media (max-width: 1100px) { .lanceur-grille { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 860px) {
+  .lanceur { padding: 14px 0 20px; }
+  .lanceur-tete h1 { font-size: 20px; }
+  .lanceur-grille { gap: 18px 8px; }
+  .appli { align-items: center; text-align: center; padding: 8px 4px; border: 0; background: none; }
+  .appli:hover { transform: none; box-shadow: none; }
+  .appli-ic { width: 62px; height: 62px; margin-bottom: 6px; }
+  .appli-nom { font-size: 12.5px; font-weight: 600; justify-content: center; }
+  .appli-desc { display: none; }
+  .app-onglets { display: flex; gap: 6px; overflow-x: auto; margin: 0 -12px 12px; padding: 2px 12px 4px; scrollbar-width: none; }
+  .app-onglets::-webkit-scrollbar { display: none; }
+  .app-onglets button { position: relative; flex: none; border: 1px solid var(--line); background: var(--card); color: var(--navy-ink); border-radius: 99px; padding: 7px 13px; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+  .app-onglets button.on { background: var(--app); border-color: var(--app); color: #fff; }
+  .app-onglets .nav-badge { position: static; margin: 0; background: var(--red); color: #fff; }
+}

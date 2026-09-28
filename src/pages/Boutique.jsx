@@ -28,6 +28,7 @@ const masquer = (k) => (k.length > 10 ? `${k.slice(0, 5)}…${k.slice(-5)}` : k)
 function useStore() {
   const [s, setS] = useState({ produits: [], commandes: [], cles: [], charge: true, erreur: '' })
   const charger = useCallback(async () => {
+    if (!supabase) return
     const [p, c, k] = await Promise.all([
       supabase.from('store_produits').select('*').order('ordre').order('nom'),
       supabase.from('store_commandes').select('*').order('created_at', { ascending: false }),
