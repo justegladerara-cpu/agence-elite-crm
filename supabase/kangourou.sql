@@ -123,7 +123,7 @@ create trigger compte_unique before insert on auth.users for each row execute fu
 -- ---------- Comptes de départ (à adapter pour chaque client) ----------
 insert into public.membres (email, nom, role, espace) values
   ('justegladerara@gmail.com', 'Juste (Agence Elite)', 'superadmin', 'kangourou'),
-  ('admin@lekangourou.com', 'Achille KANGOU', 'pdg', 'kangourou'),
+  ('pdg@lekangourou.com', 'Achille KANGOU', 'pdg', 'kangourou'),
   ('demo@lekangourou.com', 'Compte démo', 'pdg', 'demo')
 on conflict (email) do nothing;
 
