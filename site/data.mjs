@@ -4,7 +4,7 @@
 export const SITE = {
   nom: 'Agence Elite',
   slogan: "L'innovation au service de votre succès",
-  url: 'https://agence-elite.fr',
+  url: 'https://www.agence-elite.fr',
   tel1: '+242 06 909 46 11',
   tel2: '+242 06 808 38 09',
   whatsapp: '242069094611',
