@@ -1,4 +1,4 @@
-// Service worker : permet d'ouvrir le CRM sans internet.
+// Service worker : permet d'ouvrir le logiciel sans internet.
 // Pages : réseau d'abord, copie locale en secours. Fichiers de l'appli : copie locale d'abord.
 // VERSION et ASSETS sont remplis à chaque build (vite.config.js)
 const VERSION = 'aecrm-dev'
@@ -73,7 +73,7 @@ self.addEventListener('push', (e) => {
     d = { body: e.data ? e.data.text() : '' }
   }
   e.waitUntil(
-    self.registration.showNotification(d.title || 'Agence Elite CRM', {
+    self.registration.showNotification(d.title || 'Le Kangourou', {
       body: d.body || '',
       icon: '/icon-192.png',
       badge: '/favicon-64.png',

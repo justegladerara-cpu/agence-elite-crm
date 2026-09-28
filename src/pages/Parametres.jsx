@@ -185,7 +185,7 @@ function ApparenceCard({ s, change }) {
           value={a.logo}
           fallback="/logo-full.png"
           onChange={(logo) => set({ logo })}
-          hint={a.logo ? 'Ton logo est utilisé partout (factures comprises).' : 'Logo Agence Elite par défaut. Un PNG sur fond transparent donne le meilleur rendu.'}
+          hint={a.logo ? 'Ton logo est utilisé partout (factures comprises).' : 'Logo Le Kangourou par défaut. Un PNG sur fond transparent donne le meilleur rendu.'}
         />
         <ImagePick
           label="Logo pour fond sombre (menu), facultatif"
@@ -215,7 +215,7 @@ function ApparenceCard({ s, change }) {
         menu (décoche si ton logo contient déjà le nom)
       </label>
 
-      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM</div>
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du logiciel</div>
       <div className="theme-list">
         {THEMES.map((t) => {
           const tc = t.id === 'perso' ? { principal: a.principal, accent: a.accent } : t
@@ -239,7 +239,7 @@ function ApparenceCard({ s, change }) {
           </label>
         </div>
       )}
-      <div className="tiny muted" style={{ marginTop: 8 }}>Aperçu immédiat sur tout le CRM. Clique sur « Enregistrer » pour garder ton choix.</div>
+      <div className="tiny muted" style={{ marginTop: 8 }}>Aperçu immédiat sur tout le logiciel. Clique sur « Enregistrer » pour garder ton choix.</div>
     </div>
   )
 }

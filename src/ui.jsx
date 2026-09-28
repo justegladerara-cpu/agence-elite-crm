@@ -423,7 +423,7 @@ export function LienProspect({ id, children }) {
   const p = id && data.byId[id]
   if (!p) return children || null
   return (
-    <a className="rlink" href={`#/prospect/${p.id}`} onClick={(e) => e.stopPropagation()}>
+    <a className="rlink" href={`#/clients?c=${encodeURIComponent(p.name)}`} onClick={(e) => e.stopPropagation()}>
       {children || p.name}
     </a>
   )

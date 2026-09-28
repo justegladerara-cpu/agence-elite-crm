@@ -64,10 +64,9 @@ export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prosp
         <div className="li-main">
           <div className="li-title">{selected.name}</div>
           <div className="li-sub">
-            {[selected.fiche?.contact, selected.fiche?.telephone, selected.fiche?.secteur].filter(Boolean).join(' · ') || 'Fiche vide'}
+            {[selected.fiche?.contact, selected.fiche?.telephone].filter(Boolean).join(' · ') || 'Client'}
           </div>
         </div>
-        <StageBadge etape={selected.etape} />
         <button type="button" className="btn sm" onClick={() => onPick(null)}>
           Changer
         </button>
@@ -84,7 +83,7 @@ export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prosp
     <div className="combo">
       <input
         className="input"
-        placeholder="Nom de l'entreprise, contact ou téléphone…"
+        placeholder="Nom du client ou de l'entreprise…"
         value={q}
         onChange={(e) => {
           setQ(e.target.value)
@@ -111,7 +110,6 @@ export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prosp
                   <div className="li-title">{it.p.name}</div>
                   <div className="li-sub">{[it.p.fiche?.contact, it.p.fiche?.telephone].filter(Boolean).join(' · ')}</div>
                 </div>
-                <StageBadge etape={it.p.etape} />
               </div>
             ) : (
               <div key="new" className={`combo-item new ${i === hl ? 'hl' : ''}`} onMouseDown={() => choose(it)}>

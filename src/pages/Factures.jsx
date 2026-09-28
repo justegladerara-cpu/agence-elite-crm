@@ -4,6 +4,7 @@ import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { facturePdf } from './Caisse'
+import { annulerVente, articlesDe, ajusterStock } from '../lib/magasin'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
@@ -176,8 +177,10 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
 
 // ---------- Création / modification ----------
 export function DocEditor({ id, query }) {
-  const { documents, actions, data, settings, api, toast } = useApp()
+  const { documents, actions, data, settings, api, toast, profil } = useApp()
+  const chef = ['superadmin', 'pdg', 'comptable'].includes(profil?.role)
   const fact = settings.facturation
+  const catalogue = useMemo(() => articlesDe(documents).sort((a, b) => a.nom.localeCompare(b.nom)), [documents])
   const existing = id && id !== 'new' ? documents.find((d) => d.id === id) : null
   const params = new URLSearchParams(query || '')
 
@@ -205,7 +208,7 @@ export function DocEditor({ id, query }) {
   }
   const [doc, setDoc] = useState(init)
   const [newName, setNewName] = useState(null)
-  const [suivi, setSuivi] = useState(!existing)
+  const suivi = false
   const [busy, setBusy] = useState('')
   const [dirty, setDirty] = useState(!existing)
   const [payModal, setPayModal] = useState(null)
@@ -276,6 +279,8 @@ export function DocEditor({ id, query }) {
         for (const a of paiementsDe(existing, actions)) await api.updateAction(a.id, { ...a, facture: doc.numero.trim() })
       }
       const out = await api.saveDoc({ ...doc, numero: doc.numero.trim(), prospect_id: pid, data: dataOut })
+      // Facture : le stock suit les articles ajoutés, retirés ou dont la quantité change
+      if (isFact && !dataOut.annulee) await ajusterStock(existing && !existing.data?.annulee ? existing.data.lignes : [], dataOut.lignes, { documents, api })
       // Devis transformé en facture : on le marque accepté
       if (dataOut.devisId) {
         const dv = documents.find((x) => x.id === dataOut.devisId)
@@ -367,9 +372,10 @@ export function DocEditor({ id, query }) {
     }
   }
   const annuler = async () => {
-    if (!window.confirm('Annuler cette facture ? Son montant sera retiré du suivi client.')) return
+    if (!window.confirm('Annuler cette facture ? Les articles reviennent en stock et ses paiements sont retirés.')) return
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
     if (linked) await api.deleteAction(linked.id)
+    await annulerVente(existing, { documents, actions, api })
     const nd = { ...existing.data, annulee: true, actionId: null }
     await api.saveDoc({ ...existing, data: nd })
     await libererDevis()
@@ -379,7 +385,8 @@ export function DocEditor({ id, query }) {
   const supprimer = async () => {
     if (!window.confirm(`Supprimer définitivement ${doc.numero} ?`)) return
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
-    if (linked && window.confirm('Supprimer aussi la ligne correspondante dans le suivi client ?')) await api.deleteAction(linked.id)
+    if (linked) await api.deleteAction(linked.id)
+    if (!existing.data.annulee) await annulerVente(existing, { documents, actions, api })
     await api.deleteDoc(existing.id)
     await libererDevis()
     toast('Document supprimé')
@@ -472,14 +479,16 @@ export function DocEditor({ id, query }) {
           <button className="btn ghost sm" onClick={() => go(`/facture/new?type=${doc.type}&dup=${existing.id}`)}>
             <Icon n="copy" size={14} /> Dupliquer
           </button>
-          {isFact && !d.annulee && (
+          {chef && isFact && !d.annulee && (
             <button className="btn ghost sm danger" onClick={annuler}>
               Annuler la facture
             </button>
           )}
-          <button className="btn ghost sm danger" onClick={supprimer}>
-            <Icon n="trash" size={14} /> Supprimer
-          </button>
+          {chef && (
+            <button className="btn ghost sm danger" onClick={supprimer}>
+              <Icon n="trash" size={14} /> Supprimer
+            </button>
+          )}
         </div>
       )}
 
@@ -492,7 +501,7 @@ export function DocEditor({ id, query }) {
             <div className="selected-prospect">
               <div className="li-main">
                 <div className="li-title">＋ {newName}</div>
-                <div className="li-sub">Nouveau client : il sera ajouté au CRM</div>
+                <div className="li-sub">Nouveau client : il sera ajouté à tes clients</div>
               </div>
               <button type="button" className="btn sm" onClick={() => setNewName(null)}>
                 Annuler
@@ -569,24 +578,31 @@ export function DocEditor({ id, query }) {
           <div className="form-label" style={{ marginBottom: 0 }}>
             Articles et prestations
           </div>
-          {settings.offres.length > 0 && (
+          {catalogue.length > 0 && (
             <select
               className="input"
-              style={{ width: 'auto' }}
+              style={{ width: 'auto', maxWidth: '100%' }}
               value=""
+              aria-label="Ajouter un article du magasin"
               onChange={(e) => {
-                const o = settings.offres.find((x) => x.nom === e.target.value)
-                if (!o) return
+                const a = catalogue.find((x) => x.id === e.target.value)
+                if (!a) return
                 const vide = d.lignes.length === 1 && !d.lignes[0].designation
-                const l = { designation: o.nom, description: '', qte: 1, pu: o.prix || o.abonnement || '' }
+                const deja = d.lignes.findIndex((l) => l.produitId === a.id)
+                if (deja >= 0) return setD({ lignes: d.lignes.map((l, j) => (j === deja ? { ...l, qte: num(l.qte) + 1 } : l)) })
+                const l = { designation: a.nom, description: a.numero, qte: 1, pu: a.prix, produitId: a.id }
                 setD({ lignes: vide ? [l] : [...d.lignes, l] })
               }}
             >
-              <option value="">+ Depuis ta grille tarifaire…</option>
-              {settings.offres.map((o) => (
-                <option key={o.nom} value={o.nom}>
-                  {o.nom} ({eur(o.prix || o.abonnement)})
-                </option>
+              <option value="">+ Ajouter un article du magasin…</option>
+              {[...new Set(catalogue.map((a) => a.categorie || 'Autre'))].map((c) => (
+                <optgroup key={c} label={c}>
+                  {catalogue.filter((a) => (a.categorie || 'Autre') === c).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.nom} ({eur(a.prix)} · {a.stock} en stock)
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           )}
@@ -664,23 +680,12 @@ export function DocEditor({ id, query }) {
         </div>
         <div className="card stack" style={{ gap: 10 }}>
           <div className="form-label" style={{ marginBottom: 0 }}>
-            Suivi client
+            {isFact ? 'Paiements' : 'Stock'}
           </div>
-          {d.actionId ? (
-            <div className="small muted">
-              Relié au suivi : {isFact ? 'le montant et le numéro sont mis à jour dans l’historique du client.' : 'la proposition est suivie dans le pipeline.'}
-            </div>
-          ) : !saved ? (
-            <label className="row small" style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
-              <input type="checkbox" checked={suivi} onChange={(e) => setSuivi(e.target.checked)} />
-              <span>
-                {isFact
-                  ? 'Ajouter au suivi client (une « Intervention » avec ce montant et ce numéro)'
-                  : 'Ajouter au suivi (une « Proposition envoyée » avec ce montant)'}
-              </span>
-            </label>
+          {isFact ? (
+            !saved && <div className="small muted">Les articles du magasin choisis ici sortent du stock à l’enregistrement de la facture.</div>
           ) : (
-            <div className="small muted">Non relié au suivi client.</div>
+            <div className="small muted">Un devis ne touche pas au stock. Transformé en facture, ses articles sortent du stock.</div>
           )}
           {saved && isFact && (
             <div className="small">
@@ -696,8 +701,8 @@ export function DocEditor({ id, query }) {
             </div>
           )}
           {p && (
-            <button className="btn sm" style={{ width: 'fit-content' }} onClick={() => go(`/prospect/${p.id}`)}>
-              Voir la fiche de {p.name}
+            <button className="btn sm" style={{ width: 'fit-content' }} onClick={() => go(`/clients?c=${encodeURIComponent(p.name)}`)}>
+              Voir le client {p.name}
             </button>
           )}
         </div>

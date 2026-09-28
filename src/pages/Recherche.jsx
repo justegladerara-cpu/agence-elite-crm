@@ -1,21 +1,21 @@
-// Recherche globale (Ctrl/⌘ + K ou « / ») : potentiels, clients, perdus, factures et devis, pages et actions rapides
+// Recherche globale (Ctrl/⌘ + K ou « / ») : articles, factures et devis, clients, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useApp, go, eur, StageBadge } from '../ui'
+import { useApp, go, eur } from '../ui'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../lib/invoice'
 import { fmtDate } from '../lib/dates'
-import { handleInsta } from '../lib/logic'
-import { fichesHub } from '../lib/hub'
+import { articlesDe, statutStock } from '../lib/magasin'
+import { clientsDe } from './ClientsMagasin'
 
 const norm = (v) =>
   String(v || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
 
 export default function Recherche({ onClose, pages = [] }) {
-  const { data, documents, actions, openAction } = useApp()
+  const { data, documents, actions } = useApp()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const input = useRef(null)
@@ -27,41 +27,35 @@ export default function Recherche({ onClose, pages = [] }) {
   }, [onClose])
 
   const res = useMemo(() => {
-    const s = norm(q.trim()).replace(/^@/, '')
+    const s = norm(q.trim())
+    const ok = (p) => pages.some((n) => n.path === p)
     // Actions rapides et pages : toujours proposées, filtrées par le texte tapé
     const rapides = [
-      { key: 'a-action', groupe: 'Actions rapides', titre: 'Nouvelle action', sous: 'Appel, DM, relance, RDV, signature… (touche N)', ico: 'plus', run: () => openAction() },
-      { key: 'a-client', groupe: 'Actions rapides', titre: 'Nouveau client', sous: 'Ajouter un client existant', ico: 'user-plus', path: '/clients?onglet=nouveaux&nouveau=client' },
-      { key: 'a-insta', groupe: 'Actions rapides', titre: 'Prospect Instagram', sous: 'Ajout express depuis un @', ico: 'instagram', path: '/clients?onglet=potentiels&nouveau=insta' },
-      { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
-    ]
+      ok('caisse') && { key: 'a-vente', groupe: 'Actions rapides', titre: 'Nouvelle vente', sous: 'Ouvrir le point de vente (touche N)', ico: 'coins', path: '/caisse' },
+      { key: 'a-article', groupe: 'Actions rapides', titre: 'Nouvel article', sous: 'Photo, nom, prix, quantité', ico: 'plus', path: '/articles' },
+      { key: 'a-devis', groupe: 'Actions rapides', titre: 'Nouveau devis / proforma', sous: '', ico: 'clipboard', path: '/facture/new?type=devis' },
+      { key: 'a-facture', groupe: 'Actions rapides', titre: 'Nouvelle facture', sous: 'Facture A4 pour un client', ico: 'file', path: '/facture/new?type=facture' },
+      ok('depenses') && { key: 'a-depense', groupe: 'Actions rapides', titre: 'Nouvelle dépense', sous: 'Sortie d’argent', ico: 'trend', path: '/depenses' },
+    ].filter(Boolean)
     const pagesRes = pages.flatMap((n) => [
       { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: '', ico: n.ico, path: `/${n.path}` },
       ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
     ])
     if (!s) return [...rapides, ...pagesRes.filter((r) => !r.sousPage)]
-    const chiffres = s.replace(/\D/g, '')
-    const GROUPE = { potentiels: 'Potentiels', perdus: 'Perdus' }
-    const fiches = fichesHub(data)
-      .filter(({ p }) => {
-        const f = p.fiche || {}
-        if ([p.name, f.contact, f.ville, f.secteur, f.offre, handleInsta(f.instagram)].some((x) => norm(x).includes(s))) return true
-        return chiffres.length >= 4 && [f.telephone, f.whatsapp].some((x) => String(x || '').replace(/\D/g, '').includes(chiffres))
+    const arts = articlesDe(documents)
+      .filter((a) => [a.nom, a.numero, a.marque, a.categorie].some((x) => norm(x).includes(s)))
+      .slice(0, 8)
+      .map((a) => {
+        const [st, tone] = statutStock(a)
+        return { key: a.id, groupe: 'Articles', titre: a.nom, sous: [a.numero, a.categorie, eur(a.prix)].filter(Boolean).join(' · '), badge: <span className={`badge ${tone}`}>{st}</span>, ico: 'layers', path: '/articles' }
       })
-      .sort((a, b) => (norm(a.p.name).startsWith(s) ? 0 : 1) - (norm(b.p.name).startsWith(s) ? 0 : 1) || b.p.score - a.p.score)
-      .slice(0, 10)
-      .map(({ p, c, cat }) => ({
-        key: p.id,
-        groupe: GROUPE[cat] || 'Clients',
-        titre: p.name,
-        sous: [p.fiche?.contact, p.fiche?.instagram, p.fiche?.ville].filter(Boolean).join(' · '),
-        badge: c ? <span className={`badge ${cat === 'anciens' ? 'b-Perdu' : 'b-green'}`}>{cat === 'anciens' ? 'Ancien client' : 'Client'}</span> : <StageBadge etape={p.etape} />,
-        ico: c ? 'briefcase' : cat === 'perdus' ? 'ban' : 'target',
-        path: `/prospect/${p.id}`,
-      }))
+    const clients = clientsDe(documents, actions, data)
+      .filter((c) => norm(c.nom).includes(s))
+      .slice(0, 6)
+      .map((c) => ({ key: `c-${c.nom}`, groupe: 'Clients', titre: c.nom, sous: `${c.ventes.length} achat${c.ventes.length > 1 ? 's' : ''} · ${eur(c.total)}`, badge: c.reste > 0 ? <span className="badge b-orange">Doit {eur(c.reste)}</span> : null, ico: 'users', path: `/clients?c=${encodeURIComponent(c.nom)}` }))
     const docs = documents
       .filter((d) => d.type === 'facture' || d.type === 'devis')
-      .filter((d) => [d.numero, d.data?.client?.nom, data.byId[d.prospect_id]?.name, d.data?.objet].some((x) => norm(x).includes(s)))
+      .filter((d) => [d.numero, d.data?.client?.nom, d.data?.objet].some((x) => norm(x).includes(s)))
       .sort((a, b) => (b.data?.date || '').localeCompare(a.data?.date || ''))
       .slice(0, 6)
       .map((d) => {
@@ -70,16 +64,15 @@ export default function Recherche({ onClose, pages = [] }) {
           key: d.id,
           groupe: 'Factures et devis',
           titre: `${d.type === 'devis' ? 'Devis' : 'Facture'} ${d.numero}`,
-          sous: [d.data?.client?.nom || data.byId[d.prospect_id]?.name, fmtDate(d.data?.date), eur(totals(d.data || {}).total)].filter(Boolean).join(' · '),
+          sous: [d.data?.client?.nom, fmtDate(d.data?.date), eur(totals(d.data || {}).total)].filter(Boolean).join(' · '),
           badge: <span className={`badge ${STATUT_TONE[st] || 'b-gold'}`}>{st}</span>,
           ico: d.type === 'devis' ? 'clipboard' : 'file',
           path: `/facture/${d.id}`,
         }
       })
-    const parGroupe = (g) => fiches.filter((r) => r.groupe === g)
     const texte = (r) => norm(`${r.titre} ${r.sous}`).includes(s)
-    return [...parGroupe('Potentiels'), ...parGroupe('Clients'), ...parGroupe('Perdus'), ...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
-  }, [q, data, documents, actions, pages, openAction])
+    return [...arts, ...clients, ...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
+  }, [q, data, documents, actions, pages])
 
   // Le résultat choisi au clavier reste visible dans la liste
   useEffect(() => {
@@ -108,7 +101,7 @@ export default function Recherche({ onClose, pages = [] }) {
           <Icon n="search" size={18} />
           <input
             ref={input}
-            placeholder="Rechercher un prospect, un client, une page, une action…"
+            placeholder="Rechercher un article, un client, une facture, une page…"
             aria-label="Recherche globale"
             role="combobox"
             aria-expanded="true"
@@ -127,7 +120,7 @@ export default function Recherche({ onClose, pages = [] }) {
         </div>
         <div className="search-res" id="search-res" role="listbox">
           {q.trim() && res.length === 0 && <div className="empty">Aucun résultat pour « {q.trim()} ».</div>}
-          {!q.trim() && <div className="tiny muted" style={{ padding: '12px 16px 0' }}>Nom, contact, @Instagram, téléphone, ville, offre, numéro de facture… · ↑ ↓ pour choisir, Entrée pour ouvrir, Échap pour fermer</div>}
+          {!q.trim() && <div className="tiny muted" style={{ padding: '12px 16px 0' }}>Article, référence, client, numéro de facture… · ↑ ↓ pour choisir, Entrée pour ouvrir, Échap pour fermer</div>}
           {res.map((r, i) => (
             <div key={r.key}>
               {(i === 0 || res[i - 1].groupe !== r.groupe) && <div className="search-grp">{r.groupe}</div>}

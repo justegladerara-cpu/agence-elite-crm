@@ -86,6 +86,36 @@ export async function enregistrerVente({ panier, client, mode, vendeur, remise }
   return { doc, total }
 }
 
+// Facture modifiée : écart de quantités par article entre l'ancienne et la nouvelle version
+export async function ajusterStock(avant = [], apres = [], { documents, api }) {
+  const ecart = {}
+  ;(avant || []).forEach((l) => l.produitId && (ecart[l.produitId] = (ecart[l.produitId] || 0) + num(l.qte)))
+  ;(apres || []).forEach((l) => l.produitId && (ecart[l.produitId] = (ecart[l.produitId] || 0) - num(l.qte)))
+  const maj = Object.entries(ecart)
+    .filter(([, q]) => q)
+    .map(([id, q]) => {
+      const p = documents.find((d) => d.id === id && d.type === 'produit')
+      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) + q } }
+    })
+    .filter(Boolean)
+  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
+}
+
+// Vente annulée ou supprimée : les articles reviennent en stock et ses paiements sont retirés
+export async function annulerVente(doc, { documents, actions, api }) {
+  const parArticle = {}
+  ;(doc.data?.lignes || []).forEach((l) => l.produitId && (parArticle[l.produitId] = (parArticle[l.produitId] || 0) + num(l.qte)))
+  const maj = Object.entries(parArticle)
+    .map(([id, q]) => {
+      const p = documents.find((d) => d.id === id && d.type === 'produit')
+      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) + q } }
+    })
+    .filter(Boolean)
+  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
+  for (const a of actions.filter((a) => a.action === 'Paiement reçu' && a.facture === doc.numero)) await api.deleteAction(a.id)
+  return maj.length
+}
+
 // ---------- Statistiques ----------
 // Ventes = factures non annulées ; montant = total de la facture
 export function ventesDe(documents, actions) {

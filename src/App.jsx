@@ -6,25 +6,16 @@ import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
-import Journee from './pages/Journee'
-import Saisie, { ActionForm } from './pages/Saisie'
-import { MiniListe } from './pages/Prospects'
-import Hub from './pages/Hub'
-import { lienHub } from './lib/hub'
-import Fiche from './pages/Fiche'
-import Dashboard from './pages/Dashboard'
 import Parametres from './pages/Parametres'
-import Session from './pages/Session'
 import Factures, { DocEditor, facturesImpayees } from './pages/Factures'
 import { Paiements, Depenses } from './pages/Finances'
-import Scripts from './pages/Scripts'
 import Recherche from './pages/Recherche'
-import Calendrier from './pages/Calendrier'
 import { syncRappels } from './lib/rappels'
 import Caisse from './pages/Caisse'
 import Articles from './pages/Articles'
 import Ventes from './pages/Ventes'
 import Equipe from './pages/Equipe'
+import ClientsMagasin, { clientsDe } from './pages/ClientsMagasin'
 import { Menu } from './ui'
 import { articlesDe, enAlerte } from './lib/magasin'
 
@@ -50,6 +41,7 @@ const NAV = [
       },
       { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
       { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
+      { path: 'clients', label: 'Clients', ico: 'users' },
     ],
   },
   {
@@ -146,19 +138,12 @@ export default function App() {
 
 function Crm() {
   const route = useRoute()
-  // Anciens liens (page Prospects, filtres Clients) : redirigés vers le hub Clients
-  useEffect(() => {
-    const [chemin, query = ''] = route.split('?')
-    const q = new URLSearchParams(query)
-    if (chemin === 'prospects' || (chemin === 'clients' && q.get('filtre') && !q.get('onglet'))) window.location.replace(`#/${lienHub(chemin, q)}`)
-  }, [route])
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
   const [profil, setProfil] = useState(null)
   useEffect(() => {
     monProfil().then(setProfil).catch(() => setProfil({ role: null }))
   }, [])
-  const [actionModal, setActionModal] = useState(null)
   const [recherche, setRecherche] = useState(false)
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action
   useEffect(() => {
@@ -231,13 +216,12 @@ function Crm() {
     }
   }, [reload])
 
-  // Précharge l'export Excel pour qu'il fonctionne aussi hors ligne
+  // Précharge les PDF (factures, reçus) pour qu'ils fonctionnent aussi hors ligne
   useEffect(() => {
     if (isLocal || !navigator.onLine) return
     const t = setTimeout(() => {
-      import('./lib/excel').catch(() => {})
       import('./lib/invoicePdf').catch(() => {})
-      fetch(`${import.meta.env.BASE_URL}template/Agence_Elite_Pilotage.xlsx`).catch(() => {})
+      import('./lib/recuPdf').catch(() => {})
     }, 4000)
     return () => clearTimeout(t)
   }, [])
@@ -392,7 +376,6 @@ function Crm() {
     data,
     api,
     toast,
-    openAction: (prefill) => setActionModal(prefill || {}),
     profil,
   }
 
@@ -403,41 +386,25 @@ function Crm() {
   const [page, arg = ''] = (interdite || !chemin ? accueil : chemin).split(/\/(.*)/s)
   const q = new URLSearchParams(query)
   const docType = page === 'facture' ? state.documents.find((d) => d.id === arg)?.type || new URLSearchParams(query).get('type') : null
-  const current = page === 'prospect' || page === 'prospects' ? 'clients' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
+  const current = page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   let content
-  if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
-  else if (page === 'prospects') content = null
-  else if (page === 'prospect')
-    content = (
-      <div className="split">
-        <MiniListe current={arg} />
-        <div className="split-main">
-          <Fiche key={arg} id={arg} />
-        </div>
-      </div>
-    )
-  else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
-  else if (page === 'clients') content = <Hub key={route} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} />
-  else if (page === 'parametres') content = <Parametres section={arg} />
-  else if (page === 'session') content = <Session />
-  else if (page === 'scripts') content = <Scripts />
-  else if (page === 'calendrier') content = <Calendrier />
+  if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'factures' || page === 'devis') content = <Factures key={route} type={page === 'devis' ? 'devis' : 'facture'} filtre={q.get('filtre')} />
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'caisse') content = <Caisse />
   else if (page === 'articles') content = <Articles />
-  else if (page === 'dashboard') content = <Dashboard key={route} onglet={q.get('onglet')} />
+  else if (page === 'clients') content = <ClientsMagasin nom={q.get('c')} />
   else if (page === 'equipe') content = <Equipe />
   else if (page === 'journal') content = <Ventes key={route} caisse />
+  else if (role === 'caisse') content = <Caisse />
   else content = <Ventes key={route} periode={q.get('periode')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
   const badges = {
-    journee: [data.aRelancer.length, 'hot', 'relances à faire'],
-    clients: [data.clientsAlertes.length, '', 'clients à surveiller'],
+    clients: [clientsDe(state.documents || [], state.actions, data).filter((c) => c.reste > 0).length, '', 'clients qui doivent encore de l’argent'],
     articles: [articlesDe(state.documents || []).filter(enAlerte).length, 'hot', 'articles à réapprovisionner'],
     factures: [retards, 'hot', 'factures en retard'],
     devis: [devisAttente, '', 'devis en attente'],
@@ -620,11 +587,6 @@ function Crm() {
           </div>
         )}
       </div>
-      {actionModal && (
-        <Modal title={actionModal.edit ? "Modifier l'action" : 'Nouvelle action'} onClose={() => setActionModal(null)} large>
-          <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
-        </Modal>
-      )}
       {recherche && <Recherche onClose={() => setRecherche(false)} pages={tousItems.filter((n) => permis(n, role))} />}
       {toastNode}
     </AppCtx.Provider>

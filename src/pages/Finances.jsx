@@ -141,7 +141,8 @@ function RecuField({ value, onChange }) {
 
 // ---------- Formulaire : paiement reçu ----------
 export function PaiementForm({ prefill = {}, edit, onDone }) {
-  const { documents, actions, settings, api, toast } = useApp()
+  const { documents, actions, settings, api, toast, profil } = useApp()
+  const chef = ['superadmin', 'pdg', 'comptable'].includes(profil?.role)
   const [f, setF] = useState(() =>
     edit
       ? { ...edit, montant: edit.montant ?? '', mode: edit.mode || '', reference: edit.reference || '', facture: edit.facture || '', notes: edit.notes || '' }
@@ -231,7 +232,7 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
           {busy ? 'Enregistrement…' : 'Enregistrer le paiement'}
         </button>
         <span className="spacer" />
-        {edit && (
+        {edit && chef && (
           <button className="btn ghost sm danger" onClick={remove}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
@@ -299,13 +300,10 @@ export function DepenseForm({ prefill = {}, edit, onDone }) {
         </Field>
       </div>
       <Field label="Fournisseur">
-        <input placeholder="Ex. Imprimerie, station-service, Canva…" value={f.fournisseur} onChange={(e) => set({ fournisseur: e.target.value })} />
-      </Field>
-      <Field label="Pour un client ? (facultatif)">
-        <ProspectPicker value={f.prospect_id} onPick={(id) => set({ prospect_id: id })} />
+        <input placeholder="Ex. Fournisseur, transitaire, station-service…" value={f.fournisseur} onChange={(e) => set({ fournisseur: e.target.value })} />
       </Field>
       <Field label="Description">
-        <input placeholder="Ex. Papier 350 g pour cartes de visite" value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
+        <input placeholder="Ex. Réassort de gants et casques" value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
       <Field label="Reçu">
         <RecuField value={f.recu} onChange={(recu) => set({ recu })} />
