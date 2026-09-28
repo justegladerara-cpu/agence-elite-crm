@@ -2,12 +2,14 @@
 import { createClient } from '@supabase/supabase-js'
 import { DEFAULT_SETTINGS } from './defaults'
 
-// Base de données propre au Kangourou (séparée du CRM Agence Elite)
+// SaaS hôtelier : tables dédiées (préfixe h_), séparées des autres logiciels du même projet Supabase
 const URL = 'https://ucsyokxpwyjdubjthzkn.supabase.co'
 const KEY = 'sb_publishable_fIY2a08EgjV2JIZKCYCIgw_LaFEfJDy'
 // VITE_DEMO_LOCAL=1 : essai sur l'appareil, sans toucher à la base en ligne
 export const supabase = URL && KEY && !import.meta.env.VITE_DEMO_LOCAL ? createClient(URL, KEY) : null
 export const isLocal = !supabase
+const T = { prospects: 'h_prospects', actions: 'h_actions', documents: 'h_documents', settings: 'h_settings', membres: 'h_membres', etablissements: 'h_etablissements' }
+const BUCKET = 'h-recus'
 
 const ACTION_FIELDS = [
   'prospect_id', 'date', 'time', 'canal', 'action', 'resultat', 'montant', 'duree', 'prochaine_action',
@@ -59,7 +61,7 @@ export function mergeSettings(s) {
 }
 
 // Photos de reçus en attente d'envoi (mode démo ou hors ligne) : chemin → image en data URL
-const RECUS = 'kgr-recus'
+const RECUS = 'hs-recus'
 const readRecus = () => {
   try {
     return JSON.parse(localStorage.getItem(RECUS)) || {}
@@ -81,7 +83,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() +
 const nowIso = () => new Date().toISOString()
 
 // ---------- Local ----------
-const LS = 'kangourou-gestion'
+const LS = 'hotel-saas'
 const readLocal = () => {
   try {
     const db = JSON.parse(localStorage.getItem(LS)) || { prospects: [], actions: [], settings: null }
@@ -204,7 +206,7 @@ const check = ({ data, error }) => {
 async function fetchAll(table) {
   const out = []
   for (let from = 0; ; from += 1000) {
-    const rows = check(await supabase.from(table).select('*').range(from, from + 999))
+    const rows = check(await supabase.from(T[table] || table).select('*').range(from, from + 999))
     out.push(...rows)
     if (rows.length < 1000) break
   }
@@ -217,52 +219,52 @@ const remote = {
       fetchAll('prospects'),
       fetchAll('actions'),
       fetchAll('documents'),
-      supabase.from('settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
+      supabase.from(T.settings).select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
     ])
     return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
   },
   async addProspect(name, fiche) {
-    return check(await supabase.from('prospects').insert({ name, fiche: fiche || {} }).select().single())
+    return check(await supabase.from(T.prospects).insert({ name, fiche: fiche || {} }).select().single())
   },
   async updateProspect(id, patch) {
-    return check(await supabase.from('prospects').update(patch).eq('id', id).select().single())
+    return check(await supabase.from(T.prospects).update(patch).eq('id', id).select().single())
   },
   async deleteProspect(id) {
-    check(await supabase.from('prospects').delete().eq('id', id))
+    check(await supabase.from(T.prospects).delete().eq('id', id))
   },
   async addActions(list) {
-    return check(await supabase.from('actions').insert(list.map(cleanAction)).select())
+    return check(await supabase.from(T.actions).insert(list.map(cleanAction)).select())
   },
   async updateAction(id, patch) {
-    return check(await supabase.from('actions').update(cleanPatch(patch)).eq('id', id).select().single())
+    return check(await supabase.from(T.actions).update(cleanPatch(patch)).eq('id', id).select().single())
   },
   async deleteAction(id) {
-    check(await supabase.from('actions').delete().eq('id', id))
+    check(await supabase.from(T.actions).delete().eq('id', id))
   },
   async saveSettings(settings) {
     const { data: u, error } = await supabase.auth.getUser()
     if (error || !u?.user) throw new Error(`auth : ${error?.message || 'session expirée'}`)
     // Réglages communs à la société : une seule ligne, mise à jour par n'importe quel membre
-    const { data: row } = await supabase.from('settings').select('espace').order('updated_at', { ascending: false }).limit(1).maybeSingle()
-    if (row) check(await supabase.from('settings').update({ data: settings, updated_at: nowIso() }).eq('espace', row.espace))
-    else check(await supabase.from('settings').insert({ data: settings, updated_at: nowIso() }))
+    const { data: row } = await supabase.from(T.settings).select('espace').order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (row) check(await supabase.from(T.settings).update({ data: settings, updated_at: nowIso() }).eq('espace', row.espace))
+    else check(await supabase.from(T.settings).insert({ data: settings, updated_at: nowIso() }))
   },
   async bulkImport(prospects, actions) {
-    for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500)))
+    for (let i = 0; i < prospects.length; i += 500) check(await supabase.from(T.prospects).insert(prospects.slice(i, i + 500)))
     const rows = actions.map(cleanAction)
-    for (let i = 0; i < rows.length; i += 500) check(await supabase.from('actions').insert(rows.slice(i, i + 500)))
+    for (let i = 0; i < rows.length; i += 500) check(await supabase.from(T.actions).insert(rows.slice(i, i + 500)))
   },
   async wipe() {
-    check(await supabase.from('actions').delete().not('id', 'is', null))
-    check(await supabase.from('prospects').delete().not('id', 'is', null))
+    check(await supabase.from(T.actions).delete().not('id', 'is', null))
+    check(await supabase.from(T.prospects).delete().not('id', 'is', null))
   },
 }
 
 // ---------- Hors ligne ----------
 // Copie locale des données + file d'attente des modifications. Chaque écriture est appliquée
 // tout de suite sur la copie locale, puis envoyée à Supabase dès que la connexion le permet.
-const CACHE = 'kgr-cache'
-const QUEUE = 'kgr-queue'
+const CACHE = 'hs-cache'
+const QUEUE = 'hs-queue'
 const readJson = (k, d) => {
   try {
     return JSON.parse(localStorage.getItem(k)) ?? d
@@ -332,21 +334,21 @@ function applyLocal(c, op) {
 
 // Envoie une opération à Supabase (insertions idempotentes grâce aux identifiants générés ici)
 async function sendRemote(op) {
-  if (op.t === 'addProspect') check(await supabase.from('prospects').upsert(op.row, { onConflict: 'id' }))
-  if (op.t === 'updateProspect') check(await supabase.from('prospects').update(op.patch).eq('id', op.id))
-  if (op.t === 'deleteProspect') check(await supabase.from('prospects').delete().eq('id', op.id))
-  if (op.t === 'addActions') check(await supabase.from('actions').upsert(op.rows, { onConflict: 'id' }))
-  if (op.t === 'updateAction') check(await supabase.from('actions').update(op.patch).eq('id', op.id))
-  if (op.t === 'deleteAction') check(await supabase.from('actions').delete().eq('id', op.id))
+  if (op.t === 'addProspect') check(await supabase.from(T.prospects).upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'updateProspect') check(await supabase.from(T.prospects).update(op.patch).eq('id', op.id))
+  if (op.t === 'deleteProspect') check(await supabase.from(T.prospects).delete().eq('id', op.id))
+  if (op.t === 'addActions') check(await supabase.from(T.actions).upsert(op.rows, { onConflict: 'id' }))
+  if (op.t === 'updateAction') check(await supabase.from(T.actions).update(op.patch).eq('id', op.id))
+  if (op.t === 'deleteAction') check(await supabase.from(T.actions).delete().eq('id', op.id))
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
-  if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
-  if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
-  if (op.t === 'stock') check(await supabase.rpc('ajuster_stock', { lignes: op.lignes }))
-  if (op.t === 'saveDocs') for (let i = 0; i < op.rows.length; i += 50) check(await supabase.from('documents').upsert(op.rows.slice(i, i + 50), { onConflict: 'id' }))
+  if (op.t === 'saveDoc') check(await supabase.from(T.documents).upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'deleteDoc') check(await supabase.from(T.documents).delete().eq('id', op.id))
+  if (op.t === 'stock') return // pas de stock suivi dans le SaaS hôtelier
+  if (op.t === 'saveDocs') for (let i = 0; i < op.rows.length; i += 50) check(await supabase.from(T.documents).upsert(op.rows.slice(i, i + 50), { onConflict: 'id' }))
   if (op.t === 'upload') {
     const m = readRecus()
     if (m[op.path]) {
-      check(await supabase.storage.from('recus').upload(op.path, await dataUrlToBlob(m[op.path]), { upsert: true, contentType: op.type }))
+      check(await supabase.storage.from(BUCKET).upload(op.path, await dataUrlToBlob(m[op.path]), { upsert: true, contentType: op.type }))
       delete m[op.path]
       writeRecus(m)
     }
@@ -424,7 +426,7 @@ const offline = {
             fetchAll('prospects'),
             fetchAll('actions'),
             fetchAll('documents'),
-            supabase.from('settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
+            supabase.from(T.settings).select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
           ])
           // Une modification faite pendant le chargement : on garde la copie locale, plus récente
           if (gen === generation) {
@@ -510,7 +512,7 @@ const offline = {
     if (pending) return pending
     const c = signedUrls[path]
     if (c && c.exp > Date.now()) return c.url
-    const { data, error } = await supabase.storage.from('recus').createSignedUrl(path, 3600)
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, 3600)
     if (error) throw new Error(error.message)
     signedUrls[path] = { url: data.signedUrl, exp: Date.now() + 3000 * 1000 }
     return data.signedUrl
@@ -541,27 +543,25 @@ export { uid }
 
 // ---------- Équipe et rôles ----------
 // Rôles : superadmin (tout, attribue les rôles), pdg (vue complète), caisse (ventes, factures, reçus), comptable
-const ROLE_DEMO = 'kgr-role-demo'
+const ROLE_DEMO = 'hs-role-demo'
 export const ROLES = {
   superadmin: 'Super administrateur',
-  pdg: 'PDG',
-  caisse: 'Caisse / assistante',
+  pdg: 'Directeur / gérant',
+  caisse: 'Réception / service',
   comptable: 'Comptable',
 }
-// Droits réglables personne par personne ; le rôle donne les valeurs de départ (même règle que la base : droit_defaut)
+// Droits réglables personne par personne ; le rôle donne les valeurs de départ (même règle que la base : h_droit_defaut)
 export const DROITS = [
-  ['vendre', 'Vendre à la caisse', 'Point de vente et « Mes ventes du jour ».'],
-  ['remises', 'Faire des remises et changer les prix', 'Touches « % Rem. » et « Prix » de la caisse.'],
-  ['credit', 'Vendre à crédit', 'Le client paie plus tard.'],
-  ['sansStock', 'Vendre un article en rupture', 'Sinon la caisse bloque quand le stock ne suffit pas.'],
-  ['articles', 'Créer et modifier les articles', 'Photo, prix, quantité en stock.'],
-  ['annuler', 'Annuler ou supprimer une vente, un paiement', 'Les articles reviennent en stock.'],
-  ['finances', 'Voir le tableau de bord et les finances', "Chiffre d'affaires, dépenses, soldes."],
+  ['salle', 'Service en salle et au bar', 'Plan de salle, commandes aux tables, addition, envoi en cuisine.'],
+  ['reception', 'Réception', 'Arrivées, départs, réservations, planning des chambres.'],
+  ['vendre', 'Encaisser', 'Paiement des tables, des ventes directes et des départs ; « Mes ventes du jour ».'],
+  ['remises', 'Faire des remises et changer les prix', 'Touches « % Rem. » et « Prix », prix de la nuit.'],
+  ['articles', 'Configurer la carte, les tables et les chambres', 'Plats, boissons, prix, zones, chambres.'],
+  ['annuler', 'Annuler une vente, retirer une ligne de note', 'Factures, paiements, consommations.'],
+  ['finances', "Voir le tableau de bord et les finances", "Chiffre d'affaires, occupation, dépenses."],
   ['depenses', 'Enregistrer des dépenses', "Sorties d'argent avec justificatif."],
   ['equipe', "Gérer l'équipe et les accès", 'Ajouter des personnes, régler leurs droits.'],
-  ['reglages', 'Modifier les paramètres', 'Logo, factures, catégories, modes de paiement.'],
-  ['salle', 'Hôtel : service en salle et au bar', 'Plan de salle, commandes aux tables, addition.'],
-  ['reception', 'Hôtel : réception', 'Arrivées, départs, réservations, planning des chambres.'],
+  ['reglages', 'Modifier les paramètres', 'Logo, factures, modes de paiement.'],
 ]
 const DEFAUT = { caisse: ['vendre', 'remises', 'credit', 'articles', 'salle', 'reception'], comptable: ['annuler', 'finances', 'depenses'] }
 export const droitDefaut = (role, d) => role === 'superadmin' || role === 'pdg' || (DEFAUT[role] || []).includes(d)
@@ -572,6 +572,15 @@ export function peut(profil, d) {
   return typeof v === 'boolean' ? v : droitDefaut(profil.role, d)
 }
 
+// Établissement de démonstration hors ligne : modules réglables depuis le menu du compte
+const MODULES_DEMO = 'hs-modules-demo'
+export const MODULES = [
+  ['hebergement', 'Hébergement', 'Chambres, réservations, planning, notes et départs.'],
+  ['restaurant', 'Restaurant', 'Plan de salle du restaurant et de la terrasse, commandes, cuisine.'],
+  ['bar', 'Bar', 'Tables du bar et ventes au comptoir.'],
+]
+export const modulesDe = (e) => ({ hebergement: true, restaurant: true, bar: true, ...(e?.modules || {}) })
+
 export async function monProfil() {
   if (!supabase) {
     let role = 'superadmin'
@@ -580,21 +589,49 @@ export async function monProfil() {
     } catch {
       /* rôle par défaut */
     }
-    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : role === 'comptable' ? 'ITOUA' : 'Démo', role, espace: 'demo', droits: readJson(`kgr-droits-${role}`, {}) }
+    const etab = { id: 'demo', nom: 'Hôtel Le Palmier (démo)', ville: 'Brazzaville', actif: true, modules: readJson(MODULES_DEMO, {}) }
+    return { email: 'demo@local', nom: role === 'caisse' ? 'Grâce (réception)' : role === 'pdg' ? 'Le directeur' : role === 'comptable' ? 'La comptable' : 'Démo', role, espace: 'demo', droits: readJson(`hs-droits-${role}`, {}), etab }
   }
   const { data } = await supabase.auth.getSession()
   const email = (data?.session?.user?.email || '').toLowerCase()
-  const CLE = `kgr-profil-${email}`
+  const CLE = `hs-profil-${email}`
   if (!navigator.onLine) return readJson(CLE, { email, nom: '', role: 'caisse' })
-  const { data: m, error } = await supabase.from('membres').select('*').eq('email', email).maybeSingle()
+  const { data: m, error } = await supabase.from(T.membres).select('*').eq('email', email).maybeSingle()
   if (error) return readJson(CLE, { email, nom: '', role: 'caisse' })
   const profil = m || { email, nom: '', role: null }
+  if (m) {
+    const { data: e } = await supabase.from(T.etablissements).select('*').eq('id', m.espace).maybeSingle()
+    profil.etab = e || null
+    // Établissement suspendu : plus d'accès (sauf le superadmin)
+    if ((!e || !e.actif) && m.role !== 'superadmin') profil.role = null
+  }
   try {
     writeJson(CLE, profil)
   } catch {
     /* profil non gardé hors ligne */
   }
   return profil
+}
+export const setModulesDemo = (m) => writeJson(MODULES_DEMO, m)
+
+// ---------- Établissements (superadmin) ----------
+export const etablissements = {
+  async list() {
+    if (!supabase) return [{ id: 'demo', nom: 'Hôtel Le Palmier (démo)', ville: 'Brazzaville', actif: true, modules: readJson(MODULES_DEMO, {}) }]
+    return check(await supabase.from(T.etablissements).select('*').order('created_at'))
+  },
+  async save(e) {
+    const row = { id: e.id, nom: e.nom.trim(), ville: (e.ville || '').trim(), modules: e.modules, actif: e.actif !== false }
+    if (!supabase) {
+      setModulesDemo(row.modules)
+      return row
+    }
+    return check(await supabase.from(T.etablissements).upsert(row, { onConflict: 'id' }).select().single())
+  },
+  async membres() {
+    if (!supabase) return readJson('hs-membres-demo', [])
+    return check(await supabase.from(T.membres).select('*').order('created_at'))
+  },
 }
 export const setRoleDemo = (r) => {
   try {
@@ -605,25 +642,25 @@ export const setRoleDemo = (r) => {
 }
 export const membres = {
   async list() {
-    if (!supabase) return readJson('kgr-membres-demo', [])
-    return check(await supabase.from('membres').select('*').order('created_at'))
+    if (!supabase) return readJson('hs-membres-demo', [])
+    return check(await supabase.from(T.membres).select('*').order('created_at'))
   },
   async save(m) {
     const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role, droits: m.droits || {}, ...(m.espace ? { espace: m.espace } : {}) }
     if (!supabase) {
-      writeJson('kgr-membres-demo', [...readJson('kgr-membres-demo', []).filter((x) => x.email !== row.email), row])
+      writeJson('hs-membres-demo', [...readJson('hs-membres-demo', []).filter((x) => x.email !== row.email), row])
       return row
     }
-    return check(await supabase.from('membres').upsert(row, { onConflict: 'email' }).select().single())
+    return check(await supabase.from(T.membres).upsert(row, { onConflict: 'email' }).select().single())
   },
   // Super admin : passer de l'espace du client à l'espace démo (et inversement)
   async setEspace(email, espace) {
     if (!supabase) return
-    check(await supabase.from('membres').update({ espace }).eq('email', email))
+    check(await supabase.from(T.membres).update({ espace }).eq('email', email))
     clearOffline()
   },
   async remove(email) {
-    if (!supabase) return writeJson('kgr-membres-demo', readJson('kgr-membres-demo', []).filter((x) => x.email !== email))
-    check(await supabase.from('membres').delete().eq('email', email))
+    if (!supabase) return writeJson('hs-membres-demo', readJson('hs-membres-demo', []).filter((x) => x.email !== email))
+    check(await supabase.from(T.membres).delete().eq('email', email))
   },
 }

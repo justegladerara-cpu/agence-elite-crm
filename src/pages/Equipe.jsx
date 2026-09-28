@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Empty, Chips, Modal } from '../ui'
+import { useApp, Field, Empty, Chips, Modal, go } from '../ui'
 import { membres, ROLES, DROITS, peut, droitDefaut } from '../lib/store'
 
 const RESUME = {
-  superadmin: 'Tout, sans exception. Réservé à Agence Elite (maintenance).',
-  pdg: 'Tout : ventes, finances, stock, équipe et réglages.',
-  caisse: 'Vend, fait les factures, reçus et devis, gère les articles. Ne voit pas les finances.',
+  superadmin: 'Tout, dans tous les établissements. Réservé à Agence Elite.',
+  pdg: "Tout dans l'établissement : ventes, chambres, finances, équipe et réglages.",
+  caisse: 'Salle, bar et réception : prend les commandes, fait les arrivées et départs, encaisse. Ne voit pas les finances.',
   comptable: 'Voit les finances, saisit les dépenses, peut annuler une vente. Ne vend pas.',
 }
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim())
@@ -76,7 +76,7 @@ export default function Equipe() {
   const [busy, setBusy] = useState(false)
   const [droitsDe, setDroitsDe] = useState(null)
   const [retrait, setRetrait] = useState(null)
-  const charger = () => membres.list().then(setListe).catch((e) => toast(`Équipe : ${e.message}`, true))
+  const charger = () => membres.list().then((l) => setListe(l.filter((m) => m.espace === profil.espace))).catch((e) => toast(`Équipe : ${e.message}`, true))
   useEffect(() => {
     charger()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -209,10 +209,10 @@ export default function Equipe() {
             <div className="card stack">
               <h2 className="section">Ajouter une personne</h2>
               <Field label="Nom">
-                <input className="input" id="eq-nom" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} placeholder="Narcie KANGOU" />
+                <input className="input" id="eq-nom" value={f.nom} onChange={(e) => setF({ ...f, nom: e.target.value })} placeholder="Grâce MOUKALA" />
               </Field>
               <Field label="E-mail (sert d'identifiant)">
-                <input className="input" id="eq-email" type="email" autoCapitalize="none" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="narcie@lekangourou-cg.com" />
+                <input className="input" id="eq-email" type="email" autoCapitalize="none" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="reception@monhotel.com" />
               </Field>
               <Field label="Rôle">
                 <Chips small allowEmpty={false} options={rolesPermis.map((r) => ROLES[r])} value={ROLES[f.role]} onChange={(l) => setF({ ...f, role: roleDe(l) })} />
@@ -228,15 +228,11 @@ export default function Equipe() {
           )}
           {admin && (
             <div className="card stack">
-              <h2 className="section">Espace affiché</h2>
-              <div className="small muted">Tu es dans l'espace « {profil.espace === 'demo' ? 'Démo (données fictives)' : 'Le Kangourou (vraies données)'} ». Les deux espaces sont séparés.</div>
-              <div className="row">
-                {[['kangourou', 'Le Kangourou'], ['demo', 'Démo']].map(([k, l]) => (
-                  <button key={k} className={`btn ${profil.espace === k ? 'primary' : ''}`} disabled={profil.espace === k} onClick={async () => { await membres.setEspace(profil.email, k); window.location.hash = '/'; window.location.reload() }}>
-                    {l}
-                  </button>
-                ))}
-              </div>
+              <h2 className="section">Établissement affiché</h2>
+              <div className="small muted">Tu es dans « {profil.etab?.nom || profil.espace} ». Chaque établissement a ses propres données et sa propre équipe.</div>
+              <button className="btn" onClick={() => go('/etablissements')}>
+                <Icon n="briefcase" size={15} /> Changer d'établissement
+              </button>
             </div>
           )}
           <div className="card">

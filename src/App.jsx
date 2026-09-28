@@ -11,16 +11,13 @@ import Factures, { DocEditor, facturesImpayees } from './pages/Factures'
 import { Paiements, Depenses } from './pages/Finances'
 import Recherche from './pages/Recherche'
 import { syncRappels } from './lib/rappels'
-import Caisse from './pages/Caisse'
 import Hotel from './pages/Hotel'
-import Articles from './pages/Articles'
+import Etablissements from './pages/Etablissements'
 import Ventes from './pages/Ventes'
 import Equipe from './pages/Equipe'
-import ClientsMagasin, { clientsDe } from './pages/ClientsMagasin'
 import { Menu } from './ui'
-import { articlesDe, enAlerte } from './lib/magasin'
 
-// Menu groupé : piloter, vendre, facturer
+// Menu groupé : piloter, point de vente, facturer
 const NAV = [
   {
     titre: 'Pilotage',
@@ -30,9 +27,12 @@ const NAV = [
     ],
   },
   {
-    titre: 'Ventes',
+    titre: 'Établissement',
+    items: [{ path: 'hotel', label: 'Point de vente', ico: 'grid', droit: ['salle', 'reception', 'finances'] }],
+  },
+  {
+    titre: 'Facturation',
     items: [
-      { path: 'caisse', label: 'Point de vente', ico: 'coins', droit: 'vendre' },
       {
         path: 'factures',
         memo: 'liste-facture',
@@ -42,16 +42,7 @@ const NAV = [
       },
       { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
       { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
-      { path: 'clients', label: 'Clients', ico: 'users' },
     ],
-  },
-  {
-    titre: 'Hôtel',
-    items: [{ path: 'hotel', label: 'Point de vente hôtel', ico: 'grid', droit: ['salle', 'reception', 'finances'] }],
-  },
-  {
-    titre: 'Stock',
-    items: [{ path: 'articles', label: 'Articles et stock', ico: 'layers' }],
   },
   {
     titre: 'Finances',
@@ -62,6 +53,8 @@ const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
 const EQUIPE = { path: 'equipe', label: 'Équipe et accès', ico: 'users', droit: 'equipe' }
+const ETABS = { path: 'etablissements', label: 'Établissements', ico: 'briefcase', role: 'superadmin' }
+PAGES.etablissements = ETABS.label
 PAGES.equipe = EQUIPE.label
 PAGES.journal = 'Mes ventes du jour'
 const PARAMETRES = {
@@ -69,7 +62,7 @@ const PARAMETRES = {
   droit: 'reglages',
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/magasin', 'Magasin'], ['/facturation', 'Facturation'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/magasin', 'Caisse'], ['/facturation', 'Facturation'], ['/compte', 'Compte']],
 }
 const lirePref = (k) => {
   try {
@@ -92,15 +85,14 @@ function basculer(set, k, x) {
 }
 PAGES.saisie = 'Nouvelle action'
 PAGES.facture = 'Facture'
-// Barre du bas sur téléphone : Ventes, Articles, Caisse (au centre), Factures, Réglages
+// Barre du bas sur téléphone : tableau, point de vente (au centre), factures, réglages
 const BOTTOM = [
-  { path: 'ventes', short: 'Ventes', ico: 'chart', droit: 'finances' },
+  { path: 'ventes', short: 'Tableau', ico: 'chart', droit: 'finances' },
   { path: 'journal', short: 'Ventes', ico: 'chart', droit: 'vendre', sans: 'finances' },
-  { path: 'articles', short: 'Articles', ico: 'layers' },
-  { path: 'caisse', short: 'Vendre', ico: 'plus', cta: true, droit: 'vendre' },
   { path: 'factures', short: 'Factures', ico: 'file' },
+  { path: 'hotel', short: 'Vendre', ico: 'plus', cta: true, droit: ['salle', 'reception', 'finances'] },
+  { path: 'paiements', short: 'Paiements', ico: 'wallet' },
   { path: 'parametres', short: 'Réglages', ico: 'settings', droit: 'reglages' },
-  { path: 'paiements', short: 'Paiements', ico: 'wallet', sans: 'reglages' },
 ]
 // Nouveau mot de passe du compte connecté
 function MotDePasse({ onClose, toast }) {
@@ -131,7 +123,7 @@ function MotDePasse({ onClose, toast }) {
 }
 
 // Une rubrique est visible avec l'un de ses droits (et sans le droit « sans », qui la remplace par une autre)
-const permis = (n, profil) => (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
+const permis = (n, profil) => (!n.role || profil?.role === n.role) && (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
 const enSaisie = (e) => {
   const t = e.target
@@ -194,7 +186,7 @@ function Crm() {
         setRecherche(true)
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault()
-        go('/caisse')
+        go('/hotel')
       }
     }
     window.addEventListener('keydown', k)
@@ -270,21 +262,12 @@ function Crm() {
     return () => clearTimeout(t)
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Espace démo vide : on le remplit d'articles, de ventes et de dépenses fictifs
-  // (seulement un compte qui a le droit de tout créer : articles et dépenses)
-  const demoVide = !!state && profil?.espace === 'demo' && peut(profil, 'articles') && peut(profil, 'depenses') && !(state.documents || []).some((d) => d.type === 'produit')
-  useEffect(() => {
-    if (!demoVide || window.__demoSeeded) return
-    window.__demoSeeded = true
-    api.loadDemo().then(() => toast('Données de démonstration chargées ✓')).catch(() => {})
-  }, [demoVide]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Hôtel de l'espace démo vide : chambres, tables, carte, clients en séjour et un mois de ventes
-  const hotelVide = !!state && !demoVide && profil?.espace === 'demo' && peut(profil, 'articles') && (state.documents || []).some((d) => d.type === 'produit') && !(state.documents || []).some((d) => d.type === 'chambre')
+  // Établissement de démonstration vide : chambres, tables, carte, clients en séjour et un mois de ventes
+  const hotelVide = !!state && profil?.espace === 'demo' && peut(profil, 'articles') && !(state.documents || []).some((d) => d.type === 'chambre' || d.type === 'plat')
   useEffect(() => {
     if (!hotelVide || window.__hotelSeeded) return
     window.__hotelSeeded = true
-    api.loadHotelDemo().then(() => toast("Hôtel de démonstration chargé ✓")).catch(() => {})
+    api.loadHotelDemo().then(() => toast('Hôtel de démonstration chargé ✓')).catch(() => {})
   }, [hotelVide]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const wrap = (fn) => async (...args) => {
@@ -368,13 +351,6 @@ function Crm() {
       await db.bulkImport(prospects, actions)
       await reload()
     }),
-    loadDemo: wrap(async () => {
-      const { genererDemo } = await import('./lib/demo')
-      const { docs, actions } = genererDemo()
-      await db.saveDocs(docs)
-      await db.addActions(actions)
-      await reload()
-    }),
     loadHotelDemo: wrap(async () => {
       const { genererHotel } = await import('./lib/demoHotel')
       const { docs, actions } = genererHotel(state)
@@ -415,8 +391,10 @@ function Crm() {
       </div>
     )
   const role = profil.role
-  const accueil = peut(profil, 'finances') ? 'ventes' : peut(profil, 'vendre') ? 'caisse' : 'factures'
+  const accueil = peut(profil, 'finances') ? 'ventes' : peut(profil, 'salle') || peut(profil, 'reception') ? 'hotel' : 'factures'
 
+  // Nouvel établissement sans réglages : son nom sert d'en-tête de facture
+  if (!state.settings.facturation?.nom && profil.etab?.nom) state.settings.facturation = { ...state.settings.facturation, nom: profil.etab.nom, adresse: state.settings.facturation?.adresse || profil.etab.ville || '' }
   setDevise(state.settings.devise)
   setBrand(state.settings.apparence)
   const brand = state.settings.apparence || {}
@@ -436,7 +414,7 @@ function Crm() {
   }
 
   const [chemin, query = ''] = route.split('?')
-  const tousItems = [...NAV.flatMap((g) => g.items), EQUIPE, PARAMETRES]
+  const tousItems = [...NAV.flatMap((g) => g.items), ETABS, EQUIPE, PARAMETRES]
   const pageDemandee = chemin.split('/')[0] || accueil
   const interdite = tousItems.find((n) => n.path === pageDemandee && !permis(n, profil))
   const [page, arg = ''] = (interdite || !chemin ? accueil : chemin).split(/\/(.*)/s)
@@ -449,20 +427,16 @@ function Crm() {
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else if (page === 'caisse') content = <Caisse />
   else if (page === 'hotel') content = <Hotel />
-  else if (page === 'articles') content = <Articles />
-  else if (page === 'clients') content = <ClientsMagasin nom={q.get('c')} />
+  else if (page === 'etablissements') content = <Etablissements />
   else if (page === 'equipe') content = <Equipe />
   else if (page === 'journal') content = <Ventes key={route} caisse />
-  else if (!peut(profil, 'finances')) content = peut(profil, 'vendre') ? <Caisse /> : <Factures key={route} type="facture" />
+  else if (!peut(profil, 'finances')) content = peut(profil, 'salle') || peut(profil, 'reception') ? <Hotel /> : <Factures key={route} type="facture" />
   else content = <Ventes key={route} periode={q.get('periode')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
   const badges = {
-    clients: [clientsDe(state.documents || [], state.actions, data).filter((c) => c.reste > 0).length, '', 'clients qui doivent encore de l’argent'],
-    articles: [articlesDe(state.documents || []).filter(enAlerte).length, 'hot', 'articles à réapprovisionner'],
     factures: [retards, 'hot', 'factures en retard'],
     devis: [devisAttente, '', 'devis en attente'],
   }
@@ -515,7 +489,7 @@ function Crm() {
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className={`app ${page === 'caisse' || page === 'hotel' ? 'pos-on' : ''}`}>
+      <div className={`app ${page === 'hotel' ? 'pos-on' : ''}`}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
             <Logo size={36} />
@@ -529,9 +503,9 @@ function Crm() {
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          {peut(profil, 'vendre') && (
-            <button className="nav-new" onClick={() => go('/caisse')} aria-keyshortcuts="N">
-              <Icon n="plus" size={17} /> Nouvelle vente <kbd>N</kbd>
+          {(peut(profil, 'salle') || peut(profil, 'reception')) && (
+            <button className="nav-new" onClick={() => go('/hotel')} aria-keyshortcuts="N">
+              <Icon n="grid" size={17} /> Point de vente <kbd>N</kbd>
             </button>
           )}
           <nav className="nav-scroll">
@@ -550,9 +524,10 @@ function Crm() {
               )
             })}
           </nav>
-          {(permis(EQUIPE, profil) || permis(PARAMETRES, profil)) && (
+          {(permis(ETABS, profil) || permis(EQUIPE, profil) || permis(PARAMETRES, profil)) && (
             <div className="nav-group nav-admin">
               <div className="nav-title">Administration</div>
+              {permis(ETABS, profil) && navBtn(ETABS)}
               {permis(EQUIPE, profil) && navBtn(EQUIPE)}
               {permis(PARAMETRES, profil) && navBtn(PARAMETRES)}
             </div>
@@ -575,12 +550,12 @@ function Crm() {
           </header>
           <header className="topbar">
             <button className="tb-search" onClick={() => setRecherche(true)}>
-              <Icon n="search" size={15} /> Rechercher une facture, un article…
+              <Icon n="search" size={15} /> Rechercher une facture, un client…
             </button>
             <div className="tb-org">{state.settings.facturation?.nom || brand.nom}</div>
-            {peut(profil, 'vendre') && (
-              <button className="btn primary sm tb-new" onClick={() => go('/caisse')}>
-                <Icon n="plus" size={15} /> Nouvelle vente
+            {(peut(profil, 'salle') || peut(profil, 'reception')) && (
+              <button className="btn primary sm tb-new" onClick={() => go('/hotel')}>
+                <Icon n="grid" size={15} /> Point de vente
               </button>
             )}
             <Menu
@@ -629,7 +604,7 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" role="dialog" aria-label="Toutes les pages" onClick={(e) => e.stopPropagation()}>
-              {[...NAV, { titre: 'Administration', items: [EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
+              {[...NAV, { titre: 'Administration', items: [ETABS, EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
                 <div key={g.titre} className="sheet-group">
                   <div className="nav-title">{g.titre}</div>
                   <div className="sheet-grid">

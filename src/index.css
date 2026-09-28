@@ -1853,3 +1853,17 @@ label.field > span:first-child, div.field > span:first-child { font-size: 12px; 
 .ht-l em { font-style: normal; color: var(--muted); font-size: 12px; }
 @media (max-width: 1000px) { .ho-kpis-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ht-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .ho-kpis-6 { grid-template-columns: 1fr 1fr; } .ht-part { grid-template-columns: 110px minmax(0, 1fr) auto; } .ht-part em { display: none; } }
+/* SaaS : établissements */
+.et-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.et-card { display: flex; flex-direction: column; gap: 10px; }
+.et-card.ici { box-shadow: 0 0 0 2px var(--gold); }
+.et-card.off { opacity: .65; }
+.et-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.et-top h3 { margin: 0 0 2px; font-size: 16px; }
+.et-mods { display: flex; flex-wrap: wrap; gap: 6px; }
+.et-mod { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 99px; background: var(--line-2); color: var(--muted); text-decoration: line-through; }
+.et-mod.on { background: var(--green-soft); color: var(--green); text-decoration: none; }
+.et-choix { display: flex; flex-direction: column; gap: 6px; }
+.hotel .pos-titre { max-width: 190px; }
+.hotel .pos-titre strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1400px) { .hotel .pos-titre.en-commande { display: none; } }

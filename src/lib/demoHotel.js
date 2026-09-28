@@ -60,7 +60,7 @@ const TABLES = [
 ]
 const CLIENTS = ['M. Jean-Pierre MOUKO', 'Mme Grâce NGOMA', 'M. Thomas Durand (TotalEnergies)', 'M. Patrick OKEMBA', 'Mme Aïcha DIALLO', 'M. Kevin Martin (Perenco)', 'M. Serge MAMPOUYA', 'Mme Carine BOUKA', 'M. Ibrahim KONATÉ', 'Mme Sandrine LOEMBA', 'M. Arnaud Petit (SNPC)', 'M. Rodrigue ITOUA']
 const MODES = ['Espèces', 'Espèces', 'Espèces', 'MTN Mobile Money', 'Airtel Money', 'Carte', 'Virement']
-const SERVEURS = ['Narcie KANGOU', 'Narcie KANGOU', 'Achille KANGOU']
+const SERVEURS = ['Grâce (réception)', 'Grâce (réception)', 'Christian (serveur)']
 
 function hasard(graine) {
   let s = graine
@@ -147,6 +147,14 @@ export function genererHotel({ documents, settings }) {
     }
   }
 
+  // Aujourd'hui : quelques additions déjà encaissées (petit-déjeuner, déjeuner)
+  ;['08:05', '08:40', '09:15', '12:30', '13:10'].forEach((h, k) => {
+    const tb = tables[[0, 2, 8, 1, 13][k]].data
+    const p = k < 3 ? plats.filter((x) => x.categorie === 'Petit-déjeuner') : repas
+    const lignes = [pick(p), pick(p), pick(boissons)].map((x) => ({ designation: x.nom, description: '', qte: 1, pu: x.prix }))
+    facture(t, h, `${tb.zone} · ${tb.nom}`, `Client ${tb.zone.toLowerCase()}`, lignes, pick(MODES))
+  })
+
   // Clients actuellement dans l'hôtel
   const occupees = OCCUPEES
   occupees.forEach((i, k) => {
@@ -170,8 +178,8 @@ export function genererHotel({ documents, settings }) {
         depart: addDays(t, [0, 1, 2, 0, 1, 3, 2, 1, 4][k]),
         prixNuit: ch.data.prix,
         lignes,
-        acomptes: k % 2 ? [{ id: uid(), date: arr, heure: '14:35', montant: ch.data.prix, mode: pick(MODES), par: 'Narcie KANGOU' }] : [],
-        par: 'Narcie KANGOU',
+        acomptes: k % 2 ? [{ id: uid(), date: arr, heure: '14:35', montant: ch.data.prix, mode: pick(MODES), par: 'Grâce (réception)' }] : [],
+        par: 'Grâce (réception)',
       },
     })
   })
@@ -208,7 +216,7 @@ export function genererHotel({ documents, settings }) {
   ]
   RES.forEach(([i, a, b, nom, source, acompte], k) => {
     const ch = libres[i % libres.length]
-    docs.push({ id: uid(), type: 'reservation', numero: `RES-${String(k + 1).padStart(6, '0')}`, prospect_id: null, data: { statut: 'confirmee', creee: addDays(t, -3), chambreId: ch.id, chambre: ch.data.nom, client: { nom, tel: `+242 05 ${520 + k * 17} ${String(40 + k * 3).padStart(2, '0')} ${String(11 + k * 8).padStart(2, '0')}` }, personnes: 1, arrivee: addDays(t, a), depart: addDays(t, b), prixNuit: ch.data.prix, acompte, modeAcompte: acompte ? 'MTN Mobile Money' : '', source, note: '', par: 'Narcie KANGOU' } })
+    docs.push({ id: uid(), type: 'reservation', numero: `RES-${String(k + 1).padStart(6, '0')}`, prospect_id: null, data: { statut: 'confirmee', creee: addDays(t, -3), chambreId: ch.id, chambre: ch.data.nom, client: { nom, tel: `+242 05 ${520 + k * 17} ${String(40 + k * 3).padStart(2, '0')} ${String(11 + k * 8).padStart(2, '0')}` }, personnes: 1, arrivee: addDays(t, a), depart: addDays(t, b), prixNuit: ch.data.prix, acompte, modeAcompte: acompte ? 'MTN Mobile Money' : '', source, note: '', par: 'Grâce (réception)' } })
   })
   return { docs, actions, sejours: sej }
 }

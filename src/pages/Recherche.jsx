@@ -1,12 +1,10 @@
-// Recherche globale (Ctrl/⌘ + K ou « / ») : articles, factures et devis, clients, pages et actions rapides
+// Recherche globale (Ctrl/⌘ + K ou « / ») : factures et devis, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp, go, eur } from '../ui'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../lib/invoice'
 import { fmtDate } from '../lib/dates'
-import { articlesDe, statutStock } from '../lib/magasin'
-import { clientsDe } from './ClientsMagasin'
 
 const norm = (v) =>
   String(v || '')
@@ -31,8 +29,7 @@ export default function Recherche({ onClose, pages = [] }) {
     const ok = (p) => pages.some((n) => n.path === p)
     // Actions rapides et pages : toujours proposées, filtrées par le texte tapé
     const rapides = [
-      ok('caisse') && { key: 'a-vente', groupe: 'Actions rapides', titre: 'Nouvelle vente', sous: 'Ouvrir le point de vente (touche N)', ico: 'coins', path: '/caisse' },
-      { key: 'a-article', groupe: 'Actions rapides', titre: 'Nouvel article', sous: 'Photo, nom, prix, quantité', ico: 'plus', path: '/articles' },
+      ok('hotel') && { key: 'a-vente', groupe: 'Actions rapides', titre: 'Point de vente', sous: 'Salle, chambres, encaissement (touche N)', ico: 'grid', path: '/hotel' },
       { key: 'a-devis', groupe: 'Actions rapides', titre: 'Nouveau devis / proforma', sous: '', ico: 'clipboard', path: '/facture/new?type=devis' },
       { key: 'a-facture', groupe: 'Actions rapides', titre: 'Nouvelle facture', sous: 'Facture A4 pour un client', ico: 'file', path: '/facture/new?type=facture' },
       ok('depenses') && { key: 'a-depense', groupe: 'Actions rapides', titre: 'Nouvelle dépense', sous: 'Sortie d’argent', ico: 'trend', path: '/depenses' },
@@ -42,17 +39,6 @@ export default function Recherche({ onClose, pages = [] }) {
       ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
     ])
     if (!s) return [...rapides, ...pagesRes.filter((r) => !r.sousPage)]
-    const arts = articlesDe(documents)
-      .filter((a) => [a.nom, a.numero, a.marque, a.categorie].some((x) => norm(x).includes(s)))
-      .slice(0, 8)
-      .map((a) => {
-        const [st, tone] = statutStock(a)
-        return { key: a.id, groupe: 'Articles', titre: a.nom, sous: [a.numero, a.categorie, eur(a.prix)].filter(Boolean).join(' · '), badge: <span className={`badge ${tone}`}>{st}</span>, ico: 'layers', path: '/articles' }
-      })
-    const clients = clientsDe(documents, actions, data)
-      .filter((c) => norm(c.nom).includes(s))
-      .slice(0, 6)
-      .map((c) => ({ key: `c-${c.nom}`, groupe: 'Clients', titre: c.nom, sous: `${c.ventes.length} achat${c.ventes.length > 1 ? 's' : ''} · ${eur(c.total)}`, badge: c.reste > 0 ? <span className="badge b-orange">Doit {eur(c.reste)}</span> : null, ico: 'users', path: `/clients?c=${encodeURIComponent(c.nom)}` }))
     const docs = documents
       .filter((d) => d.type === 'facture' || d.type === 'devis')
       .filter((d) => [d.numero, d.data?.client?.nom, d.data?.objet].some((x) => norm(x).includes(s)))
@@ -71,7 +57,7 @@ export default function Recherche({ onClose, pages = [] }) {
         }
       })
     const texte = (r) => norm(`${r.titre} ${r.sous}`).includes(s)
-    return [...arts, ...clients, ...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
+    return [...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
   }, [q, data, documents, actions, pages])
 
   // Le résultat choisi au clavier reste visible dans la liste

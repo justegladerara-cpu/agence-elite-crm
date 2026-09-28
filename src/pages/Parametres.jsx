@@ -20,7 +20,7 @@ const NUM_GROUPS = [
 
 const SECTIONS = [
   ['identite', 'Identité', 'Logo, couleurs et nom affiché.', 'sparkles'],
-  ['magasin', 'Magasin', 'Catégories d’articles, modes de paiement et catégories de dépenses.', 'tag'],
+  ['magasin', 'Caisse', 'Modes de paiement et catégories de dépenses.', 'tag'],
   ['facturation', 'Facturation', 'Devise, factures, reçus et devis.', 'file'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
@@ -185,7 +185,7 @@ function ApparenceCard({ s, change }) {
           value={a.logo}
           fallback="/logo-full.png"
           onChange={(logo) => set({ logo })}
-          hint={a.logo ? 'Ton logo est utilisé partout (factures comprises).' : 'Logo Le Kangourou par défaut. Un PNG sur fond transparent donne le meilleur rendu.'}
+          hint={a.logo ? 'Ton logo est utilisé partout (factures comprises).' : 'Logo Elite Hôtel par défaut. Un PNG sur fond transparent donne le meilleur rendu.'}
         />
         <ImagePick
           label="Logo pour fond sombre (menu), facultatif"
@@ -806,7 +806,7 @@ export default function Parametres({ section }) {
               {cols(numCard('alertes'), numCard('score'))}
             </>
           )}
-          {sec === 'magasin' && cols(listCard('categoriesArticles'), listCard('modesPaiement'), listCard('categoriesDepenses'))}
+          {sec === 'magasin' && cols(listCard('modesPaiement'), listCard('categoriesDepenses'))}
           {sec === 'compte' && (
             <>
       <div className="card">

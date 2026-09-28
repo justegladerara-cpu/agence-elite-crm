@@ -2,8 +2,8 @@
 // Gardées aussi sur l'appareil pour l'écran de connexion, affiché avant le chargement des réglages.
 
 export const THEMES = [
+  { id: 'odoo', label: 'Style Odoo (prune & turquoise)', principal: '#714B67', accent: '#017E84' },
   { id: 'zoho-books', label: 'Style Zoho Books (bleu)', principal: '#1e2436', accent: '#408dfb' },
-  { id: 'kangourou', label: 'Kangourou (anthracite & jaune)', principal: '#15191e', accent: '#d99a00' },
   { id: 'marine-or', label: 'Marine & or', principal: '#0c1833', accent: '#b8903f' },
   { id: 'noir-rouge', label: 'Noir & rouge (logo)', principal: '#121212', accent: '#e10600' },
   { id: 'noir-or', label: 'Noir & or', principal: '#141414', accent: '#c9a24e' },
@@ -13,19 +13,19 @@ export const THEMES = [
 ]
 
 export const APPARENCE_DEFAUT = {
-  nom: 'LE KANGOUROU',
-  sousTitre: 'Gestion du magasin',
+  nom: 'Elite Hôtel',
+  sousTitre: 'Gestion hôtelière',
   prenom: '',
-  accroche: 'Caisse, articles, factures et ventes en temps réel.',
+  accroche: 'Chambres, restaurant, bar et encaissements au même endroit.',
   afficherNom: true,
   logo: '',
   logoSombre: '',
-  theme: 'zoho-books',
-  principal: '#1e2436',
-  accent: '#408dfb',
+  theme: 'odoo',
+  principal: '#714B67',
+  accent: '#017E84',
 }
 
-const KEY = 'kgr-brand'
+const KEY = 'hs-brand'
 
 // ---------- Couleurs ----------
 const hex = (h) => {

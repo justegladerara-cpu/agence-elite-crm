@@ -149,8 +149,8 @@ export default function Ventes({ periode: demandee, caisse }) {
               <span className="live-dot" /> {profil?.nom || 'Caisse'} · {fmtDate(today())}
             </div>
           </div>
-          <button className="btn primary" onClick={() => go('/caisse')}>
-            <Icon n="plus" size={16} /> Nouvelle vente
+          <button className="btn primary" onClick={() => go('/hotel')}>
+            <Icon n="grid" size={16} /> Point de vente
           </button>
         </div>
         <div className="grid grid-3">
@@ -163,10 +163,12 @@ export default function Ventes({ periode: demandee, caisse }) {
             <h2 className="section">Ventes d'aujourd'hui</h2>
             <DernieresVentes ventes={miennes} vide="Aucune vente aujourd'hui pour l'instant." />
           </div>
-          <div className="card">
-            <h2 className="section">Stock à surveiller {stockBas.length > 0 && <span className="badge b-orange">{stockBas.length}</span>}</h2>
-            <StockBas liste={stockBas} />
-          </div>
+          {stockBas.length > 0 && (
+            <div className="card">
+              <h2 className="section">Stock à surveiller <span className="badge b-orange">{stockBas.length}</span></h2>
+              <StockBas liste={stockBas} />
+            </div>
+          )}
         </div>
       </>
     )
@@ -184,8 +186,8 @@ export default function Ventes({ periode: demandee, caisse }) {
           <button className="btn" onClick={() => go('/depenses')}>
             <Icon n="trend" size={15} /> Ajouter une dépense
           </button>
-          <button className="btn primary" onClick={() => go('/caisse')}>
-            <Icon n="plus" size={16} /> Nouvelle vente
+          <button className="btn primary" onClick={() => go('/hotel')}>
+            <Icon n="grid" size={16} /> Point de vente
           </button>
         </div>
       </div>
@@ -277,10 +279,12 @@ export default function Ventes({ periode: demandee, caisse }) {
           <h2 className="section">Ventes par vendeur</h2>
           <HBars rows={Object.entries(parVendeur).map(([label, value]) => ({ label, value }))} fmt={eur} />
         </div>
-        <div className="card">
-          <h2 className="section">Stock à surveiller {stockBas.length > 0 && <span className="badge b-orange">{stockBas.length}</span>}</h2>
-          <StockBas liste={stockBas} />
-        </div>
+        {stockBas.length > 0 && (
+          <div className="card">
+            <h2 className="section">Stock à surveiller <span className="badge b-orange">{stockBas.length}</span></h2>
+            <StockBas liste={stockBas} />
+          </div>
+        )}
       </div>
     </>
   )

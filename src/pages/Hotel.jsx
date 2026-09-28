@@ -4,7 +4,7 @@ import { useApp, Modal, Empty, eur, nb, go } from '../ui'
 import { num } from '../lib/invoice'
 import { today, nowTime, addDays, fmtDate, diffDays } from '../lib/dates'
 import { getBrand } from '../lib/theme'
-import { peut, uid } from '../lib/store'
+import { peut, uid, modulesDe } from '../lib/store'
 import { photoArticle, ventesDe, periodeBornes, dansPeriode } from '../lib/magasin'
 import { facturePdf } from './Caisse'
 import {
@@ -53,7 +53,10 @@ export default function Hotel() {
   const droitRemise = peut(profil, 'remises')
   const config = peut(profil, 'articles')
   const chambres = useMemo(() => chambresDe(documents), [documents])
-  const tables = useMemo(() => tablesDe(documents), [documents])
+  const mods = modulesDe(profil?.etab)
+  // Zones de tables ouvertes : restaurant (et terrasse), bar
+  const zonesOk = ZONES.filter((z) => (z === 'Bar' ? mods.bar : mods.restaurant))
+  const tables = useMemo(() => tablesDe(documents).filter((t) => zonesOk.includes(t.zone) || !ZONES.includes(t.zone)), [documents, mods.bar, mods.restaurant]) // eslint-disable-line react-hooks/exhaustive-deps
   const plats = useMemo(() => platsDe(documents), [documents])
   const sejours = useMemo(() => sejoursEnCours(documents), [documents])
   const commandes = useMemo(() => commandesOuvertes(documents), [documents])
@@ -61,10 +64,12 @@ export default function Hotel() {
   const commandeDe = (tableId) => commandes.find((c) => c.data.tableId === tableId)
 
   // Onglets selon les droits : salle (serveurs), chambres et planning (réception), tableau (direction)
+  // … et selon les modules attribués à l'établissement par le superadmin
+  const avecSalle = mods.restaurant || mods.bar
   const ONGLETS = [
-    ['salle', 'Salle', 'grid', peut(profil, 'salle')],
-    ['chambres', 'Chambres', 'layers', peut(profil, 'reception')],
-    ['planning', 'Planning', 'calendar', peut(profil, 'reception')],
+    ['salle', mods.restaurant ? 'Salle' : 'Bar', 'grid', peut(profil, 'salle') && avecSalle],
+    ['chambres', 'Chambres', 'layers', peut(profil, 'reception') && mods.hebergement],
+    ['planning', 'Planning', 'calendar', peut(profil, 'reception') && mods.hebergement],
     ['tableau', 'Tableau', 'chart', peut(profil, 'finances')],
   ].filter((o) => o[3])
   const permise = (v) => ONGLETS.some((o) => o[0] === v)
@@ -355,9 +360,9 @@ export default function Hotel() {
     <div className="pos hotel">
       <header className="pos-top">
         <img className="pos-logo" src={brand.logo || '/logo-mark.png'} alt="" />
-        <div className="pos-titre">
-          <strong>Hôtel</strong>
-          <span>{settings.facturation?.nom}</span>
+        <div className={`pos-titre ${vue === 'commande' ? 'en-commande' : ''}`}>
+          <strong>{profil?.etab?.nom || settings.facturation?.nom || 'Point de vente'}</strong>
+          <span>Point de vente</span>
         </div>
         <nav className="ho-tabs">
           {ONGLETS.map(([k, l, ico]) => {
@@ -399,7 +404,9 @@ export default function Hotel() {
         </div>
       </header>
 
-      {vue === 'salle' && <Salle tables={tables} commandeDe={commandeDe} onTable={ouvrirTable} onDirect={venteDirecte} config={config} onConfig={() => setModal({ t: 'reglages', onglet: 'tables' })} />}
+      {!ONGLETS.length && <Empty>Aucun module de cet établissement ne correspond à tes droits. Demande au directeur de régler tes accès.</Empty>}
+
+      {vue === 'salle' && <Salle zonesOk={zonesOk} tables={tables} commandeDe={commandeDe} onTable={ouvrirTable} onDirect={venteDirecte} config={config} onConfig={() => setModal({ t: 'reglages', onglet: 'tables' })} />}
 
       {vue === 'chambres' && (
         <Chambres
@@ -428,7 +435,7 @@ export default function Hotel() {
         />
       )}
 
-      {vue === 'tableau' && <TableauHotel chambres={chambres} onChambres={() => setVue('chambres')} onPlanning={() => setVue('planning')} />}
+      {vue === 'tableau' && <TableauHotel mods={mods} chambres={chambres} onChambres={() => setVue('chambres')} onPlanning={() => setVue('planning')} />}
 
       {vue === 'folio' && folioDoc && (
         <Folio
@@ -546,9 +553,11 @@ export default function Hotel() {
                 <button className="pt-client" disabled={!lignes.length} onClick={addition}>
                   <Icon n="note" size={16} /> Addition
                 </button>
-                <button className="pt-client" disabled={!lignes.length || !sejours.length} onClick={() => verifier() && setModal({ t: 'surChambre' })}>
-                  <Icon n="layers" size={16} /> Sur chambre
-                </button>
+                {mods.hebergement && (
+                  <button className="pt-client" disabled={!lignes.length || !sejours.length} onClick={() => verifier() && setModal({ t: 'surChambre' })}>
+                    <Icon n="layers" size={16} /> Sur chambre
+                  </button>
+                )}
               </div>
             )}
             <div className="pt-pave">
@@ -693,14 +702,14 @@ export default function Hotel() {
       {modal?.t === 'arrivee' && <Arrivee chambre={modal.chambre} reservation={modal.reservation} onClose={() => setModal(null)} onDone={(s) => { setModal(null); setFolioId(s.id); setVue('folio') }} />}
       {modal?.t === 'acompte' && <Acompte sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'prolonger' && <Prolonger sejour={modal.sejour} onClose={() => setModal(null)} />}
-      {modal?.t === 'reglages' && <Reglages onglet={modal.onglet} onClose={() => setModal(null)} />}
+      {modal?.t === 'reglages' && <Reglages mods={mods} zonesOk={zonesOk} onglet={modal.onglet} onClose={() => setModal(null)} />}
     </div>
   )
 }
 
 // ---------- Plan de salle ----------
-function Salle({ tables, commandeDe, onTable, onDirect, config, onConfig }) {
-  const zones = [...ZONES.filter((z) => tables.some((t) => t.zone === z)), ...[...new Set(tables.map((t) => t.zone))].filter((z) => z && !ZONES.includes(z))]
+function Salle({ zonesOk, tables, commandeDe, onTable, onDirect, config, onConfig }) {
+  const zones = [...zonesOk.filter((z) => tables.some((t) => t.zone === z)), ...[...new Set(tables.map((t) => t.zone))].filter((z) => z && !ZONES.includes(z))]
   const [zone, setZone] = useState(() => lire('hotel-zone', ''))
   const z = zones.includes(zone) ? zone : zones[0]
   const [, tic] = useState(0)
@@ -818,7 +827,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
                         <span className="hr-info">
                           {st === 'depart' ? 'Départ aujourd’hui' : `Jusqu'au ${fmtDate(s.data.depart)}`} · {f.nuits} nuit{f.nuits > 1 ? 's' : ''}
                         </span>
-                        <span className="hr-solde">{eur(f.reste)} à payer</span>
+                        <span className="hr-solde">{f.reste > 0 ? `${eur(f.reste)} à payer` : 'Payé'}</span>
                       </>
                     ) : c.menage ? (
                       <>
@@ -995,14 +1004,16 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
   const set = (p) => setF((x) => ({ ...x, ...p }))
   const nuits = Math.max(1, diffDays(f.depart, today()))
   const valider = async () => {
-    if (!f.client.trim()) return toast('Nom du client obligatoire', true)
     if (f.depart <= today()) return toast('Le départ doit être après aujourd’hui', true)
     const gene = conflit(documents, chambre.id, today(), f.depart, reservation?.id)
     if (gene && !window.confirm(`Attention : chambre ${chambre.nom} réservée pour ${gene.client} à partir du ${fmtDate(gene.debut)}. Continuer quand même ?`)) return
     setBusy(true)
     try {
-      const s = await arrivee({ chambre, ...f, par: profil?.nom, reservation }, ctx)
-      toast(`Chambre ${chambre.nom} attribuée à ${f.client.trim()} ✓`)
+      // Petits hôtels et résidences : pas de contrôle d'identité, le nom est facultatif
+      const client = f.client.trim() || 'Client de passage'
+      const acompte = f.paye ? Math.max(0, nuits * num(f.prixNuit) - num(r?.acompte)) : f.acompte
+      const s = await arrivee({ chambre, ...f, client, acompte, par: profil?.nom, reservation }, ctx)
+      toast(`Chambre ${chambre.nom} attribuée${f.client.trim() ? ` à ${client}` : ''}${f.paye ? ' · séjour payé' : ''} ✓`)
       onDone(s)
     } catch {
       setBusy(false)
@@ -1011,10 +1022,10 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
   return (
     <Modal title={`Arrivée · chambre ${chambre.nom} (${chambre.categorie})`} onClose={onClose}>
       <div className="stack">
-        <label className="field"><span>Nom du client *</span><input className="input" value={f.client} onChange={(e) => set({ client: e.target.value })} autoFocus /></label>
+        <label className="field"><span>Nom du client (facultatif)</span><input className="input" placeholder="Vide = client de passage, sans identité" value={f.client} onChange={(e) => set({ client: e.target.value })} autoFocus /></label>
         <div className="ho-2">
-          <label className="field"><span>Téléphone</span><input className="input" inputMode="tel" value={f.tel} onChange={(e) => set({ tel: e.target.value })} /></label>
-          <label className="field"><span>Pièce d'identité</span><input className="input" placeholder="CNI, passeport…" value={f.piece} onChange={(e) => set({ piece: e.target.value })} /></label>
+          <label className="field"><span>Téléphone (facultatif)</span><input className="input" inputMode="tel" value={f.tel} onChange={(e) => set({ tel: e.target.value })} /></label>
+          <label className="field"><span>Pièce d'identité (facultatif)</span><input className="input" placeholder="CNI, passeport…" value={f.piece} onChange={(e) => set({ piece: e.target.value })} /></label>
         </div>
         <div className="ho-2">
           <label className="field"><span>Départ prévu</span><input className="input" type="date" min={addDays(today(), 1)} value={f.depart} onChange={(e) => set({ depart: e.target.value })} /></label>
@@ -1022,9 +1033,16 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
         </div>
         <div className="ho-2">
           <label className="field"><span>Prix par nuit</span><input className="input" inputMode="numeric" disabled={!peut(profil, 'remises')} value={f.prixNuit} onChange={(e) => set({ prixNuit: e.target.value })} /></label>
-          <label className="field"><span>Acompte reçu (facultatif)</span><input className="input" inputMode="numeric" placeholder="0" value={f.acompte} onChange={(e) => set({ acompte: e.target.value })} /></label>
+          <label className="field"><span>Acompte reçu (facultatif)</span><input className="input" inputMode="numeric" placeholder="0" disabled={f.paye} value={f.paye ? nuits * num(f.prixNuit) - num(r?.acompte) : f.acompte} onChange={(e) => set({ acompte: e.target.value })} /></label>
         </div>
-        {num(f.acompte) > 0 && (
+        <label className={`droit-ligne ${f.paye ? 'perso' : ''}`}>
+          <input type="checkbox" checked={!!f.paye} onChange={() => set({ paye: !f.paye })} />
+          <span>
+            <b>Le client paie tout maintenant</b>
+            <span className="tiny muted">Vente de chambre payée à l'arrivée ; il ne restera que les extras à régler au départ.</span>
+          </span>
+        </label>
+        {(num(f.acompte) > 0 || f.paye) && (
           <div className="ho-modes">
             {(settings.modesPaiement || ['Espèces']).map((m) => (
               <button key={m} className={`chip ${f.mode === m ? 'on' : ''}`} onClick={() => set({ mode: m })}>{m}</button>
@@ -1036,7 +1054,7 @@ function Arrivee({ chambre, reservation, onDone, onClose }) {
           {nuits} nuit{nuits > 1 ? 's' : ''} × {eur(num(f.prixNuit))} = <strong>{eur(nuits * num(f.prixNuit))}</strong>
         </div>
         <button className="btn primary" disabled={busy} onClick={valider}>
-          {busy ? 'Enregistrement…' : 'Enregistrer l’arrivée'}
+          {busy ? 'Enregistrement…' : f.paye ? `Encaisser ${eur(Math.max(0, nuits * num(f.prixNuit) - num(r?.acompte)))} et donner la clé` : 'Enregistrer l’arrivée'}
         </button>
       </div>
     </Modal>
@@ -1094,23 +1112,24 @@ function Prolonger({ sejour, onClose }) {
 }
 
 // ---------- Réglages : chambres, tables, carte ----------
-function Reglages({ onglet = 'carte', onClose }) {
+function Reglages({ mods, zonesOk, onglet = 'carte', onClose }) {
   const { documents } = useApp()
-  const [tab, setTab] = useState(onglet)
+  const onglets = [['carte', 'Carte'], ...(mods.restaurant || mods.bar ? [['tables', 'Tables']] : []), ...(mods.hebergement ? [['chambres', 'Chambres']] : [])]
+  const [tab, setTab] = useState(onglets.some((o) => o[0] === onglet) ? onglet : 'carte')
   const [edit, setEdit] = useState(null)
   const listes = { chambres: chambresDe(documents), tables: tablesDe(documents), carte: platsDe(documents) }
   const liste = listes[tab]
   return (
     <Modal title="Réglages de l'hôtel" onClose={onClose} large>
       <div className="ho-zones" style={{ marginBottom: 12 }}>
-        {[['carte', 'Carte'], ['tables', 'Tables'], ['chambres', 'Chambres']].map(([k, l]) => (
+        {onglets.map(([k, l]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setEdit(null) }}>
             {l} <span>{listes[k].length}</span>
           </button>
         ))}
       </div>
       {edit ? (
-        <Fiche type={tab} item={edit === 'new' ? null : edit} onDone={() => setEdit(null)} />
+        <Fiche type={tab} zonesOk={zonesOk} item={edit === 'new' ? null : edit} onDone={() => setEdit(null)} />
       ) : (
         <div className="stack">
           <button className="btn primary" onClick={() => setEdit('new')}>
@@ -1137,7 +1156,7 @@ function Reglages({ onglet = 'carte', onClose }) {
 }
 
 const EMOJIS = ['🍳', '🥐', '☕', '🍵', '🥗', '🍲', '🍛', '🐟', '🍗', '🥩', '🍢', '🍟', '🍚', '🍰', '🍨', '🍉', '🥤', '🧃', '💧', '🍺', '🍷', '🥃', '🍸', '🍾', '🧺', '🚕', '🧴', '🛏️']
-function Fiche({ type, item, onDone }) {
+function Fiche({ type, zonesOk, item, onDone }) {
   const { documents, api, toast } = useApp()
   const [f, setF] = useState(() => ({
     nom: item?.nom || '',
@@ -1145,7 +1164,7 @@ function Fiche({ type, item, onDone }) {
     prix: item?.prix ?? '',
     emoji: item?.emoji || '',
     photo: item?.photo || '',
-    zone: item?.zone || 'Restaurant',
+    zone: item?.zone || zonesOk[0] || 'Restaurant',
     places: item?.places || 4,
     etage: item?.etage ?? 1,
   }))
@@ -1208,7 +1227,7 @@ function Fiche({ type, item, onDone }) {
         <div className="ho-2">
           <label className="field"><span>Zone</span>
             <select className="input" value={f.zone} onChange={(e) => set({ zone: e.target.value })}>
-              {ZONES.map((z) => <option key={z}>{z}</option>)}
+              {[...new Set([...zonesOk, f.zone])].map((z) => <option key={z}>{z}</option>)}
             </select>
           </label>
           <label className="field"><span>Places</span><input className="input" type="number" min="1" value={f.places} onChange={(e) => set({ places: e.target.value })} /></label>
@@ -1409,7 +1428,7 @@ function Reservation({ doc, chambre, arrivee: arr, chambres, onClose, onArrivee 
 // ---------- Tableau de bord de l'hôtel ----------
 const PERIODES = [['jour', "Aujourd'hui"], ['7j', '7 jours'], ['mois', 'Ce mois'], ['annee', 'Cette année']]
 const COULEURS = { Hébergement: '#2f5bd3', Restaurant: '#b8903f', Bar: '#8b5cf6', Terrasse: '#0f7b55', 'Extras chambres': '#d98a00', 'Vente directe': '#64748b' }
-function TableauHotel({ chambres, onChambres, onPlanning }) {
+function TableauHotel({ mods, chambres, onChambres, onPlanning }) {
   const { documents, actions } = useApp()
   const [periode, setPeriode] = useState(() => lire('hotel-periode', 'mois'))
   const bornes = periodeBornes(periode)
@@ -1436,11 +1455,12 @@ function TableauHotel({ chambres, onChambres, onPlanning }) {
         </div>
       </div>
       <div className="ho-kpis ho-kpis-6">
-        <div className="ho-kpi navy"><span>Chiffre d'affaires hôtel</span><strong>{eur(c.total)}</strong><em>{c.n} facture{c.n > 1 ? 's' : ''}</em></div>
-        <div className="ho-kpi"><span>Occupation ce soir</span><strong>{Math.round(auj.taux * 100)} %</strong><em>{auj.occupees} occupée{auj.occupees > 1 ? 's' : ''}{auj.reservees ? ` + ${auj.reservees} réservée${auj.reservees > 1 ? 's' : ''}` : ''} / {chambres.length}</em></div>
-        <div className="ho-kpi"><span>Nuitées vendues</span><strong>{nb(c.nuitees)}</strong><em>prix moyen {eur(c.prixMoyen)} / nuit</em></div>
-        <div className="ho-kpi"><span>Revenu par chambre</span><strong>{eur(revpar)}</strong><em>hébergement ÷ chambres ÷ jours</em></div>
-        <div className="ho-kpi warn"><span>À encaisser (clients présents)</span><strong>{eur(aEncaisser)}</strong><em>{sejours.length} note{sejours.length > 1 ? 's' : ''} ouverte{sejours.length > 1 ? 's' : ''}</em></div>
+        <div className="ho-kpi navy"><span>Chiffre d'affaires</span><strong>{eur(c.total)}</strong><em>{c.n} facture{c.n > 1 ? 's' : ''}</em></div>
+        {mods.hebergement && <div className="ho-kpi"><span>Occupation ce soir</span><strong>{Math.round(auj.taux * 100)} %</strong><em>{auj.occupees} occupée{auj.occupees > 1 ? 's' : ''}{auj.reservees ? ` + ${auj.reservees} réservée${auj.reservees > 1 ? 's' : ''}` : ''} / {chambres.length}</em></div>}
+        {mods.hebergement && <div className="ho-kpi"><span>Nuitées vendues</span><strong>{nb(c.nuitees)}</strong><em>prix moyen {eur(c.prixMoyen)} / nuit</em></div>}
+        {mods.hebergement && <div className="ho-kpi"><span>Revenu par chambre</span><strong>{eur(revpar)}</strong><em>hébergement ÷ chambres ÷ jours</em></div>}
+        {!mods.hebergement && <div className="ho-kpi"><span>Ticket moyen</span><strong>{eur(c.n ? c.total / c.n : 0)}</strong><em>par addition</em></div>}
+        {mods.hebergement && <div className="ho-kpi warn"><span>À encaisser (clients présents)</span><strong>{eur(aEncaisser)}</strong><em>{sejours.length} note{sejours.length > 1 ? 's' : ''} ouverte{sejours.length > 1 ? 's' : ''}</em></div>}
       </div>
       <div className="ht-grid">
         <div className="card ht-card">
@@ -1455,7 +1475,7 @@ function TableauHotel({ chambres, onChambres, onPlanning }) {
           ))}
           {!c.total && <p className="muted">Aucune vente de l'hôtel sur cette période.</p>}
         </div>
-        <div className="card ht-card">
+        {mods.hebergement && <div className="card ht-card">
           <h3>Occupation des chambres · 3 semaines</h3>
           <div className="ht-occ">
             {jours.map((j) => (
@@ -1470,9 +1490,9 @@ function TableauHotel({ chambres, onChambres, onPlanning }) {
             ))}
           </div>
           <div className="ho-legende"><span><i className="k-sejour" /> Occupées</span><span><i className="k-reservation" /> Réservées</span><span>% du total des chambres</span></div>
-        </div>
+        </div>}
         <div className="card ht-card">
-          <h3>Meilleures ventes · restaurant, bar, extras</h3>
+          <h3>Meilleures ventes</h3>
           <table className="hf-table">
             <tbody>
               {c.top.map((p, i) => (
@@ -1483,16 +1503,16 @@ function TableauHotel({ chambres, onChambres, onPlanning }) {
           {!c.top.length && <p className="muted">Rien sur cette période.</p>}
         </div>
         <div className="card ht-card">
-          <h3>Aujourd'hui à la réception</h3>
-          <div className="ht-liste">
+          {mods.hebergement && <h3>Aujourd'hui à la réception</h3>}
+          {mods.hebergement && <div className="ht-liste">
             <button className="ht-l-t" onClick={onPlanning}>{arrivees.length} arrivée{arrivees.length > 1 ? 's' : ''} attendue{arrivees.length > 1 ? 's' : ''}</button>
             {arrivees.map((r) => <div key={r.id} className="ht-l"><strong>Ch. {r.data.chambre}</strong><span>{r.data.client?.nom}</span><em>{r.data.arrivee < t ? 'en retard' : r.data.source}</em></div>)}
             <button className="ht-l-t" onClick={onChambres}>{departs.length} départ{departs.length > 1 ? 's' : ''} prévu{departs.length > 1 ? 's' : ''}</button>
             {departs.map((s) => <div key={s.id} className="ht-l"><strong>Ch. {s.data.chambre}</strong><span>{s.data.client?.nom}</span><em>{eur(folio(s).reste)}</em></div>)}
-          </div>
+          </div>}
           {modes.length > 0 && (
             <>
-              <h3 style={{ marginTop: 14 }}>Encaissements par moyen de paiement</h3>
+              <h3 style={{ marginTop: mods.hebergement ? 14 : 0 }}>Encaissements par moyen de paiement</h3>
               {modes.map(([m, v]) => <div key={m} className="ht-l"><span>{m}</span><strong>{eur(v)}</strong></div>)}
             </>
           )}
