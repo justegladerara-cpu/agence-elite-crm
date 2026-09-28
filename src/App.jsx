@@ -266,7 +266,8 @@ function Crm() {
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Espace démo vide : on le remplit d'articles, de ventes et de dépenses fictifs
-  const demoVide = !!state && profil?.espace === 'demo' && !(state.documents || []).some((d) => d.type === 'produit')
+  // (seulement un compte qui a le droit de tout créer : articles et dépenses)
+  const demoVide = !!state && profil?.espace === 'demo' && peut(profil, 'articles') && peut(profil, 'depenses') && !(state.documents || []).some((d) => d.type === 'produit')
   useEffect(() => {
     if (!demoVide || window.__demoSeeded) return
     window.__demoSeeded = true
