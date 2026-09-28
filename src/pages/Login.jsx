@@ -3,7 +3,49 @@ import { supabase } from '../lib/store'
 import { Logo } from '../icons'
 import { getBrand } from '../lib/theme'
 
-export default function Login() {
+// Deuxième étape de connexion : code de l'application d'authentification
+function Code({ onCode }) {
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    setErr('')
+    const { data } = await supabase.auth.mfa.listFactors()
+    const f = (data?.totp || []).find((x) => x.status === 'verified')
+    const { error } = f ? await supabase.auth.mfa.challengeAndVerify({ factorId: f.id, code: code.replace(/\s/g, '') }) : { error: { message: 'Aucune application enregistrée' } }
+    setBusy(false)
+    if (error) return setErr('Code incorrect. Vérifie l’heure de ton téléphone et réessaie.')
+    onCode()
+  }
+  return (
+    <div className="login">
+      <form className="card stack" onSubmit={submit}>
+        <Logo full />
+        <p className="login-tag">Tape le code à 6 chiffres affiché dans ton application d'authentification.</p>
+        <div className="field">
+          <label htmlFor="code-2fa">Code</label>
+          <input id="code-2fa" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={7} value={code} onChange={(e) => setCode(e.target.value)} required />
+        </div>
+        {err && <div className="red small" role="alert">{err}</div>}
+        <button className="btn primary block" disabled={busy}>
+          {busy ? 'Vérification…' : 'Valider'}
+        </button>
+        <button type="button" className="toggle-link" onClick={() => supabase.auth.signOut()}>
+          Changer de compte
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export default function Login({ code, onCode }) {
+  if (code) return <Code onCode={onCode} />
+  return <Connexion />
+}
+
+function Connexion() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
@@ -37,14 +79,14 @@ export default function Login() {
         {getBrand().sousTitre && <div className="login-sub">{getBrand().sousTitre}</div>}
         {getBrand().accroche && <p className="login-tag">{getBrand().accroche}</p>}
         <div className="field">
-          <label>E-mail</label>
-          <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <label htmlFor="login-email">E-mail</label>
+          <input id="login-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </div>
         <div className="field">
-          <label>Mot de passe</label>
-          <input type="password" autoComplete={create ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <label htmlFor="login-mdp">Mot de passe</label>
+          <input id="login-mdp" type="password" autoComplete={create ? "new-password" : "current-password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
-        {err && <div className="red small">{err}</div>}
+        {err && <div className="red small" role="alert">{err}</div>}
         <button className="btn primary block" disabled={busy}>
           {busy ? 'Connexion…' : create ? 'Créer mon compte' : 'Se connecter'}
         </button>

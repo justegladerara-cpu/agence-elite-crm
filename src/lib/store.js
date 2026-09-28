@@ -167,6 +167,17 @@ const local = {
     db.actions.push(...actions.map((a) => ({ id: uid(), created_at: nowIso(), ...cleanAction(a) })))
     writeLocal(db)
   },
+  // Annulation d'une suppression : remet les lignes avec leurs identifiants d'origine
+  async restaurer({ prospects = [], actions = [], documents = [] }) {
+    const db = readLocal()
+    const ids = new Set(prospects.map((p) => p.id))
+    db.prospects = [...db.prospects.filter((x) => !ids.has(x.id)), ...prospects]
+    const aIds = new Set(actions.map((a) => a.id))
+    db.actions = [...db.actions.filter((x) => !aIds.has(x.id)), ...actions]
+    const dIds = new Set(documents.map((d) => d.id))
+    db.documents = [...(db.documents || []).filter((x) => !dIds.has(x.id)), ...documents]
+    writeLocal(db)
+  },
   async wipe() {
     const db = readLocal()
     db.prospects = []
@@ -266,9 +277,19 @@ const isNetworkError = (e) =>
 const isAuthError = (e) => /jwt|token|auth|401|session/i.test(String(e?.message || e))
 
 // État de synchronisation, affiché dans l'interface
-let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: '' }
+const LAST = 'aecrm-derniere-synchro'
+let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: '', derniere: readJson(LAST, null) }
 const listeners = new Set()
 const emit = (patch) => {
+  // Heure de la dernière synchronisation réussie (tout est envoyé et en ligne)
+  if (patch.online !== false && patch.pending === 0 && !patch.syncing && !patch.error) {
+    patch = { ...patch, derniere: new Date().toISOString() }
+    try {
+      localStorage.setItem(LAST, JSON.stringify(patch.derniere))
+    } catch {
+      /* sans importance */
+    }
+  }
   sync = { ...sync, ...patch }
   listeners.forEach((f) => f(sync))
 }
@@ -402,7 +423,7 @@ const offline = {
             } catch {
               /* cache trop gros : on continue sans */
             }
-            emit({ online: true })
+            emit({ online: true, pending: 0 })
             return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
           }
         }
@@ -471,6 +492,15 @@ const offline = {
     if (error) throw new Error(error.message)
     signedUrls[path] = { url: data.signedUrl, exp: Date.now() + 3000 * 1000 }
     return data.signedUrl
+  },
+  async restaurer({ prospects = [], actions = [], documents = [] }) {
+    for (const p of prospects) await queued({ t: 'addProspect', row: { id: p.id, name: p.name, fiche: p.fiche || {}, created_at: p.created_at || nowIso() } })
+    if (actions.length) await queued({ t: 'addActions', rows: actions.map((a) => ({ id: a.id, created_at: a.created_at || nowIso(), ...cleanAction(a) })) })
+    for (const d of documents) {
+      const row = { ...d }
+      delete row.user_id
+      await queued({ t: 'saveDoc', row })
+    }
   },
   // Import et remise à zéro : uniquement en ligne
   async bulkImport(prospects, actions) {

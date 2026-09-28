@@ -1,9 +1,10 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Modal, Field, go, RelanceTag } from '../ui'
+import { useApp, Modal, Field, go, RelanceTag, Menu } from '../ui'
 import { Icon } from '../icons'
-import { fmtDate } from '../lib/dates'
-import { instaLink, handleInsta, doublonInsta, actionRank } from '../lib/logic'
+import { fmtDate, addDays, today } from '../lib/dates'
+import { lundiProchain } from './Rapide'
+import { instaLink, handleInsta, doublonInsta, actionRank, waLink } from '../lib/logic'
 import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../lib/insta'
 
 const nomDepuisCompte = (v) =>
@@ -28,9 +29,9 @@ const ecrirePref = (k, v) => {
   }
 }
 
-export function QuickInsta({ onClose }) {
+export function QuickInsta({ onClose, compte: compteInitial }) {
   const { api, data, settings, toast } = useApp()
-  const [compte, setCompte] = useState('')
+  const [compte, setCompte] = useState(compteInitial || '')
   const [nom, setNom] = useState('')
   const [secteur, setSecteur] = useState('')
   const [produit, setProduit] = useState('')
@@ -192,13 +193,11 @@ function useProcess(p) {
     const niveau = reste ? Math.max(1, ...reste.map((x) => actionRank(x, data.L))) : 0
     if (!a || e.fait({ ...p, acts: reste, niveau }, data.L))
       return toast(`« ${e.label} » vient aussi d'autres actions : modifie-les dans l'onglet Historique.`, true)
-    if (!window.confirm(`Annuler « ${e.label} » ? L'action du ${fmtDate(a.date)} sera supprimée de l'historique.`)) return
     if (enCours.has(p.id)) return
     enCours.add(p.id)
     setBusy(true)
     try {
       await api.deleteAction(a.id)
-      toast(`« ${e.label} » annulé`)
     } catch {
       // erreur déjà affichée
     }
@@ -384,7 +383,7 @@ export function QualifCard({ p }) {
         ))}
         <div className="q-row">
           <span>Objectif principal</span>
-          <select className="input" style={{ width: 'auto' }} value={q.objectif || ''} onChange={(e) => set({ objectif: e.target.value })}>
+          <select className="input" aria-label="Objectif" style={{ width: 'auto' }} value={q.objectif || ''} onChange={(e) => set({ objectif: e.target.value })}>
             <option value="">—</option>
             {OBJECTIFS_PROSPECT.map((o) => (
               <option key={o}>{o}</option>
@@ -402,19 +401,39 @@ export function RelanceBoutons({ p, compact }) {
   const [busy, setBusy] = useState(false)
   if (p.etape === 'Gagné' || p.etape === 'Perdu') return null
   const n = numeroRelance(p)
+  const f = p.fiche || {}
+  const wa = waLink(f.whatsapp || f.telephone, settings.clients?.indicatifWhatsApp)
+  const noter = async (canal) => {
+    const { row, prochaine, stop } = ligneRelance(p, settings)
+    const [r] = await api.addActions([canal ? { ...row, canal } : row])
+    toast(stop ? `Relance notée ✓ C'était la dernière : ${settings.relance?.stop} tentatives sans réponse` : `Relance notée ✓ Prochaine le ${fmtDate(prochaine)}`, false, {
+      annuler: () => api.deleteAction(r.id, { silencieux: true }),
+    })
+  }
   const copierMsg = async (e) => {
     e.stopPropagation()
     const txt = messageRelance(p, settings)
     if (!txt) return toast('Ajoute tes messages de relance dans Paramètres > Scripts', true)
     toast((await copier(txt)) ? `Message de relance ${Math.min(n, (settings.messagesRelance || []).length)} copié ✓` : 'Copie impossible', false)
   }
+  // WhatsApp : le message de relance est prérempli et la relance est notée tout de suite (annulable)
+  const whatsapp = async (e) => {
+    e.stopPropagation()
+    const txt = messageRelance(p, settings)
+    window.open(txt ? `${wa}?text=${encodeURIComponent(txt)}` : wa, '_blank', 'noopener')
+    setBusy(true)
+    try {
+      await noter('WhatsApp')
+    } catch {
+      // erreur déjà affichée
+    }
+    setBusy(false)
+  }
   const relance = async (e) => {
     e.stopPropagation()
     setBusy(true)
     try {
-      const { row, prochaine, stop } = ligneRelance(p, settings)
-      await api.addActions([row])
-      toast(stop ? `Relance notée ✓ C'était la dernière : ${settings.relance?.stop} tentatives sans réponse` : `Relance notée ✓ Prochaine le ${fmtDate(prochaine)}`)
+      await noter()
     } catch {
       // erreur déjà affichée
     }
@@ -422,13 +441,50 @@ export function RelanceBoutons({ p, compact }) {
   }
   return (
     <>
-      <button type="button" className="btn sm" title={`Copier le message de relance ${n}`} onClick={copierMsg}>
-        <Icon n="copy" size={14} />
-        {compact ? '' : ' Message'}
-      </button>
+      {wa ? (
+        <button type="button" className="btn sm wa" disabled={busy} title="Ouvrir WhatsApp avec le message de relance et noter la relance" aria-label="Relancer sur WhatsApp" onClick={whatsapp}>
+          <Icon n="message" size={14} />
+          {compact ? '' : ' WhatsApp'}
+        </button>
+      ) : (
+        <button type="button" className="btn sm" title={`Copier le message de relance ${n}`} aria-label={`Copier le message de relance ${n}`} onClick={copierMsg}>
+          <Icon n="copy" size={14} />
+          {compact ? '' : ' Message'}
+        </button>
+      )}
       <button type="button" className="btn sm primary" disabled={busy} title="Noter la relance et programmer la suivante" onClick={relance}>
         <Icon n="check" size={14} /> Relancé
       </button>
     </>
+  )
+}
+
+// Reporter une relance en 1 touche : demain, dans 3 jours ou lundi
+export function ReporterBouton({ p }) {
+  const { api, toast } = useApp()
+  if (p.etape === 'Gagné' || p.etape === 'Perdu') return null
+  const reporter = async (d, libelle) => {
+    try {
+      const [r] = await api.addActions([ligne(p.id, { action: 'Note', notes: `Relance reportée (${libelle})`, date_relance: d, prochaine_action: p.prochaineAction || 'Relancer' })])
+      toast(`Relance reportée au ${fmtDate(d)} ✓`, false, { annuler: () => api.deleteAction(r.id, { silencieux: true }) })
+    } catch {
+      // erreur déjà affichée
+    }
+  }
+  return (
+    <span onClick={(e) => e.stopPropagation()}>
+      <Menu
+        label=""
+        icon="clock"
+        ariaLabel="Reporter la relance"
+        className="btn sm"
+        items={[
+          { label: `Demain (${fmtDate(addDays(today(), 1))})`, onClick: () => reporter(addDays(today(), 1), 'demain') },
+          { label: `Dans 3 jours (${fmtDate(addDays(today(), 3))})`, onClick: () => reporter(addDays(today(), 3), '3 jours') },
+          { label: `Lundi (${fmtDate(lundiProchain())})`, onClick: () => reporter(lundiProchain(), 'lundi') },
+          { label: 'Dans 1 mois', onClick: () => reporter(addDays(today(), 30), '1 mois') },
+        ]}
+      />
+    </span>
   )
 }

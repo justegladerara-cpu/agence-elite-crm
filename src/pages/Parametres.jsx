@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Field, eur, lbl, go, DEVISES } from '../ui'
+import { useApp, Field, eur, lbl, go, DEVISES, confirmer } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
@@ -8,6 +8,7 @@ import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
 import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desactiverRappels, testerRappels } from '../lib/rappels'
 import { totals, nouveauDoc } from '../lib/invoice'
+import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
 const NUM_GROUPS = [
@@ -26,6 +27,7 @@ const SECTIONS = [
   ['scripts', 'Scripts', "Messages Instagram, script d'appel et accroches.", 'message'],
   ['rappels', 'Rappels', 'Notifications sur ton téléphone à l’heure des relances.', 'bell'],
   ['excel', 'Import / Export', 'Excel, Zoho Invoice et données d’exemple.', 'folder'],
+  ['securite', 'Sécurité', 'Sauvegarde, corbeille, double authentification.', 'check-circle'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
 
@@ -86,11 +88,11 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
       {value.map((item, i) => (
         <div className={`le-row ${cols?.some((c) => c[2] === 'select') ? 'has-select' : ''}`} key={i}>
           {!cols ? (
-            <input style={{ flex: 1 }} value={item} onChange={(e) => upd(i, e.target.value)} />
+            <input style={{ flex: 1 }} value={item} aria-label={`Élément ${i + 1}`} onChange={(e) => upd(i, e.target.value)} />
           ) : (
-            cols.map(([k, , type, opts]) =>
+            cols.map(([k, libelle, type, opts]) =>
               type === 'select' ? (
-                <select key={k} style={{ flex: 1.4 }} value={item[k] || ''} onChange={(e) => upd(i, { ...item, [k]: e.target.value })}>
+                <select key={k} aria-label={`${lbl(libelle)}, ligne ${i + 1}`} style={{ flex: 1.4 }} value={item[k] || ''} onChange={(e) => upd(i, { ...item, [k]: e.target.value })}>
                   {opts.map(([v, l]) => (
                     <option key={v} value={v}>
                       {l}
@@ -98,13 +100,14 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
                   ))}
                 </select>
               ) : type === 'bool' ? (
-                <select key={k} style={{ flex: 1 }} value={item[k] ? 'Oui' : 'Non'} onChange={(e) => upd(i, { ...item, [k]: e.target.value === 'Oui' })}>
+                <select key={k} aria-label={`${lbl(libelle)}, ligne ${i + 1}`} style={{ flex: 1 }} value={item[k] ? 'Oui' : 'Non'} onChange={(e) => upd(i, { ...item, [k]: e.target.value === 'Oui' })}>
                   <option>Oui</option>
                   <option>Non</option>
                 </select>
               ) : (
                 <input
                   key={k}
+                  aria-label={`${lbl(libelle)}, ligne ${i + 1}`}
                   style={{ flex: k === 'nom' ? 2 : 1 }}
                   inputMode={type === 'num' ? 'decimal' : undefined}
                   readOnly={type === 'ro'}
@@ -115,7 +118,7 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
             )
           )}
           {!fixedLength && (
-            <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => onChange(value.filter((_, j) => j !== i))} title="Retirer" aria-label="Retirer">
+            <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => onChange(value.filter((_, j) => j !== i))} title="Retirer" aria-label={`Retirer la ligne ${i + 1}`}>
               <Icon n="x" size={14} />
             </button>
           )}
@@ -301,7 +304,7 @@ function ZohoCard() {
     if (!file) return
     try {
       const { lireZoho } = await import('../lib/zoho')
-      const r = lireZoho(new Uint8Array(await file.arrayBuffer()))
+      const r = await lireZoho(new Uint8Array(await file.arrayBuffer()))
       const existants = new Set(documents.filter((d) => d.type === r.type).map((d) => d.numero))
       const nouveaux = r.docs.filter((d) => !existants.has(d.numero))
       setImp({ ...r, file: file.name, nouveaux, dejaLa: r.docs.length - nouveaux.length })
@@ -372,7 +375,7 @@ function ZohoCard() {
       <button className="btn" disabled={busy} onClick={() => ref.current.click()}>
         <Icon n="upload" size={16} /> Choisir l'export Zoho
       </button>
-      <input ref={ref} type="file" accept=".csv,.xlsx,.xls" hidden onChange={choisir} />
+      <input ref={ref} type="file" accept=".csv,.xlsx" hidden onChange={choisir} />
       {imp && (
         <div className="card" style={{ marginTop: 14, background: 'var(--gold-soft)' }}>
           <b>{imp.file}</b>
@@ -578,7 +581,7 @@ export default function Parametres({ section }) {
     if (!file) return
     try {
       const { parseExcel } = await import('../lib/excel')
-      const parsed = parseExcel(new Uint8Array(await file.arrayBuffer()))
+      const parsed = await parseExcel(new Uint8Array(await file.arrayBuffer()))
       setImp({ ...parsed, file: file.name, replace: prospects.length === 0, withSettings: true })
     } catch (err) {
       toast(err.message, true)
@@ -631,6 +634,7 @@ export default function Parametres({ section }) {
               </span>
               <input
                 className="input"
+                aria-label={lbl(label)}
                 style={{ width: 110, textAlign: 'right' }}
                 inputMode={t === 'text' ? 'numeric' : 'decimal'}
                 value={s[g][k] ?? ''}
@@ -914,7 +918,7 @@ export default function Parametres({ section }) {
           <button className="btn" disabled={!!busy || prospects.some(isExample)} onClick={async () => { setBusy('seed'); try { await api.loadSeed(); toast('Exemples chargés ✓') } catch { /* toast */ } setBusy('') }}>
             Charger les exemples
           </button>
-          <button className="btn danger" disabled={!!busy || !prospects.some(isExample)} onClick={async () => { if (!window.confirm('Supprimer tous les prospects « (EXEMPLE) » et leur historique ?')) return; setBusy('seed'); try { await api.clearSeed(); toast('Exemples supprimés ✓') } catch { /* toast */ } setBusy('') }}>
+          <button className="btn danger" disabled={!!busy || !prospects.some(isExample)} onClick={async () => { if (!(await confirmer('Supprimer tous les prospects « (EXEMPLE) » et leur historique ?', { ok: 'Supprimer', danger: true }))) return; setBusy('seed'); try { await api.clearSeed(); toast('Exemples supprimés ✓') } catch { /* toast */ } setBusy('') }}>
             Supprimer les exemples
           </button>
         </div>
@@ -922,6 +926,7 @@ export default function Parametres({ section }) {
 
             </>
           )}
+          {sec === 'securite' && <Securite />}
           {sec === 'compte' && (
             <>
       <div className="card">
@@ -934,7 +939,7 @@ export default function Parametres({ section }) {
               className="btn"
               onClick={async () => {
                 const n = syncStatus.get().pending
-                if (n && !window.confirm(`${n} modification${n > 1 ? 's' : ''} pas encore synchronisée${n > 1 ? 's' : ''} ser${n > 1 ? 'ont' : 'a'} perdue${n > 1 ? 's' : ''}. Se déconnecter quand même ?`)) return
+                if (n && !(await confirmer(`${n} modification${n > 1 ? 's' : ''} pas encore synchronisée${n > 1 ? 's' : ''} ser${n > 1 ? 'ont' : 'a'} perdue${n > 1 ? 's' : ''}. Se déconnecter quand même ?`, { ok: 'Se déconnecter', danger: true }))) return
                 clearOffline()
                 await supabase.auth.signOut()
               }}
@@ -944,7 +949,7 @@ export default function Parametres({ section }) {
           )}
           <button
             className="btn ghost sm"
-            onClick={() => window.confirm('Remettre les paramètres par défaut du fichier Excel ? (ton logo, tes couleurs et ton cachet sont gardés)') && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
+            onClick={async () => (await confirmer('Ton logo, tes couleurs et ton cachet sont gardés.', { titre: 'Remettre les paramètres par défaut ?', ok: 'Remettre par défaut', danger: true })) && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
           >
             Paramètres par défaut
           </button>

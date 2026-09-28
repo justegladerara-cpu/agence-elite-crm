@@ -1,5 +1,5 @@
 // Import des factures et devis exportés de Zoho Invoice (CSV ou Excel), sans connexion ni mot de passe.
-import * as XLSX from 'xlsx'
+import { lireXlsx, feuilleVersLignes, lireCsv, serieVersDate } from './tableur'
 import { num } from './invoice'
 
 const norm = (s) =>
@@ -35,10 +35,7 @@ const p2 = (n) => String(n).padStart(2, '0')
 export function dateZoho(v) {
   if (!v) return ''
   if (v instanceof Date && !isNaN(v)) return `${v.getFullYear()}-${p2(v.getMonth() + 1)}-${p2(v.getDate())}`
-  if (typeof v === 'number') {
-    const d = XLSX.SSF.parse_date_code(v)
-    return d ? `${d.y}-${p2(d.m)}-${p2(d.d)}` : ''
-  }
+  if (typeof v === 'number') return serieVersDate(v)
   const s = String(v).trim()
   let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)
   if (m) return `${m[1]}-${p2(m[2])}-${p2(m[3])}`
@@ -50,12 +47,16 @@ export function dateZoho(v) {
   return ''
 }
 
-export function lireZoho(buffer) {
+export async function lireZoho(buffer) {
   // CSV : on garde les dates en texte (sinon « 05/09/2026 » serait lu à l'américaine, en mai)
   const estXlsx = buffer[0] === 0x50 && buffer[1] === 0x4b
   const estXls = buffer[0] === 0xd0 && buffer[1] === 0xcf
-  const wb = XLSX.read(buffer, estXlsx || estXls ? { type: 'array', cellDates: true } : { type: 'array', raw: true })
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '', raw: true })
+  if (estXls) throw new Error('Ancien format Excel (.xls) : exporte en CSV ou XLSX depuis Zoho.')
+  let rows
+  if (estXlsx) {
+    const wb = await lireXlsx(buffer)
+    rows = feuilleVersLignes(wb.Sheets[wb.SheetNames[0]])
+  } else rows = lireCsv(new TextDecoder('utf-8').decode(buffer))
   if (!rows.length) throw new Error('Fichier vide.')
   const headers = Object.keys(rows[0])
   const col = {}

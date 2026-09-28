@@ -23,7 +23,7 @@ function inPeriode(date, p) {
 }
 function PeriodeTabs({ value, onChange }) {
   return (
-    <select className="input" style={{ width: 'auto' }} value={value} onChange={(e) => onChange(e.target.value)}>
+    <select className="input" aria-label="Période" style={{ width: 'auto' }} value={value} onChange={(e) => onChange(e.target.value)}>
       {PERIODES.map(([k, l]) => (
         <option key={k} value={k}>
           {l}
@@ -183,9 +183,7 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
     }
   }
   const remove = async () => {
-    if (!window.confirm('Supprimer ce paiement ?')) return
     await api.deleteAction(edit.id)
-    toast('Paiement supprimé')
     onDone()
   }
   return (
@@ -266,9 +264,7 @@ export function DepenseForm({ prefill = {}, edit, onDone }) {
     }
   }
   const remove = async () => {
-    if (!window.confirm('Supprimer cette dépense ?')) return
     await api.deleteAction(edit.id)
-    toast('Dépense supprimée')
     onDone()
   }
   return (

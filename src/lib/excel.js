@@ -1,6 +1,6 @@
 // Export vers le fichier Excel de pilotage (même onglets, mêmes formules) et import depuis ce fichier.
 import JSZip from 'jszip'
-import * as XLSX from 'xlsx'
+import { lireXlsx } from './tableur'
 import { FICHE_FIELDS, ACTION_COLS } from './defaults'
 import { sortActions } from './logic'
 import { uid } from './store'
@@ -274,17 +274,16 @@ function readCell(ws, ref) {
   return c.v
 }
 
-export function parseExcel(buffer, { skipExamples = true } = {}) {
-  const wb = XLSX.read(buffer, { type: 'array', cellFormula: false, cellDates: false })
+export async function parseExcel(buffer, { skipExamples = true } = {}) {
+  const wb = await lireXlsx(buffer)
   const ws = wb.Sheets['Saisie']
   if (!ws) throw new Error("Onglet « Saisie » introuvable : ce n'est pas le fichier de pilotage.")
-  const range = XLSX.utils.decode_range(ws['!ref'])
   const prospects = new Map()
   const actions = []
   const toDate = (v) => (v === null ? null : typeof v === 'number' ? fromSerial(v) : frDate(String(v)))
   const toTime = (v) => (v === null ? null : typeof v === 'number' ? serialToTime(v) : String(v).slice(0, 5))
   let skipped = 0
-  for (let r = 5; r <= range.e.r + 1; r++) {
+  for (let r = 5; r <= ws['!lignes']; r++) {
     const g = (col) => readCell(ws, `${col}${r}`)
     const name = g('C') === null ? null : String(g('C')).trim()
     const action = g('E')

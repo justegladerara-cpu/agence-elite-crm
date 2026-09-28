@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Select, StageBadge, eur, Empty, Modal, LienDoc } from '../ui'
+import { useApp, Field, Select, StageBadge, eur, Empty, Modal, LienDoc, confirmer } from '../ui'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
 import { montantRetenu } from '../lib/logic'
@@ -169,10 +169,16 @@ export function ActionForm({ prefill = {}, onDone }) {
   const prospection = !!actDef?.prospection
   const p = pid ? data.byId[pid] : null
   const known = new Set(GROUPS.flatMap((g) => g[1]))
+  // Actions automatiques ou rares : pas de tuile (Commande boutique vient du site, les dépenses de Facturation)
+  const AUTO = ['Commande boutique']
   const groups = [
     ...GROUPS.map(([g, list]) => [g, list.filter((a) => L.act[a])]),
-    ['Personnalisé', settings.actions.map((a) => a.nom).filter((a) => !known.has(a))],
+    ['Personnalisé', settings.actions.map((a) => a.nom).filter((a) => !known.has(a) && !AUTO.includes(a))],
   ].filter((g) => g[1].length)
+  // Prospection et vente toujours visibles ; client, autres et personnalisées sur demande (ou si l'une est choisie)
+  const PRINCIPAUX = ['Prospection', 'Vente']
+  const [toutes, setToutes] = useState(() => !!prefill.edit || (!!prefill.action && !GROUPS.slice(0, 2).some(([, l]) => l.includes(prefill.action))))
+  const visibles = groups.filter(([g, list]) => toutes || PRINCIPAUX.includes(g) || list.includes(f.action))
 
   const showResult = prospection || f.action === 'Loom envoyé' || !!f.resultat
   const showMoney = MONEY.includes(f.action) || f.montant !== ''
@@ -214,7 +220,7 @@ export function ActionForm({ prefill = {}, onDone }) {
       if (newName) {
         const phone = (newFiche.telephone || '').replace(/\s/g, '')
         const dupPhone = phone && data.list.find((x) => (x.fiche?.telephone || '').replace(/\s/g, '') === phone)
-        if (dupPhone && !window.confirm(`Ce numéro est déjà utilisé par « ${dupPhone.name} ». Créer quand même ?`)) {
+        if (dupPhone && !(await confirmer(`Ce numéro est déjà utilisé par « ${dupPhone.name} ».`, { titre: 'Doublon possible', ok: 'Créer quand même', non: 'Annuler' }))) {
           setBusy(false)
           return
         }
@@ -304,7 +310,7 @@ export function ActionForm({ prefill = {}, onDone }) {
 
       <Section n={3} titre="Action">
         <div className="af-groups">
-          {groups.map(([g, list]) => (
+          {visibles.map(([g, list]) => (
             <div key={g} className="af-group">
               <div className="af-glabel">
                 <i style={{ background: COUL_GROUPE[g] || COUL_GROUPE.Autre }} />
@@ -318,6 +324,11 @@ export function ActionForm({ prefill = {}, onDone }) {
             </div>
           ))}
         </div>
+        {visibles.length < groups.length && (
+          <button type="button" className="btn sm" style={{ marginTop: 10 }} onClick={() => setToutes(true)}>
+            <Icon n="plus" size={14} /> Actions client et autres ({groups.filter((g) => !visibles.includes(g)).reduce((m, [, l]) => m + l.length, 0)})
+          </button>
+        )}
         {(showMoney || showObjection || showModele || showNote || showFacture) && (
           <div className="af-details form-grid">
             {showMoney && (
@@ -549,7 +560,7 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
             <a
               href={`#/prospect/${p.id}`}
               onClick={(e) => e.stopPropagation()}
-              style={{ color: 'var(--navy)' }}
+              style={{ color: 'var(--navy)', textDecoration: 'underline', textUnderlineOffset: 2 }}
             >
               {p.name}
             </a>
@@ -585,7 +596,8 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
         <button
           className="icon-btn"
           title="Supprimer"
-          onClick={() => window.confirm('Supprimer cette action ?') && api.deleteAction(a.id).catch(() => {})}
+          aria-label="Supprimer l'action"
+          onClick={() => api.deleteAction(a.id).catch(() => {})}
         >
           <Icon n="trash" size={15} />
         </button>

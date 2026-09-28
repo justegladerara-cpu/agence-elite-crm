@@ -575,6 +575,12 @@ export function periodeFor(mois) {
     const l = addDays(lundi, -7)
     return { mois, semaine: true, debut: l, fin: addDays(l, 6), prevDebut: addDays(l, -7), prevFin: addDays(l, -1), prevLabel: 'sem. préc.' }
   }
+  // Jours glissants : jamais vide un lundi matin, comparés aux N jours d'avant
+  if (mois === '7 derniers jours' || mois === '30 derniers jours') {
+    const n = mois.startsWith('7') ? 7 : 30
+    const debut = addDays(t, 1 - n)
+    return { mois, semaine: true, debut, fin: t, prevDebut: addDays(debut, -n), prevFin: addDays(debut, -1), prevLabel: `${n} j préc.` }
+  }
   if (mois === 'Tous') return { mois, debut: '2000-01-01', fin: '2100-12-31', prevDebut: null, prevFin: null }
   const key = mois === 'Mois en cours' ? t.slice(0, 7) : mois
   const p = prevMonth(key)

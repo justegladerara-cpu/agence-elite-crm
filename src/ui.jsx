@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { waLink, instaLink, siteLink } from './lib/logic'
 import { fmtDate, today } from './lib/dates'
 import { Icon } from './icons'
+import { noterAppelLance } from './lib/appel'
 
 export const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -66,22 +67,22 @@ export function ContactButtons({ p, compact }) {
   return (
     <div className="row" onClick={stop}>
       {phone && (
-        <a className="icon-btn" href={`tel:${phone.replace(/\s/g, '')}`} title={`Appeler ${phone}`}>
+        <a className="icon-btn" href={`tel:${phone.replace(/\s/g, '')}`} title={`Appeler ${phone}`} aria-label={`Appeler ${phone}`} onClick={() => p.id && noterAppelLance(p.id)}>
           <Icon n="phone" size={16} />
         </a>
       )}
       {wa && (
-        <a className="icon-btn" href={wa} target="_blank" rel="noreferrer" title="WhatsApp">
+        <a className="icon-btn" href={wa} target="_blank" rel="noreferrer" title="WhatsApp" aria-label="Écrire sur WhatsApp">
           <Icon n="message" size={16} />
         </a>
       )}
       {f.instagram && (
-        <a className="icon-btn" href={instaLink(f.instagram)} target="_blank" rel="noreferrer" title="Instagram">
+        <a className="icon-btn" href={instaLink(f.instagram)} target="_blank" rel="noreferrer" title="Instagram" aria-label="Ouvrir Instagram">
           <Icon n="instagram" size={16} />
         </a>
       )}
       {!compact && f.site && (
-        <a className="icon-btn" href={siteLink(f.site)} target="_blank" rel="noreferrer" title="Site internet">
+        <a className="icon-btn" href={siteLink(f.site)} target="_blank" rel="noreferrer" title="Site internet" aria-label="Ouvrir le site internet">
           <Icon n="globe" size={16} />
         </a>
       )}
@@ -106,10 +107,24 @@ export function Chips({ options, value, onChange, small, allowEmpty = true }) {
   )
 }
 
+// Champ avec son libellé : le libellé est relié au premier champ de saisie (lecteurs d'écran, clic sur le libellé)
+let champN = 0
 export function Field({ label, children, style }) {
+  const boite = useRef(null)
+  const [id] = useState(() => `champ-${++champN}`)
+  useEffect(() => {
+    const el = boite.current?.querySelector('input, select, textarea, button.choix')
+    if (!el || !label) return
+    if (!el.id) el.id = `${id}-x`
+    if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) el.setAttribute('aria-labelledby', id)
+  })
   return (
-    <div className="field" style={style}>
-      {label && <label>{lbl(label)}</label>}
+    <div className="field" style={style} ref={boite}>
+      {label && (
+        <label id={id} htmlFor={`${id}-x`}>
+          {lbl(label)}
+        </label>
+      )}
       {children}
     </div>
   )
@@ -279,10 +294,11 @@ export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.', onC
 export function useToast() {
   const [toast, setToast] = useState(null)
   const timer = useRef()
-  const show = (msg, err) => {
+  // show(message, erreur, { annuler }) : avec « annuler », le toast reste 8 s et propose de revenir en arrière
+  const show = (msg, err, opts = {}) => {
     clearTimeout(timer.current)
-    setToast({ msg, err, n: Date.now() })
-    timer.current = setTimeout(() => setToast(null), err ? 5000 : 2200)
+    setToast({ msg, err, annuler: opts.annuler, n: Date.now() })
+    timer.current = setTimeout(() => setToast(null), opts.annuler ? 8000 : err ? 5000 : 2200)
   }
   // Le ✓ final du message devient l'icône de succès
   const node = toast ? (
@@ -291,9 +307,56 @@ export function useToast() {
         <Icon n={toast.err ? 'alert-circle' : 'check'} size={15} />
       </span>
       {String(toast.msg).replace(/\s*✓\s*/g, ' ').trim()}
+      {toast.annuler && (
+        <button
+          type="button"
+          className="toast-annuler"
+          onClick={() => {
+            clearTimeout(timer.current)
+            setToast(null)
+            Promise.resolve(toast.annuler()).catch(() => {})
+          }}
+        >
+          Annuler
+        </button>
+      )}
     </div>
   ) : null
   return [show, node]
+}
+
+// Boîte de confirmation dans l'application (remplace window.confirm) : confirmer('Supprimer ?', { ok: 'Supprimer', danger: true })
+let ouvrirConfirm = null
+export function confirmer(message, opts = {}) {
+  if (!ouvrirConfirm) return Promise.resolve(window.confirm(message))
+  return new Promise((resolve) => ouvrirConfirm({ message, ...opts, resolve }))
+}
+export function ConfirmHost() {
+  const [q, setQ] = useState(null)
+  useEffect(() => {
+    ouvrirConfirm = setQ
+    return () => {
+      ouvrirConfirm = null
+    }
+  }, [])
+  if (!q) return null
+  const fin = (v) => {
+    setQ(null)
+    q.resolve(v)
+  }
+  return (
+    <Modal title={q.titre || 'Confirmer'} onClose={() => fin(false)}>
+      <p style={{ margin: '4px 0 18px', whiteSpace: 'pre-line' }}>{q.message}</p>
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <button type="button" className="btn" onClick={() => fin(false)}>
+          {q.non || 'Annuler'}
+        </button>
+        <button type="button" autoFocus className={`btn ${q.danger ? 'danger' : 'primary'}`} onClick={() => fin(true)}>
+          {q.ok || 'Confirmer'}
+        </button>
+      </div>
+    </Modal>
+  )
 }
 
 export function Empty({ children }) {
@@ -334,7 +397,7 @@ export function Tabs({ items, value, onChange }) {
 }
 
 // Menu déroulant (bouton « Plus » façon Zoho) : se ferme au clic dehors ou sur un choix
-export function Menu({ label, icon = 'chevron', items, className = 'btn sm', align = 'right' }) {
+export function Menu({ label, icon = 'chevron', items, className = 'btn sm', align = 'right', ariaLabel }) {
   const [open, setOpen] = useState(null)
   const ref = useRef()
   const pop = useRef()
@@ -369,7 +432,7 @@ export function Menu({ label, icon = 'chevron', items, className = 'btn sm', ali
   }
   return (
     <div className="menu" ref={ref}>
-      <button type="button" className={className} aria-expanded={!!open} onClick={ouvrir}>
+      <button type="button" className={className} aria-expanded={!!open} aria-haspopup="menu" aria-label={ariaLabel} title={ariaLabel} onClick={ouvrir}>
         {label}
         {icon && <Icon n={icon} size={14} />}
       </button>

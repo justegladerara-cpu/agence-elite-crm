@@ -19,6 +19,8 @@ export default function Fiche({ id }) {
   const [editAction, setEditAction] = useState(null)
   const [tousChamps, setTousChamps] = useState(false)
   const [onglet, setOnglet] = useTab('fiche', 'apercu')
+  // Historique visible directement dans l'aperçu : c'est ce qu'on relit avant d'appeler
+  const [nHisto, setNHisto] = useState(10)
   if (!p)
     return (
       <div className="card">
@@ -48,10 +50,8 @@ export default function Fiche({ id }) {
     toast('Fiche enregistrée ✓')
   }
   const remove = async () => {
-    if (!window.confirm(`Supprimer « ${p.name} » et tout son historique (${p.acts.length} actions) ?`)) return
     await api.deleteProspect(p.id)
-    toast('Fiche supprimée')
-    go('/clients')
+    go('/acquisition')
   }
 
   const ig = f.instagram
@@ -237,7 +237,7 @@ export default function Fiche({ id }) {
             )}
             <div className="card">
               <h2 className="section">
-                <span className="sec-ic"><Icon n="clock" size={16} /></span> Activité récente
+                <span className="sec-ic"><Icon n="clock" size={16} /></span> Historique
                 <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => setOnglet('historique')}>
                   Tout voir ({p.acts.length})
                 </button>
@@ -245,10 +245,15 @@ export default function Fiche({ id }) {
               <NoteRapide pid={p.id} />
               <div className="list">
                 {history.length === 0 && <Empty>Aucune action.</Empty>}
-                {history.slice(0, 5).map((a) => (
+                {history.slice(0, nHisto).map((a) => (
                   <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
                 ))}
               </div>
+              {history.length > nHisto && (
+                <button className="btn sm" style={{ marginTop: 8 }} onClick={() => setNHisto(nHisto + 20)}>
+                  Voir {Math.min(20, history.length - nHisto)} de plus
+                </button>
+              )}
             </div>
           </div>
           <aside className="stack">

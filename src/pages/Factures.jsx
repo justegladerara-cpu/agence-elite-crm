@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
@@ -8,37 +8,7 @@ import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
 
 
-// Bouton « Relancer » d'une facture impayée (liste des factures, Ma journée)
-export function RelanceFactureBtn({ doc, label }) {
-  const { actions, data, settings, api, toast } = useApp()
-  const go_ = async (e) => {
-    e.stopPropagation()
-    const texte = remplirDoc(settings.messageImpaye, doc, { actions, byId: data.byId, eur })
-    const r = await ouvrirWhatsApp(texte, telClient(doc, data.byId), settings.clients.indicatifWhatsApp)
-    if (doc.prospect_id)
-      await api.addActions([{ prospect_id: doc.prospect_id, date: today(), time: nowTime(), action: 'Note', canal: 'WhatsApp', notes: `Relance de paiement ${doc.numero}` }]).catch(() => {})
-    toast(r === 'wa' ? 'Message de relance prêt dans WhatsApp ✓' : 'Message copié ✓ (ajoute le téléphone sur la fiche pour ouvrir WhatsApp)')
-  }
-  return (
-    <button type="button" className="btn sm" title="Relancer le paiement sur WhatsApp" onClick={go_}>
-      <Icon n="bell" size={14} />
-      {label ? ` ${label}` : ''}
-    </button>
-  )
-}
-
-// Factures à relancer : en retard ou partiellement payées
-export function facturesImpayees(documents, actions) {
-  return documents
-    .filter((d) => d.type === 'facture')
-    .map((d) => {
-      const t = totals(d.data || {}).total
-      const paye = paiementsDe(d, actions).reduce((m, a) => m + num(a.montant), 0)
-      return { ...d, total: t, reste: Math.max(0, t - paye), statut: statutDe(d, actions) }
-    })
-    .filter((d) => d.reste > 0 && (d.statut === 'En retard' || d.statut === 'Partiellement payée'))
-    .sort((a, b) => (a.data?.echeance || '').localeCompare(b.data?.echeance || ''))
-}
+import { RelanceFactureBtn } from './Impayes'
 
 // ---------- Liste ----------
 export default function Factures({ type = 'facture', filtre: filtreDemande }) {
@@ -366,7 +336,7 @@ export function DocEditor({ id, query }) {
     }
   }
   const annuler = async () => {
-    if (!window.confirm('Annuler cette facture ? Son montant sera retiré du suivi client.')) return
+    if (!(await confirmer('Son montant sera retiré du suivi client.', { titre: 'Annuler cette facture ?', ok: 'Annuler la facture', non: 'Garder', danger: true }))) return
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
     if (linked) await api.deleteAction(linked.id)
     const nd = { ...existing.data, annulee: true, actionId: null }
@@ -376,12 +346,10 @@ export function DocEditor({ id, query }) {
     toast('Facture annulée')
   }
   const supprimer = async () => {
-    if (!window.confirm(`Supprimer définitivement ${doc.numero} ?`)) return
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
-    if (linked && window.confirm('Supprimer aussi la ligne correspondante dans le suivi client ?')) await api.deleteAction(linked.id)
+    if (linked && (await confirmer('Supprimer aussi la ligne correspondante dans le suivi client ?', { titre: `Supprimer ${doc.numero}`, ok: 'Oui, aussi', non: 'Non, garder la ligne' }))) await api.deleteAction(linked.id, { silencieux: true })
     await api.deleteDoc(existing.id)
     await libererDevis()
-    toast('Document supprimé')
     go(doc.type === 'devis' ? '/devis' : '/factures')
   }
 

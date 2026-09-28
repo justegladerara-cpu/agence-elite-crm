@@ -1,7 +1,7 @@
 // Fiches partagées par le hub Clients : nouvelle fiche, liste réduite de la vue côte à côte, actions groupées
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useApp, go, Modal, Menu } from '../ui'
+import { useApp, go, Modal, Menu, confirmer } from '../ui'
 import FicheForm from './FicheForm'
 import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
@@ -118,13 +118,14 @@ export function ActionsGroupees({ choisis, etapes, vider }) {
       () => api.addActions(ouverts.map((p) => ligne(p.id, { canal: p.canal || 'DM', action: 'Note', notes: 'Relance programmée', date_relance: addDays(today(), j) }))),
       `Relance programmée le ${fmtDate(addDays(today(), j))} pour ${ouverts.length} prospect${ouverts.length > 1 ? 's' : ''} ✓`,
     )
-  const passer = (cible) => {
+  const passer = async (cible) => {
     const i = etapes.indexOf(cible)
     const action = ACTION_ETAPE[i]
     // Seulement vers l'avant, sans toucher aux clients signés
     const ok = choisis.filter((p) => (cible === 'Perdu' ? p.niveau < 7 && p.etape !== 'Perdu' : p.etape !== 'Perdu' && i + 1 > p.niveau))
     if (!ok.length) return toast(`Aucun des prospects cochés ne peut passer à « ${cible} ».`, true)
-    if (!window.confirm(`Noter « ${action} » pour ${ok.length} prospect${ok.length > 1 ? 's' : ''} ?${ok.length < choisis.length ? ` (${choisis.length - ok.length} ignoré${choisis.length - ok.length > 1 ? 's' : ''} : déjà plus loin)` : ''}`)) return
+    const texte = `Noter « ${action} » pour ${ok.length} prospect${ok.length > 1 ? 's' : ''} ?${ok.length < choisis.length ? ` (${choisis.length - ok.length} ignoré${choisis.length - ok.length > 1 ? 's' : ''} : déjà plus loin)` : ''}`
+    if (!(await confirmer(texte, { ok: 'Noter' }))) return
     lancer(() => api.addActions(ok.map((p) => ligne(p.id, { canal: p.canal || 'DM', action }))), `${ok.length} prospect${ok.length > 1 ? 's' : ''} passé${ok.length > 1 ? 's' : ''} à « ${cible} » ✓`)
   }
   const exporter = () => {
@@ -138,11 +139,12 @@ export function ActionsGroupees({ choisis, etapes, vider }) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000)
     toast(`${choisis.length} prospect${choisis.length > 1 ? 's' : ''} exporté${choisis.length > 1 ? 's' : ''} ✓`)
   }
-  const supprimer = () => {
-    if (!window.confirm(`Supprimer définitivement ${choisis.length} prospect${choisis.length > 1 ? 's' : ''} et tout leur historique ?`)) return
+  const supprimer = async () => {
+    const n = choisis.length
+    if (!(await confirmer(`Leur historique part avec eux. Tu pourras les restaurer depuis Paramètres › Corbeille pendant 30 jours.`, { titre: `Supprimer ${n} prospect${n > 1 ? 's' : ''} ?`, ok: 'Supprimer', danger: true }))) return
     lancer(async () => {
-      for (const p of choisis) await api.deleteProspect(p.id)
-    }, `${choisis.length} prospect${choisis.length > 1 ? 's' : ''} supprimé${choisis.length > 1 ? 's' : ''}`)
+      for (const p of choisis) await api.deleteProspect(p.id, { silencieux: true })
+    }, `${n} prospect${n > 1 ? 's' : ''} supprimé${n > 1 ? 's' : ''} (restaurables dans la corbeille)`)
   }
   // Barre flottante en bas de l'écran (hors du tableau qui défile)
   return createPortal(

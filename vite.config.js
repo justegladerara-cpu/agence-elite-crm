@@ -30,4 +30,6 @@ function swBuild() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), swBuild()],
+  // Tests des calculs (Vitest) ; les parcours navigateur sont dans e2e/ (Playwright)
+  test: { include: ['tests/**/*.test.js'] },
 })

@@ -4,7 +4,7 @@ import { useApp, eur, nb, pct } from '../ui'
 import { Icon } from '../icons'
 import { computeStats, periodeFor } from '../lib/logic'
 import { fmtDate, today } from '../lib/dates'
-import { facturesImpayees } from './Factures'
+import { facturesImpayees } from './Impayes'
 
 export function conseilsSemaine(st, { settings, data, impayees }) {
   const c = st.cur

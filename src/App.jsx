@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel } from './ui'
+import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel, ConfirmHost } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
@@ -11,18 +11,28 @@ import Saisie, { ActionForm } from './pages/Saisie'
 import { MiniListe } from './pages/Prospects'
 import Hub, { ESPACES } from './pages/Hub'
 import { lienHub } from './lib/hub'
-import Fiche from './pages/Fiche'
-import Dashboard from './pages/Dashboard'
-import Parametres from './pages/Parametres'
-import Session from './pages/Session'
-import Factures, { DocEditor, facturesImpayees } from './pages/Factures'
-import { Paiements, Depenses } from './pages/Finances'
-import Scripts from './pages/Scripts'
-import Recherche from './pages/Recherche'
-import Calendrier from './pages/Calendrier'
-import Boutique from './pages/Boutique'
+const Fiche = lazy(() => import('./pages/Fiche'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Parametres = lazy(() => import('./pages/Parametres'))
+const Session = lazy(() => import('./pages/Session'))
+import { facturesImpayees } from './pages/Impayes'
+const Factures = lazy(() => import('./pages/Factures'))
+const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
+const Paiements = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Paiements })))
+const Depenses = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Depenses })))
+const Scripts = lazy(() => import('./pages/Scripts'))
+const Recherche = lazy(() => import('./pages/Recherche'))
+const Calendrier = lazy(() => import('./pages/Calendrier'))
+const Boutique = lazy(() => import('./pages/Boutique'))
 import Applications from './pages/Applications'
 import { syncRappels } from './lib/rappels'
+import { QuickForm, AppelSheet } from './pages/Rapide'
+import { appelEnCours, oublierAppel } from './lib/appel'
+import { corbeille } from './lib/corbeille'
+import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
+import Raccourcis from './pages/Raccourcis'
+
+installerSuiviErreurs()
 
 // Menu groupé : piloter, vendre, facturer, régler
 const NAV = [
@@ -91,7 +101,7 @@ const PARAMETRES = {
   path: 'parametres',
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
 }
 const lirePref = (k) => {
   try {
@@ -143,7 +153,7 @@ const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])
 const BOTTOM = [
   { path: 'apps', short: 'Applis', ico: 'grid' },
   { path: 'journee', short: 'Journée', ico: 'sun' },
-  { path: 'saisie', short: 'Saisir', ico: 'plus', cta: true },
+  { path: 'saisie', short: 'Noter', ico: 'plus', cta: true },
   { path: 'acquisition', short: 'Prospects', ico: 'target' },
   { path: 'clients', short: 'Clients', ico: 'briefcase' },
 ]
@@ -153,8 +163,18 @@ const enSaisie = (e) => {
   return t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
 }
 
+// Écran d'attente au démarrage (lecture de la session et des données)
+function Attente() {
+  return (
+    <div className="attente" role="status" aria-label="Chargement du CRM">
+      <Logo size={52} />
+      <span className="attente-barre" />
+    </div>
+  )
+}
+
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'apps'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'journee'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -180,9 +200,29 @@ export default function App() {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession((cur) => s || (cur === 'offline' && !navigator.onLine ? cur : s)))
     return () => data.subscription.unsubscribe()
   }, [])
-  if (session === undefined) return <div className="login" />
+  // Double authentification activée : le code à 6 chiffres est demandé avant d'ouvrir le CRM
+  const [aal, setAal] = useState(null)
+  useEffect(() => {
+    if (!supabase || !session || typeof session !== 'object') return
+    supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(
+      ({ data }) => setAal(data && data.currentLevel === 'aal1' && data.nextLevel === 'aal2' ? 'code' : 'ok'),
+      () => setAal('ok'),
+    )
+  }, [session])
+  if (session === undefined) return <Attente />
   if (!session) return <Login />
+  if (typeof session === 'object' && aal === null) return <Attente />
+  if (typeof session === 'object' && aal === 'code') return <Login code onCode={() => setAal('ok')} />
   return <Crm />
+}
+
+// Profil Instagram partagé depuis le téléphone vers l'application (PWA installée) : ouvre l'ajout express
+const PARTAGE = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+if (PARTAGE && ['url', 'text', 'title'].some((k) => PARTAGE.has(k))) {
+  const q = PARTAGE
+  const tout = [q.get('url'), q.get('text'), q.get('title')].filter(Boolean).join(' ')
+  const compte = (tout.match(/instagram\.com\/([A-Za-z0-9._]+)/) || tout.match(/@([A-Za-z0-9._]{2,})/) || [])[1] || ''
+  window.history.replaceState(null, '', `/#/acquisition?nouveau=insta${compte ? `&compte=${encodeURIComponent(compte)}` : ''}`)
 }
 
 function Crm() {
@@ -197,8 +237,45 @@ function Crm() {
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
   const [recherche, setRecherche] = useState(false)
-  // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action
+  const [aide, setAide] = useState(false)
+  const [appel, setAppel] = useState(null)
+  // Retour dans l'application après un appel lancé depuis le CRM : feuille « Comment s'est passé l'appel ? »
   useEffect(() => {
+    let parti = false
+    let minuteur
+    const verifier = () => {
+      const a = appelEnCours()
+      if (!a) return
+      if (document.visibilityState === 'hidden') {
+        parti = true
+        return
+      }
+      if (parti || Date.now() - a.t > 4000) {
+        oublierAppel()
+        parti = false
+        setAppel(a.id)
+      }
+    }
+    // Sur ordinateur, l'appel ne quitte pas la page : la feuille s'ouvre après quelques secondes
+    const lance = () => {
+      parti = false
+      clearTimeout(minuteur)
+      minuteur = setTimeout(verifier, 5000)
+    }
+    document.addEventListener('visibilitychange', verifier)
+    window.addEventListener('focus', verifier)
+    window.addEventListener('crm-appel', lance)
+    return () => {
+      clearTimeout(minuteur)
+      document.removeEventListener('visibilitychange', verifier)
+      window.removeEventListener('focus', verifier)
+      window.removeEventListener('crm-appel', lance)
+    }
+  }, [])
+  // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action, ? pour l'aide, G puis une lettre pour naviguer
+  useEffect(() => {
+    let g = 0
+    const ALLER = { j: 'journee', p: 'acquisition', c: 'clients', f: 'factures', d: 'dashboard', a: 'apps', s: 'session' }
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -206,7 +283,19 @@ function Crm() {
         return
       }
       if (e.ctrlKey || e.metaKey || e.altKey || enSaisie(e) || document.querySelector('.modal-bg')) return
-      if (e.key === '/') {
+      const touche = e.key.toLowerCase()
+      if (Date.now() - g < 1200 && ALLER[touche]) {
+        e.preventDefault()
+        g = 0
+        go(`/${ALLER[touche]}`)
+        return
+      }
+      g = 0
+      if (touche === 'g') g = Date.now()
+      else if (e.key === '?') {
+        e.preventDefault()
+        setAide(true)
+      } else if (e.key === '/') {
         e.preventDefault()
         setRecherche(true)
       } else if (e.key === 'n' || e.key === 'N') {
@@ -263,16 +352,7 @@ function Crm() {
     }
   }, [reload])
 
-  // Précharge l'export Excel pour qu'il fonctionne aussi hors ligne
-  useEffect(() => {
-    if (isLocal || !navigator.onLine) return
-    const t = setTimeout(() => {
-      import('./lib/excel').catch(() => {})
-      import('./lib/invoicePdf').catch(() => {})
-      fetch(`${import.meta.env.BASE_URL}template/Agence_Elite_Pilotage.xlsx`).catch(() => {})
-    }, 4000)
-    return () => clearTimeout(t)
-  }, [])
+  // Les modules PDF et Excel ne sont plus préchargés au démarrage : ils se chargent à la première utilisation
 
   const data = useMemo(() => (state ? computeAll(state.prospects, state.actions, state.settings) : null), [state])
 
@@ -287,7 +367,7 @@ function Crm() {
     try {
       return await fn(...args)
     } catch (e) {
-      toast(`Erreur : ${e.message}`, true)
+      toast(messageErreur(e), true)
       throw e
     }
   }
@@ -302,8 +382,16 @@ function Crm() {
       setState((s) => ({ ...s, prospects: s.prospects.map((x) => (x.id === id ? { ...x, ...p } : x)) }))
       return p
     }),
-    deleteProspect: wrap(async (id) => {
+    deleteProspect: wrap(async (id, opts = {}) => {
+      const avant = state.prospects.find((x) => x.id === id)
+      const contenu = {
+        prospects: avant ? [avant] : [],
+        actions: state.actions.filter((a) => a.prospect_id === id),
+        documents: state.documents.filter((d) => d.prospect_id === id),
+      }
       await db.deleteProspect(id)
+      const cid = avant && corbeille.ajouter('prospect', avant.name, contenu)
+      if (cid && !opts.silencieux) toast(`« ${avant.name} » supprimé ✓`, false, { annuler: () => api.restaurer(cid) })
       setState((s) => ({
         ...s,
         prospects: s.prospects.filter((x) => x.id !== id),
@@ -321,8 +409,13 @@ function Crm() {
       setState((s) => ({ ...s, actions: s.actions.map((x) => (x.id === id ? { ...x, ...a } : x)) }))
       return a
     }),
-    deleteAction: wrap(async (id) => {
+    deleteAction: wrap(async (id, opts = {}) => {
+      const avant = state.actions.find((x) => x.id === id)
       await db.deleteAction(id)
+      if (avant && !opts.silencieux) {
+        const cid = corbeille.ajouter('action', `${avant.action || 'Action'} du ${avant.date || ''}`, { actions: [avant] })
+        toast(`${avant.action || 'Action'} supprimée ✓`, false, { annuler: () => api.restaurer(cid) })
+      }
       setState((s) => ({ ...s, actions: s.actions.filter((x) => x.id !== id) }))
     }),
     saveDoc: wrap(async (doc) => {
@@ -330,9 +423,30 @@ function Crm() {
       setState((s) => ({ ...s, documents: [...s.documents.filter((x) => x.id !== d.id), d] }))
       return d
     }),
-    deleteDoc: wrap(async (id) => {
+    deleteDoc: wrap(async (id, opts = {}) => {
+      const avant = state.documents.find((x) => x.id === id)
       await db.deleteDoc(id)
+      if (avant && !opts.silencieux) {
+        const cid = corbeille.ajouter('document', avant.numero || 'Document', { documents: [avant] })
+        toast(`${avant.numero || 'Document'} supprimé ✓`, false, { annuler: () => api.restaurer(cid) })
+      }
       setState((s) => ({ ...s, documents: s.documents.filter((x) => x.id !== id) }))
+    }),
+    // Remet un élément de la corbeille (annulation d'une suppression)
+    restaurer: wrap(async (cid) => {
+      const item = corbeille.liste().find((x) => x.id === cid)
+      if (!item) return
+      await db.restaurer(item.contenu)
+      corbeille.retirer(cid)
+      const { prospects = [], actions = [], documents = [] } = item.contenu
+      const sans = (l, n) => l.filter((x) => !n.some((y) => y.id === x.id))
+      setState((s) => ({
+        ...s,
+        prospects: [...sans(s.prospects, prospects), ...prospects],
+        actions: [...sans(s.actions, actions), ...actions],
+        documents: [...sans(s.documents, documents), ...documents],
+      }))
+      toast(`${item.libelle} restauré ✓`)
     }),
     uploadRecu: wrap((dataUrl, ext, type) => db.uploadRecu(dataUrl, ext, type)),
     recuUrl: (path) => db.recuUrl(path),
@@ -374,7 +488,7 @@ function Crm() {
         </div>
       </div>
     )
-  if (!state) return <div className="login" />
+  if (!state) return <Attente />
 
   setDevise(state.settings.devise)
   setBrand(state.settings.apparence)
@@ -384,7 +498,7 @@ function Crm() {
     ? `Hors ligne${sync.pending ? ` · ${sync.pending} modification${sync.pending > 1 ? 's' : ''} en attente` : ''}`
     : sync.syncing || sync.pending
       ? `Synchronisation… (${sync.pending})`
-      : 'Synchronisé en ligne'
+      : `Synchronisé${sync.derniere ? ` à ${new Date(sync.derniere).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ' en ligne'}`
   const syncCls = !sync.online ? 'off' : sync.syncing || sync.pending ? 'busy' : ''
   const ctx = {
     ...state,
@@ -427,7 +541,7 @@ function Crm() {
       </div>
     )
   else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
-  else if (page === 'clients' || page === 'acquisition') content = <Hub key={route} espace={current === 'acquisition' ? 'acquisition' : 'clients'} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} />
+  else if (page === 'clients' || page === 'acquisition') content = <Hub key={route} espace={current === 'acquisition' ? 'acquisition' : 'clients'} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} compte={q.get('compte')} />
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
@@ -571,11 +685,11 @@ function Crm() {
               ))}
             </nav>
           )}
-          {content}
+          <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
         </main>
         <nav className="bottom-nav" aria-label="Navigation principale">
           {BOTTOM.map((n) => (
-            <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => go(`/${n.path}`)}>
+            <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => (n.cta ? setActionModal({}) : go(`/${n.path}`))}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
               {n.short}
               {!n.cta && pastille(n.path)}
@@ -583,12 +697,32 @@ function Crm() {
           ))}
         </nav>
       </div>
-      {actionModal && (
-        <Modal title={actionModal.edit ? "Modifier l'action" : 'Nouvelle action'} onClose={() => setActionModal(null)} large>
-          <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
+      {actionModal && actionModal.prospect_id && !actionModal.edit && !actionModal.complet ? (
+        <Modal title="Noter une action" onClose={() => setActionModal(null)}>
+          <QuickForm prospectId={actionModal.prospect_id} canal={actionModal.canal} action={actionModal.action} onDone={() => setActionModal(null)} onComplet={(x) => setActionModal({ ...x, complet: true })} />
+        </Modal>
+      ) : (
+        actionModal && (
+          <Modal title={actionModal.edit ? "Modifier l'action" : 'Nouvelle action'} onClose={() => setActionModal(null)} large>
+            <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
+          </Modal>
+        )
+      )}
+      {appel && !actionModal && (
+        <Modal title="Comment s'est passé l'appel ?" onClose={() => setAppel(null)}>
+          <AppelSheet prospectId={appel} onDone={() => setAppel(null)} onDetails={(x) => {
+            setAppel(null)
+            setActionModal({ ...x, complet: true })
+          }} />
         </Modal>
       )}
-      {recherche && <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES]} />}
+      {aide && <Raccourcis onClose={() => setAide(false)} />}
+      <ConfirmHost />
+      {recherche && (
+        <Suspense fallback={null}>
+          <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES]} />
+        </Suspense>
+      )}
       {toastNode}
     </AppCtx.Provider>
   )

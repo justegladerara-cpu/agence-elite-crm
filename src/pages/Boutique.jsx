@@ -1,7 +1,7 @@
 // Elite Store : commandes du site, catalogue de produits et stock de clés de licence
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Tabs, useTab, nb, LienProspect } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, Tabs, useTab, nb, LienProspect, confirmer } from '../ui'
 import { supabase } from '../lib/store'
 import { today, fmtDate } from '../lib/dates'
 
@@ -103,7 +103,7 @@ function Commandes({ s, recharger }) {
     <div className="card">
       <div className="row" style={{ marginBottom: 10 }}>
         <input className="input" style={{ flex: '1 1 200px' }} placeholder="Rechercher : numéro, client, produit…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" style={{ width: 'auto' }} value={filtre} onChange={(e) => setFiltre(e.target.value)}>
+        <select className="input" aria-label="Filtrer les commandes" style={{ width: 'auto' }} value={filtre} onChange={(e) => setFiltre(e.target.value)}>
           <option value="actives">À traiter</option>
           <option value="en_attente">En attente de paiement</option>
           <option value="payee">Payées, à livrer</option>
@@ -299,7 +299,7 @@ function DetailCommande({ c, s, recharger }) {
           </button>
         )}
         {c.statut !== 'annulee' && c.statut !== 'livree' && (
-          <button className="btn ghost" disabled={busy} onClick={() => confirm('Annuler cette commande ?') && statut('annulee')}>
+          <button className="btn ghost" disabled={busy} onClick={async () => (await confirmer('Le client ne sera pas prévenu automatiquement.', { titre: 'Annuler cette commande ?', ok: 'Annuler la commande', non: 'Garder', danger: true })) && statut('annulee')}>
             Annuler
           </button>
         )}
@@ -335,7 +335,7 @@ function Produits({ s, recharger }) {
       )}
       <div className="row" style={{ marginBottom: 10 }}>
         <input className="input" style={{ flex: '1 1 200px' }} placeholder="Rechercher un produit…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="input" style={{ width: 'auto' }} value={cat} onChange={(e) => setCat(e.target.value)}>
+        <select className="input" aria-label="Catégorie" style={{ width: 'auto' }} value={cat} onChange={(e) => setCat(e.target.value)}>
           <option value="">Toutes les catégories</option>
           {cats.map((c) => (
             <option key={c}>{c}</option>
@@ -447,7 +447,7 @@ function ProduitForm({ p, cats, onDone }) {
     onDone()
   }
   const supprimer = async () => {
-    if (!confirm('Supprimer ce produit et ses clés en stock ? Les commandes passées sont conservées.')) return
+    if (!(await confirmer('Ses clés en stock seront supprimées. Les commandes passées sont conservées.', { titre: 'Supprimer ce produit ?', ok: 'Supprimer', danger: true }))) return
     const { error } = await supabase.from('store_produits').delete().eq('id', p.id)
     if (error) return toast(`Erreur : ${error.message}`, true)
     toast('Produit supprimé ✓')
@@ -560,7 +560,7 @@ function Cles({ s, recharger }) {
     recharger()
   }
   const retirer = async (k) => {
-    if (!confirm('Retirer cette clé du stock ?')) return
+    if (!(await confirmer('Retirer cette clé du stock ?', { ok: 'Retirer', danger: true }))) return
     const { error } = await supabase.from('store_cles').delete().eq('id', k.id)
     if (error) return toast(`Erreur : ${error.message}`, true)
     recharger()

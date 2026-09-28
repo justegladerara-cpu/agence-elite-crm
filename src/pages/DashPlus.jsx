@@ -23,7 +23,7 @@ export function PipelineEtapes({ canal = 'Tous' }) {
   const lien = (e) => go(`/acquisition?onglet=potentiels&etape=${encodeURIComponent(e)}&vue=liste`)
   return (
     <div className="pipe">
-      <div className="pipe-bar" role="img" aria-label={lignes.map((l) => `${l.e} ${l.n}`).join(', ')}>
+      <div className="pipe-bar" role="group" aria-label={lignes.map((l) => `${l.e} ${l.n}`).join(', ')}>
         {lignes
           .filter((l) => l.n)
           .map((l) => (

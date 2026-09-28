@@ -233,7 +233,7 @@ export default function Session() {
         </div>
       </div>
       <div className="card">
-        <details className="script">
+        <details className="script" open>
           <summary><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</summary>
           {settings.script.map((s, i) => (
             <p key={i}>

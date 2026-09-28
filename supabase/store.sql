@@ -102,6 +102,12 @@ declare
   v_ici timestamp := now() at time zone 'Africa/Brazzaville';
 begin
   if v_nom = '' or v_tel = '' then raise exception 'Nom et téléphone obligatoires'; end if;
+  -- Anti-spam : 5 commandes par heure et par téléphone, 60 par heure au total
+  if (select count(*) from store_commandes sc where sc.created_at > now() - interval '1 hour'
+      and regexp_replace(sc.client->>'tel', '\D', '', 'g') = regexp_replace(v_tel, '\D', '', 'g')) >= 5
+     or (select count(*) from store_commandes sc where sc.created_at > now() - interval '1 hour') >= 60 then
+    raise exception 'Trop de commandes en peu de temps : réessaie dans une heure ou écris-nous sur WhatsApp.';
+  end if;
   if jsonb_typeof(p_lignes) <> 'array' or jsonb_array_length(p_lignes) = 0 or jsonb_array_length(p_lignes) > 30 then
     raise exception 'Panier invalide';
   end if;

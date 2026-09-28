@@ -1,11 +1,14 @@
 import { useMemo } from 'react'
 import { Icon } from '../icons'
-import { RelanceBoutons } from './Insta'
+import { RelanceBoutons, ReporterBouton } from './Insta'
 import BilanSemaine from './Bilan'
-import { RelanceFactureBtn, facturesImpayees } from './Factures'
-import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Tabs, useTab, LienProspect } from '../ui'
+import { RelanceFactureBtn, facturesImpayees } from './Impayes'
+import { useApp, StageBadge, Score, RelanceTag, ContactButtons, Empty, go, eur, Tabs, useTab, LienProspect, Bar } from '../ui'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
+import { avancement, compterJour } from '../lib/journee'
+import { isLocal } from '../lib/store'
+import { derniereSauvegarde, telechargerSauvegarde } from '../lib/sauvegarde'
 import { today, fmtDate, diffDays, weekday } from '../lib/dates'
 
 function ProspectRow({ p, children, overdue, relance }) {
@@ -18,15 +21,17 @@ function ProspectRow({ p, children, overdue, relance }) {
       </div>
       <div className="li-side">
         <ContactButtons p={p} compact />
+        {relance && <ReporterBouton p={p} />}
         {relance && <RelanceBoutons p={p} compact />}
         <button
           className="btn sm gold"
+          aria-label={`Noter une action pour ${p.name}`}
           onClick={(e) => {
             e.stopPropagation()
             openAction({ prospect_id: p.id, canal: p.canal })
           }}
         >
-          + Action
+          + Noter
         </button>
       </div>
     </div>
@@ -40,33 +45,54 @@ export default function Journee({ onglet: ongletDemande }) {
   const { jour, update } = useJournee(t)
   const [onglet, setOnglet] = useTab('journee', 'jour', ongletDemande)
   const tab = onglet === 'relances' ? 'jour' : onglet
+  // Un seul bandeau à la fois : démarrage, exemples, sauvegarde, puis bilan du lundi
+  const sauvegardeDue = !isLocal && prospects.length >= 5 && (!derniereSauvegarde() || diffDays(t, derniereSauvegarde()) > 7)
+  const score = useMemo(() => avancement(jour, compterJour(data, t)).score, [jour, data, t])
   const h = new Date().getHours()
   const hello = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir'
 
   return (
     <div className="stack">
-      {prospects.length === 0 && (
-        <div className="banner row">
-          <span style={{ flex: 1 }}>Ton CRM est vide. Charge des exemples pour voir tout rempli, tu pourras les supprimer ensuite.</span>
-          <button className="btn sm" onClick={() => api.loadSeed().then(() => toast('Exemples chargés ✓'), () => {})}>
-            Charger les exemples
-          </button>
+      {prospects.length === 0 ? (
+        <div className="card demarrage">
+          <h2>Ajoute tes premiers prospects</h2>
+          <p className="muted">Importe ton fichier Excel de pilotage, ou ajoute un compte Instagram repéré. Le CRM calcule ensuite tes relances à ta place.</p>
+          <div className="row">
+            <button className="btn primary" onClick={() => go('/parametres/excel')}>
+              <Icon n="upload" size={15} /> Importer mon Excel
+            </button>
+            <button className="btn" onClick={() => go('/acquisition?nouveau=insta')}>
+              <Icon n="instagram" size={15} /> Ajouter un prospect Instagram
+            </button>
+            {isLocal && (
+              <button className="btn ghost" onClick={() => api.loadSeed().then(() => toast('Exemples chargés ✓'), () => {})}>
+                Charger des exemples
+              </button>
+            )}
+          </div>
         </div>
-      )}
-      {prospects.some(isExample) && (
+      ) : prospects.some(isExample) ? (
         <div className="banner row">
           <span style={{ flex: 1 }}>Des prospects d'exemple sont chargés.</span>
           <button className="btn sm" onClick={() => go('/parametres/excel')}>
             Les supprimer
           </button>
         </div>
-      )}
+      ) : sauvegardeDue ? (
+        <div className="banner row">
+          <Icon n="download" size={16} />
+          <span style={{ flex: 1 }}>{derniereSauvegarde() ? `Ta dernière sauvegarde date du ${fmtDate(derniereSauvegarde())}.` : "Tu n'as pas encore fait de sauvegarde de tes données."}</span>
+          <button className="btn sm" onClick={() => { telechargerSauvegarde({ prospects, actions, documents, settings }); toast('Sauvegarde téléchargée ✓') }}>
+            Sauvegarder maintenant
+          </button>
+        </div>
+      ) : null}
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div>
           <h1>{[hello, settings.apparence?.prenom].filter(Boolean).join(' ')}</h1>
           <div className="sub">
-            {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {data.alertes.length} alerte
-            {data.alertes.length > 1 ? 's' : ''}
+            {fmtDate(t)} · {data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''} à faire · {impayees.length} facture{impayees.length > 1 ? 's' : ''} à
+            relancer · {data.alertes.length} alerte{data.alertes.length > 1 ? 's' : ''}
           </div>
         </div>
       </div>
@@ -83,7 +109,7 @@ export default function Journee({ onglet: ongletDemande }) {
         onChange={setOnglet}
       />
 
-      {weekday(t) === 1 && tab !== 'historique' && (
+      {weekday(t) === 1 && tab !== 'historique' && !prospects.some(isExample) && prospects.length > 0 && !sauvegardeDue && (
         <div className="banner row">
           <Icon n="sparkles" size={16} />
           <span style={{ flex: 1 }}>C'est lundi : ton bilan de la semaine et 3 conseils sont prêts.</span>
@@ -94,9 +120,11 @@ export default function Journee({ onglet: ongletDemande }) {
       )}
 
       {tab === 'jour' && (
-        <div className="hero">
-          <ObjectifsJour jour={jour} update={update} />
-        </div>
+        <button type="button" className="score-fin" onClick={() => document.getElementById('objectifs-jour')?.scrollIntoView({ behavior: 'smooth' })}>
+          <span>Objectifs du jour</span>
+          <Bar value={score} max={100} tone={score >= 100 ? 'green' : ''} />
+          <strong>{score}/100</strong>
+        </button>
       )}
 
       {tab === 'jour' && (
@@ -106,13 +134,20 @@ export default function Journee({ onglet: ongletDemande }) {
               <span className="sec-ic"><Icon n="alert" size={16} /></span> Aujourd'hui et en retard <span className="count">{data.aRelancer.length}</span>
             </h2>
             <div className="list">
-              {data.aRelancer.length === 0 && <Empty>Aucune relance en attente. Bravo !</Empty>}
               {data.aRelancer.map((p) => (
                 <ProspectRow key={p.id} p={p} overdue={p.relance < t} relance>
                   <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction || p.canal} ·{' '}
                   {p.fiche?.contact || ''} {p.relance < t ? `· ${diffDays(t, p.relance)} j de retard` : ''}
                 </ProspectRow>
               ))}
+              {data.aRelancer.length === 0 && prospects.length > 0 && (
+                <div className="journee-vide">
+                  <strong>Journée à jour.</strong> C'est le moment de prospecter : 10 nouveaux contacts rapprochent de ton objectif.
+                  <button className="btn sm primary" onClick={() => go('/session')}>
+                    Lancer une session d'appels
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           <div className="card">
@@ -126,6 +161,12 @@ export default function Journee({ onglet: ongletDemande }) {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === 'jour' && (
+        <div className="hero" id="objectifs-jour">
+          <ObjectifsJour jour={jour} update={update} />
         </div>
       )}
 

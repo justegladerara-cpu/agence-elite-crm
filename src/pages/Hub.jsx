@@ -1,11 +1,11 @@
 // Hub Clients : prospects, nouveaux clients, clients actifs, anciens clients et perdus sur une seule page
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react'
 import { useApp, Score, RelanceTag, ContactButtons, StageBadge, go, eur, nb, Modal, Menu, useTab } from '../ui'
 import { Icon } from '../icons'
 import { NewProspect, ActionsGroupees, ACTION_ETAPE } from './Prospects'
 import { QuickInsta } from './Insta'
 import { AncienClient, nextOnboarding } from './Clients'
-import { PaiementForm } from './Finances'
+const PaiementForm = lazy(() => import('./Finances').then((m) => ({ default: m.PaiementForm })))
 import { CATEGORIES, fichesHub } from '../lib/hub'
 import { waLink } from '../lib/logic'
 import { fmtDate } from '../lib/dates'
@@ -78,7 +78,7 @@ export const ESPACES = {
 }
 export const espaceDe = (cat) => (ESPACES.acquisition.cats.includes(cat) ? 'acquisition' : 'clients')
 
-export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, etape: etapeDemandee, vue: vueDemandee, filtre: filtreDemande, nouveau }) {
+export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, etape: etapeDemandee, vue: vueDemandee, filtre: filtreDemande, nouveau, compte }) {
   const { data, settings, openAction, toast } = useApp()
   const E = ESPACES[esp]
   const [ongletMemo, setOngletBrut] = useTab(E.memo, E.defaut, E.cats.includes(ongletDemande) ? ongletDemande : undefined)
@@ -119,7 +119,7 @@ export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, et
   // « Nouveau client » depuis la recherche globale : ouvre la fenêtre puis retire le paramètre de l'adresse
   const [modal, setModal] = useState(['client', 'fiche', 'insta'].includes(nouveau) ? nouveau : null)
   useEffect(() => {
-    if (nouveau) window.history.replaceState(null, '', window.location.hash.replace(/[?&]nouveau=[^&]*/, '').replace(/\?$/, ''))
+    if (nouveau) window.history.replaceState(null, '', window.location.hash.replace(/[?&]nouveau=[^&]*/, '').replace(/[?&]compte=[^&]*/, '').replace(/\?$/, ''))
   }, [nouveau])
   const [pay, setPay] = useState(null)
   const etapesOuvertes = settings.etapes.map((e) => e.nom).filter((e) => e !== 'Gagné' && e !== 'Perdu')
@@ -346,7 +346,7 @@ export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, et
         ) : liste.length === 0 ? (
           <Vide onglet={onglet} filtre={filtreActif} reinit={reinit} ouvrir={setModal} n={base.length} />
         ) : (
-          <div className="hub-list" role="list">
+          <div className="hub-list">
             {cochables.length > 0 && (
               <div className="hub-head">
                 <label className="hub-check">
@@ -366,13 +366,15 @@ export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, et
                 </span>
               </div>
             )}
-            {liste.map((x) =>
-              x.c ? (
-                <LigneClient key={x.p.id} x={x} onPay={() => setPay({ prospect_id: x.p.id, montant: x.c.reste ? String(x.c.reste) : '' })} />
-              ) : (
-                <LigneProspect key={x.p.id} p={x.p} coche={sel.has(x.p.id)} cocher={() => cocher(x.p.id)} montrerCat={onglet === 'tous'} />
-              ),
-            )}
+            <div role="list" className="hub-rows">
+              {liste.map((x) =>
+                x.c ? (
+                  <LigneClient key={x.p.id} x={x} onPay={() => setPay({ prospect_id: x.p.id, montant: x.c.reste ? String(x.c.reste) : '' })} />
+                ) : (
+                  <LigneProspect key={x.p.id} p={x.p} coche={sel.has(x.p.id)} cocher={() => cocher(x.p.id)} montrerCat={onglet === 'tous'} />
+                ),
+              )}
+            </div>
             {choisis.length > 0 && (
               <>
                 <div className="bulk-space" />
@@ -386,12 +388,14 @@ export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, et
         {cat.label} : {pluriel(liste.length, 'résultat')}
       </div>
 
-      {modal === 'insta' && <QuickInsta onClose={() => setModal(null)} />}
+      {modal === 'insta' && <QuickInsta compte={compte} onClose={() => setModal(null)} />}
       {modal === 'fiche' && <NewProspect onClose={() => setModal(null)} />}
       {modal === 'client' && <AncienClient onClose={() => setModal(null)} />}
       {pay && (
         <Modal title="Paiement reçu" onClose={() => setPay(null)}>
-          <PaiementForm prefill={pay} onDone={() => setPay(null)} />
+          <Suspense fallback={<div className="small muted">Chargement…</div>}>
+            <PaiementForm prefill={pay} onDone={() => setPay(null)} />
+          </Suspense>
         </Modal>
       )}
     </div>
@@ -537,6 +541,7 @@ function LigneClient({ x, onPay }) {
           label=""
           icon="more"
           className="icon-btn"
+          ariaLabel={`Plus d'actions pour ${p.name}`}
           items={[
             { label: 'Nouvelle facture', icon: 'file', onClick: () => go(`/facture/new?type=facture&p=${p.id}`) },
             { label: 'Nouveau devis', icon: 'clipboard', onClick: () => go(`/facture/new?type=devis&p=${p.id}`) },
@@ -608,6 +613,7 @@ function Pipeline({ colonnes, fiches, survol, setSurvol, deplacer, etapes }) {
                         label=""
                         icon="more"
                         className="icon-btn kmove"
+                        ariaLabel={`Changer l'étape de ${p.name}`}
                         items={etapes.filter((x) => x !== e && x !== 'Nouveau').map((x) => ({ label: x === 'Gagné' ? 'Signer (passe en client)' : `Passer à « ${x} »`, onClick: () => deplacer(p.id, x) }))}
                       />
                     </div>

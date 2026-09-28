@@ -6,9 +6,7 @@ import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/
 import { detail } from '../lib/drill'
 import Drill from './Drill'
 import { PipelineEtapes, CumulMois, Heatmap, MeilleursClients, depensesParCategorie } from './DashPlus'
-import { RelanceBoutons } from './Insta'
-import { facturesImpayees } from './Factures'
-import { RelanceTag, go, LienProspect } from '../ui'
+import { go } from '../ui'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
@@ -107,7 +105,7 @@ function RateTable({ title, rows, cols, onPick }) {
   return (
     <div>
       <h2 className="section">{withIcon(title)}</h2>
-      <div className="table-wrap">
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="Tableau">
         <table className="t">
           <thead>
             <tr>
@@ -249,7 +247,8 @@ function ActivityChart({ buckets, parSemaine, onPick }) {
 
 // Chiffre clé en grand, avec l'évolution par rapport à la période précédente
 function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
-  const comp = prev !== null && prev !== undefined
+  // Rien à comparer quand la période précédente est vide et l'actuelle aussi
+  const comp = prev !== null && prev !== undefined && !(prev === 0 && cur === 0)
   const diff = comp ? cur - prev : 0
   const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
   const p = comp && prev ? Math.round((diff / prev) * 100) : null
@@ -271,52 +270,8 @@ function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
   )
 }
 
-// « À faire maintenant » : les relances du jour et les factures en retard, actionnables sans quitter le tableau de bord
-function AFaire() {
-  const { data, documents, actions } = useApp()
-  const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
-  const relances = data.aRelancer.slice(0, 5)
-  if (!relances.length && !impayees.length) return null
-  return (
-    <div className="card">
-      <h2 className="section">
-        <span className="sec-ic"><Icon n="bolt" size={16} /></span> À faire maintenant
-        <button className="toggle-link" style={{ marginLeft: 'auto' }} onClick={() => go('/journee')}>
-          Ma journée ({data.aRelancer.length})
-        </button>
-      </h2>
-      <div className="afaire">
-        {relances.map((p) => (
-          <div key={p.id} className="af-row">
-            <div className="li-main">
-              <div className="li-title">
-                <LienProspect id={p.id} />
-              </div>
-              <div className="li-sub">
-                <RelanceTag date={p.relance} heure={p.heureRappel} /> {p.prochaineAction || ''}
-              </div>
-            </div>
-            <div className="af-btns">
-              <RelanceBoutons p={p} compact />
-            </div>
-          </div>
-        ))}
-        {impayees.length > 0 && (
-          <button type="button" className="af-row af-fact" onClick={() => go('/factures')}>
-            <Icon n="file" size={16} />
-            <span className="li-main">
-              <b>{impayees.length} facture{impayees.length > 1 ? 's' : ''} à relancer</b>
-              <span className="li-sub"> · reste {eur(impayees.reduce((m, d) => m + d.reste, 0))}</span>
-            </span>
-            <Icon n="chevron" size={14} />
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
 
-let dernierePeriode = 'Cette semaine'
+let dernierePeriode = '7 derniers jours'
 
 export default function Dashboard({ onglet: ongletDemande }) {
   const { data, settings, actions } = useApp()
@@ -397,6 +352,8 @@ export default function Dashboard({ onglet: ongletDemande }) {
             Période
           </label>
           <select id="dash-periode" className="input" value={mois} onChange={(e) => setMois(e.target.value)}>
+            <option value="7 derniers jours">7 derniers jours</option>
+            <option value="30 derniers jours">30 derniers jours</option>
             <option value="Cette semaine">Cette semaine</option>
             <option value="Semaine dernière">Semaine dernière</option>
             <option value="Mois en cours">Mois en cours</option>
@@ -449,7 +406,10 @@ export default function Dashboard({ onglet: ongletDemande }) {
             <Mini label="Propositions" v={c.propositions} d={d('propositions')} onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} />
           </div>
 
-          <AFaire />
+          <button type="button" className="lien-journee" onClick={() => go('/journee')}>
+            <Icon n="sun" size={15} /> Ce qu'il y a à faire aujourd'hui est dans Ma journée ({data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''})
+            <Icon n="arrow-right" size={14} />
+          </button>
 
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
             <div className="card">
@@ -645,7 +605,7 @@ export default function Dashboard({ onglet: ongletDemande }) {
                   ),
                 )}
               </div>
-              <div className="table-wrap" style={{ marginTop: 14 }}>
+              <div className="table-wrap" tabIndex={0} role="region" aria-label="Tableau" style={{ marginTop: 14 }}>
                 <table className="t">
                   <thead>
                     <tr>
@@ -769,7 +729,7 @@ function CaMois({ series, year, om, best, choisirMois, canal }) {
         <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
           Voir le tableau mois par mois
         </summary>
-        <div className="table-wrap" style={{ marginTop: 8 }}>
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Tableau" style={{ marginTop: 8 }}>
           <table className="t">
             <thead>
               <tr>

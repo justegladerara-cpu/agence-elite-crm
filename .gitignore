@@ -28,3 +28,6 @@ dist-ssr
 !.env.example
 shots/
 site-dist
+dist-e2e
+test-results
+playwright-report
