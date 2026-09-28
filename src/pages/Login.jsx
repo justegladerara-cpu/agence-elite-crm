@@ -21,7 +21,7 @@ export default function Login() {
       }
       const { error: e1 } = await supabase.auth.signUp({ email, password })
       if (e1) {
-        setErr(/fermées|Database error/i.test(e1.message) ? 'Le compte existe déjà : connecte-toi.' : e1.message)
+        setErr(/fermées|Database error/i.test(e1.message) ? "Cet e-mail n'est pas dans l'équipe, ou son compte existe déjà : essaie de te connecter." : e1.message)
         setBusy(false)
         return
       }

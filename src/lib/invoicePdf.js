@@ -22,7 +22,7 @@ const n0 = nd
 
 // Images (logo, cachet) : chargées une fois par adresse
 const imgCache = {}
-async function loadImg(src) {
+export async function loadImg(src) {
   if (!src) return null
   if (imgCache[src]) return imgCache[src]
   try {

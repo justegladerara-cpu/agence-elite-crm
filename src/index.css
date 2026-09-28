@@ -1491,3 +1491,47 @@ table.t tr:hover td { background: #f7f8fa; }
 .sb { display: flex; align-items: center; gap: 10px; padding: 6px; border: 0; border-radius: 10px; background: transparent; cursor: pointer; text-align: left; color: var(--text); font: inherit; }
 .sb:hover { background: var(--bg); }
 .sb-nom { flex: 1; min-width: 0; font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Style Zoho Books : barre du haut, boutons bleus, tableaux ---------- */
+.btn.primary { background: var(--gold); border-color: var(--gold); color: var(--on-accent); }
+.nav-new { background: var(--gold) !important; color: var(--on-accent) !important; }
+.nav-item.active { background: rgba(var(--gold-rgb), .22); box-shadow: inset 3px 0 0 var(--gold); }
+.card, .kpi { border-radius: 8px; box-shadow: none; }
+.topbar { display: flex; align-items: center; gap: 12px; margin: -22px -28px 18px; padding: 10px 28px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; }
+.tb-search { flex: 0 1 380px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.tb-search:hover { border-color: var(--gold); }
+.tb-org { margin-left: auto; font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-user { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 4px 6px; border-radius: 8px; cursor: pointer; color: var(--text); font: inherit; }
+.tb-user:hover { background: var(--bg); }
+.tb-av { width: 32px; height: 32px; border-radius: 16px; background: var(--gold); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex: none; }
+.tb-who { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
+.tb-nom { font-weight: 700; font-size: 13px; }
+.tb-role { font-size: 11.5px; color: var(--muted); }
+@media (max-width: 860px) {
+  .topbar { margin: -4px 0 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; position: static; }
+  .tb-search, .tb-org, .tb-new, .tb-who { display: none; }
+  .topbar .menu { margin-left: auto; }
+}
+table.ztable td.strong { font-weight: 600; }
+table.ztable td { white-space: normal; }
+.flux.credit { border-left-color: var(--gold); cursor: pointer; }
+.flux.sortie { cursor: pointer; }
+.vd-leg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; }
+.vd-leg span { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.vd-leg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.vd-v { background: var(--gold); }
+.vd-d { background: var(--red); opacity: .8; }
+.sorties { margin-top: 10px; border-top: 1px solid var(--line-2); }
+.so { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line-2); font-size: 13px; }
+.so-d { color: var(--muted); font-size: 12px; }
+.so-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.so-m { color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; }
+.equipe-grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 860px) { .equipe-grid { grid-template-columns: minmax(0, 1fr); } }
+.input.sm { padding: 5px 8px; font-size: 13px; }
+.badge.role-superadmin { background: #f1e8ff; color: #6a3fc0; }
+.badge.role-pdg { background: var(--gold-soft); color: var(--gold-ink); }
+.badge.role-caisse { background: var(--green-soft); color: var(--green); }
+.badge.role-comptable { background: var(--orange-soft); color: var(--orange); }
+.cv-nom { font-weight: 600; color: var(--text); padding: 9px 0; }
+.chip.on { background: var(--gold); border-color: var(--gold); color: var(--on-accent); }

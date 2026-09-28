@@ -3,6 +3,7 @@ import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc } from '../ui'
 import { ProspectPicker } from './Saisie'
 import { PaiementForm } from './Finances'
+import { facturePdf } from './Caisse'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
@@ -426,6 +427,11 @@ export function DocEditor({ id, query }) {
           <button className="btn primary" disabled={!!busy} onClick={download}>
             <Icon n="download" size={16} /> Télécharger le PDF
           </button>
+          {existing.type === 'facture' && (
+            <button className="btn" disabled={!!busy || dirty} onClick={() => facturePdf(existing, { settings, actions }, 'imprimer', true).catch((e) => toast(`Reçu impossible : ${e.message}`, true))}>
+              <Icon n="note" size={16} /> Imprimer le reçu
+            </button>
+          )}
           <button className="btn" disabled={!!busy} onClick={envoyerWa}>
             <Icon n="message" size={16} /> Envoyer sur WhatsApp
           </button>

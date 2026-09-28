@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Modal, Chips, Empty, eur, go, deviseCode } from '../ui'
+import { useApp, Modal, Chips, Empty, eur, go, deviseCode, sym } from '../ui'
 import { num, statutDe } from '../lib/invoice'
 import { articlesDe, enregistrerVente, A_CREDIT } from '../lib/magasin'
 import { Vignette, ArticleForm } from './Articles'
@@ -20,18 +20,20 @@ const ecrirePref = (k, v) => {
   }
 }
 
-// PDF de la facture : ouvert dans un nouvel onglet pour l'imprimer, ou téléchargé
-export async function facturePdf(doc, { settings, actions }, action = 'imprimer') {
+// PDF de la facture (A4) ou du reçu (ticket 80 mm) : ouvert dans un nouvel onglet pour l'imprimer, ou téléchargé
+export async function facturePdf(doc, { settings, actions }, action = 'imprimer', recu = false) {
   const { pdfBlob, pdfNom } = await import('../lib/invoicePdf')
   const statut = statutDe(doc, actions)
   const paye = actions.filter((a) => a.action === 'Paiement reçu' && a.facture === doc.numero).reduce((m, a) => m + num(a.montant), 0)
-  const blob = await pdfBlob(doc, { fact: settings.facturation, code: deviseCode(), statut, paye, datePaiement: paye ? doc.data?.date : '' })
+  const blob = recu
+    ? await (await import('../lib/recuPdf')).recuBlob(doc, { fact: settings.facturation, code: deviseCode(), sym: sym(), paye })
+    : await pdfBlob(doc, { fact: settings.facturation, code: deviseCode(), statut, paye, datePaiement: paye ? doc.data?.date : '' })
   const url = URL.createObjectURL(blob)
   const w = action === 'imprimer' ? window.open(url, '_blank') : null
   if (!w) {
     const a = document.createElement('a')
     a.href = url
-    a.download = pdfNom(doc, settings.facturation)
+    a.download = recu ? `Recu_${doc.numero}.pdf` : pdfNom(doc, settings.facturation)
     a.click()
   }
   setTimeout(() => URL.revokeObjectURL(url), 60000)
@@ -39,7 +41,8 @@ export async function facturePdf(doc, { settings, actions }, action = 'imprimer'
 
 export default function Caisse() {
   const ctx = useApp()
-  const { documents, settings, toast, actions } = ctx
+  const { documents, settings, toast, actions, profil } = ctx
+  const chef = ['superadmin', 'pdg'].includes(profil?.role)
   const articles = useMemo(() => articlesDe(documents), [documents])
   const equipe = settings.equipe?.length ? settings.equipe : ['Narcie KANGOU', 'Achille KANGOU', 'ITOUA']
   const modes = [...(settings.modesPaiement || ['Espèces']), A_CREDIT]
@@ -49,7 +52,7 @@ export default function Caisse() {
   const [client, setClient] = useState('')
   const [mode, setMode] = useState(modes[0])
   const [remise, setRemise] = useState('')
-  const [vendeur, setVendeurState] = useState(() => lirePref('kgr-vendeur', equipe[0]))
+  const [vendeur, setVendeurState] = useState(() => (!chef && profil?.nom ? profil.nom : lirePref('kgr-vendeur', profil?.nom || equipe[0])))
   const [busy, setBusy] = useState(false)
   const [fin, setFin] = useState(null)
   const [nouvel, setNouvel] = useState(false)
@@ -108,11 +111,15 @@ export default function Caisse() {
         <div className="row">
           <label className="caisse-vendeur">
             <Icon n="users" size={15} />
-            <select value={vendeur} onChange={(e) => setVendeur(e.target.value)} aria-label="Vendeur">
-              {equipe.map((n) => (
-                <option key={n}>{n}</option>
-              ))}
-            </select>
+            {chef ? (
+              <select value={vendeur} onChange={(e) => setVendeur(e.target.value)} aria-label="Vendeur">
+                {[...new Set([vendeur, ...equipe])].map((n) => (
+                  <option key={n}>{n}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="cv-nom">{vendeur}</span>
+            )}
           </label>
           <button className="btn" onClick={() => setNouvel(true)}>
             <Icon n="plus" size={15} /> Nouvel article
@@ -225,11 +232,11 @@ export default function Caisse() {
             </div>
             <div className="muted small">Classée dans Factures, et visible tout de suite sur le tableau de bord.</div>
             <div className="row" style={{ justifyContent: 'center' }}>
-              <button className="btn primary" onClick={() => facturePdf(fin.doc, { settings, actions }).catch((e) => toast(`PDF impossible : ${e.message}`, true))}>
-                <Icon n="file" size={16} /> Imprimer la facture
+              <button className="btn primary" onClick={() => facturePdf(fin.doc, { settings, actions }, 'imprimer', true).catch((e) => toast(`Reçu impossible : ${e.message}`, true))}>
+                <Icon n="note" size={16} /> Imprimer le reçu
               </button>
-              <button className="btn" onClick={() => facturePdf(fin.doc, { settings, actions }, 'telecharger').catch((e) => toast(`PDF impossible : ${e.message}`, true))}>
-                <Icon n="download" size={16} /> PDF
+              <button className="btn" onClick={() => facturePdf(fin.doc, { settings, actions }).catch((e) => toast(`PDF impossible : ${e.message}`, true))}>
+                <Icon n="file" size={16} /> Facture A4
               </button>
               <button className="btn" onClick={() => go(`/facture/${fin.doc.id}`)}>
                 Ouvrir

@@ -198,7 +198,7 @@ const remote = {
       fetchAll('prospects'),
       fetchAll('actions'),
       fetchAll('documents'),
-      supabase.from('settings').select('*').maybeSingle().then(check),
+      supabase.from('settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
     ])
     return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
   },
@@ -223,7 +223,10 @@ const remote = {
   async saveSettings(settings) {
     const { data: u, error } = await supabase.auth.getUser()
     if (error || !u?.user) throw new Error(`auth : ${error?.message || 'session expirée'}`)
-    check(await supabase.from('settings').upsert({ user_id: u.user.id, data: settings, updated_at: nowIso() }))
+    // Réglages communs à la société : une seule ligne, mise à jour par n'importe quel membre
+    const { data: row } = await supabase.from('settings').select('user_id').order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (row) check(await supabase.from('settings').update({ data: settings, updated_at: nowIso() }).eq('user_id', row.user_id))
+    else check(await supabase.from('settings').upsert({ user_id: u.user.id, data: settings, updated_at: nowIso() }))
   },
   async bulkImport(prospects, actions) {
     for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500)))
@@ -395,7 +398,7 @@ const offline = {
             fetchAll('prospects'),
             fetchAll('actions'),
             fetchAll('documents'),
-            supabase.from('settings').select('*').maybeSingle().then(check),
+            supabase.from('settings').select('*').order('updated_at', { ascending: false }).limit(1).maybeSingle().then(check),
           ])
           // Une modification faite pendant le chargement : on garde la copie locale, plus récente
           if (gen === generation) {
@@ -497,3 +500,62 @@ if (supabase && typeof window !== 'undefined') {
 
 export const db = supabase ? offline : local
 export { uid }
+
+// ---------- Équipe et rôles ----------
+// Rôles : superadmin (tout, attribue les rôles), pdg (vue complète), caisse (ventes, factures, reçus), comptable
+const ROLE_DEMO = 'kgr-role-demo'
+export const ROLES = {
+  superadmin: 'Super administrateur',
+  pdg: 'PDG',
+  caisse: 'Caisse / assistante',
+  comptable: 'Comptable',
+}
+export async function monProfil() {
+  if (!supabase) {
+    let role = 'superadmin'
+    try {
+      role = localStorage.getItem(ROLE_DEMO) || role
+    } catch {
+      /* rôle par défaut */
+    }
+    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : 'Démo', role }
+  }
+  const { data } = await supabase.auth.getSession()
+  const email = (data?.session?.user?.email || '').toLowerCase()
+  const CLE = `kgr-profil-${email}`
+  if (!navigator.onLine) return readJson(CLE, { email, nom: '', role: 'caisse' })
+  const { data: m, error } = await supabase.from('membres').select('*').eq('email', email).maybeSingle()
+  if (error) return readJson(CLE, { email, nom: '', role: 'caisse' })
+  const profil = m || { email, nom: '', role: null }
+  try {
+    writeJson(CLE, profil)
+  } catch {
+    /* profil non gardé hors ligne */
+  }
+  return profil
+}
+export const setRoleDemo = (r) => {
+  try {
+    localStorage.setItem(ROLE_DEMO, r)
+  } catch {
+    /* ignoré */
+  }
+}
+export const membres = {
+  async list() {
+    if (!supabase) return readJson('kgr-membres-demo', [])
+    return check(await supabase.from('membres').select('*').order('created_at'))
+  },
+  async save(m) {
+    const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role }
+    if (!supabase) {
+      writeJson('kgr-membres-demo', [...readJson('kgr-membres-demo', []).filter((x) => x.email !== row.email), row])
+      return row
+    }
+    return check(await supabase.from('membres').upsert(row, { onConflict: 'email' }).select().single())
+  },
+  async remove(email) {
+    if (!supabase) return writeJson('kgr-membres-demo', readJson('kgr-membres-demo', []).filter((x) => x.email !== email))
+    check(await supabase.from('membres').delete().eq('email', email))
+  },
+}

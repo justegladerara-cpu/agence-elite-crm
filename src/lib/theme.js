@@ -2,6 +2,7 @@
 // Gardées aussi sur l'appareil pour l'écran de connexion, affiché avant le chargement des réglages.
 
 export const THEMES = [
+  { id: 'zoho-books', label: 'Style Zoho Books (bleu)', principal: '#1e2436', accent: '#408dfb' },
   { id: 'kangourou', label: 'Kangourou (anthracite & jaune)', principal: '#15191e', accent: '#d99a00' },
   { id: 'marine-or', label: 'Marine & or', principal: '#0c1833', accent: '#b8903f' },
   { id: 'noir-rouge', label: 'Noir & rouge (logo)', principal: '#121212', accent: '#e10600' },
@@ -19,9 +20,9 @@ export const APPARENCE_DEFAUT = {
   afficherNom: true,
   logo: '',
   logoSombre: '',
-  theme: 'kangourou',
-  principal: '#15191e',
-  accent: '#d99a00',
+  theme: 'zoho-books',
+  principal: '#1e2436',
+  accent: '#408dfb',
 }
 
 const KEY = 'kgr-brand'

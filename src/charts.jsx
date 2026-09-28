@@ -64,7 +64,7 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
             style={onPick && p.label !== 'Autres' ? { cursor: 'pointer' } : undefined}
           />
         ))}
-        <text x="70" y="66" textAnchor="middle" fontSize="17" fontWeight="700" fill="#16203a">
+        <text x="70" y="66" textAnchor="middle" fontSize={String(h ? fmt(h.value) : fmt(total)).length > 9 ? 11.5 : 17} fontWeight="700" fill="#16203a">
           {h ? fmt(h.value) : fmt(total)}
         </text>
         <text x="70" y="82" textAnchor="middle" fontSize="9.5" fill="#6b7489">
