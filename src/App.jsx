@@ -197,7 +197,7 @@ function Crm() {
   const [sync, setSync] = useState(syncStatus.get())
   useEffect(() => syncStatus.subscribe(setSync), [])
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async function charger(essai = 0) {
     try {
       let st = await db.load()
       // Démo publique : charge les exemples si le navigateur est vide
@@ -210,6 +210,11 @@ function Crm() {
       setState({ ...st, documents: st.documents || [] })
       setError(null)
     } catch (e) {
+      // Horloge de l'appareil légèrement en retard sur Supabase juste après la connexion : on réessaie seul
+      if (essai < 4 && /issued at future|in the future|\biat\b/i.test(e.message)) {
+        setTimeout(() => charger(essai + 1), 1500 * (essai + 1))
+        return
+      }
       setError(e.message)
     }
   }, [])
@@ -332,7 +337,7 @@ function Crm() {
         <div className="card">
           <h2>Connexion aux données impossible</h2>
           <p className="muted">{error}</p>
-          <button className="btn primary" onClick={reload}>
+          <button className="btn primary" onClick={() => reload()}>
             Réessayer
           </button>
         </div>

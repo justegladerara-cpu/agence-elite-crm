@@ -341,6 +341,12 @@ async function doFlush() {
     try {
       await sendRemote(op)
     } catch (e) {
+      // Horloge de l'appareil un peu en retard sur Supabase : la file est gardée et renvoyée quelques secondes plus tard
+      if (/issued at future|in the future/i.test(String(e?.message || e))) {
+        emit({ syncing: false, pending: q.length })
+        setTimeout(flush, 3000)
+        return
+      }
       if (isNetworkError(e) || isAuthError(e)) {
         emit({ syncing: false, online: navigator.onLine, pending: q.length, error: !isNetworkError(e) ? 'Reconnecte-toi pour synchroniser tes modifications.' : '' })
         return
