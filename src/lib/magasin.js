@@ -25,29 +25,45 @@ export const enAlerte = (a) => a.stock <= Math.max(0, a.seuil)
 export const statutStock = (a) => (a.stock <= 0 ? ['Rupture', 'b-red'] : enAlerte(a) ? ['Stock bas', 'b-orange'] : [`${a.stock} en stock`, 'b-green'])
 
 // Photo prise au téléphone : réduite pour rester légère (≈ 30 Ko)
-export function photoArticle(file, max = 480) {
-  return new Promise((ok, ko) => {
-    if (!file || !/^image\//.test(file.type)) return ko(new Error('Choisis une photo (JPG, PNG…)'))
-    const r = new FileReader()
-    r.onerror = () => ko(new Error('Photo illisible'))
-    r.onload = () => {
-      const img = new Image()
-      img.onerror = () => ko(new Error('Photo illisible'))
-      img.onload = () => {
-        const f = Math.min(1, max / Math.max(img.width, img.height))
-        const c = document.createElement('canvas')
-        c.width = Math.max(1, Math.round(img.width * f))
-        c.height = Math.max(1, Math.round(img.height * f))
-        const g = c.getContext('2d')
-        g.fillStyle = '#fff'
-        g.fillRect(0, 0, c.width, c.height)
-        g.drawImage(img, 0, 0, c.width, c.height)
-        ok(c.toDataURL('image/jpeg', 0.72))
-      }
-      img.src = r.result
+export async function photoArticle(file, max = 480) {
+  // Certains téléphones ne donnent pas le type du fichier : on regarde aussi l'extension
+  if (!file || !(/^image\//.test(file.type) || /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(file.name || '') || !file.type)) throw new Error('Choisis une photo (JPG, PNG…)')
+  const img = await chargerImage(file)
+  const f = Math.min(1, max / Math.max(img.width, img.height))
+  const c = document.createElement('canvas')
+  c.width = Math.max(1, Math.round(img.width * f))
+  c.height = Math.max(1, Math.round(img.height * f))
+  const g = c.getContext('2d')
+  g.fillStyle = '#fff'
+  g.fillRect(0, 0, c.width, c.height)
+  g.drawImage(img, 0, 0, c.width, c.height)
+  img.close?.()
+  const url = c.toDataURL('image/jpeg', 0.72)
+  if (!url.startsWith('data:image/jpeg')) throw new Error('Photo illisible sur cet appareil')
+  return url
+}
+
+// Lecture de la photo : createImageBitmap (rapide, tient compte de la rotation), sinon <img> sur une URL locale
+async function chargerImage(file) {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      return await createImageBitmap(file, { imageOrientation: 'from-image' })
+    } catch {
+      // format non géré par cette méthode : on essaie avec <img>
     }
-    r.readAsDataURL(file)
-  })
+  }
+  const url = URL.createObjectURL(file)
+  try {
+    return await new Promise((ok, ko) => {
+      const img = new Image()
+      img.onload = () => ok(img)
+      img.onerror = () =>
+        ko(new Error(/heic|heif/i.test(file.type + file.name) ? 'Photo au format HEIC non lisible ici : sur iPhone, Réglages > Appareil photo > Formats > « Le plus compatible »' : 'Photo illisible : essaie avec une autre photo'))
+      img.src = url
+    })
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
 }
 
 // Vente au comptoir : une facture, son paiement (sauf vente à crédit) et la baisse du stock

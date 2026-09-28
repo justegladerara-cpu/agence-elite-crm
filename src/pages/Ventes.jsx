@@ -6,6 +6,8 @@ import { num } from '../lib/invoice'
 import { today, addDays, fmtDate } from '../lib/dates'
 import { ventesDe, periodeBornes, dansPeriode, articlesDe, enAlerte } from '../lib/magasin'
 import { Vignette } from './Articles'
+import { clientsDe } from './ClientsMagasin'
+import { statutDe } from '../lib/invoice'
 
 const PERIODES = [
   ['jour', "Aujourd'hui"],
@@ -63,7 +65,7 @@ function Colonnes({ jours }) {
 }
 
 export default function Ventes({ periode: demandee, caisse }) {
-  const { documents, actions, api, profil } = useApp()
+  const { documents, actions, api, profil, data } = useApp()
   const [periodeChoisie, setPeriode] = useTab('ventes-periode', 'jour', demandee)
   const periode = caisse ? 'jour' : periodeChoisie
   const [maj, setMaj] = useState(() => new Date())
@@ -90,6 +92,25 @@ export default function Ventes({ periode: demandee, caisse }) {
   const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && dansPeriode(a.date, bornes)).reduce((m, a) => m + num(a.montant), 0)
   const depenses = actions.filter((a) => a.action === 'Dépense' && dansPeriode(a.date, bornes)).reduce((m, a) => m + num(a.montant), 0)
   const credit = ventes.reduce((m, v) => m + v.reste, 0)
+  const entreesP = actions.filter((a) => a.action === 'Paiement reçu' && dansPeriode(a.date, bornes))
+  const sortiesP = actions.filter((a) => a.action === 'Dépense' && dansPeriode(a.date, bornes))
+  const encComptoir = entreesP.filter((a) => !a.prospect_id).reduce((m, a) => m + num(a.montant), 0)
+  // Marge : prix de vente moins prix d'achat des articles vendus (quand le prix d'achat est connu)
+  const achat = Object.fromEntries(articlesDe(documents).map((a) => [a.id, num(a.prixAchat)]))
+  const cout = dansP.reduce((m, v) => m + v.lignes.reduce((k, l) => k + num(l.qte) * (achat[l.produitId] || 0), 0), 0)
+  const marge = cout > 0 ? ca - cout : null
+  const valeurStock = articlesDe(documents).reduce((m, a) => m + Math.max(0, a.stock) * (num(a.prixAchat) || a.prix), 0)
+  const debiteurs = clientsDe(documents, actions, data).filter((c) => c.reste > 0).sort((a, b) => b.reste - a.reste)
+  const creditComptoir = ventes.filter((v) => v.reste > 0 && !debiteurs.some((c) => c.nom === v.client)).reduce((m, v) => m + v.reste, 0)
+  const devisAttente = documents.filter((d) => d.type === 'devis' && statutDe(d, actions) === 'En attente')
+  const devisMontant = devisAttente.reduce((m, d) => m + ventesDe([{ ...d, type: 'facture' }], []).reduce((k, v) => k + v.total, 0), 0)
+  // Tous les mouvements d'argent de la période, du plus récent au plus ancien
+  const mouvements = [
+    ...entreesP.map((a) => ({ id: a.id, date: a.date, time: a.time || '', sens: 1, montant: num(a.montant), titre: a.prospect_id ? data.byId[a.prospect_id]?.name || 'Client' : a.notes || 'Vente au comptoir', sous: [a.facture, a.mode].filter(Boolean).join(' · '), lien: () => { const d = documents.find((x) => x.type === 'facture' && x.numero === a.facture); go(d ? `/facture/${d.id}` : '/paiements') } })),
+    ...sortiesP.map((a) => ({ id: a.id, date: a.date, time: a.time || '', sens: -1, montant: num(a.montant), titre: a.categorie || 'Dépense', sous: [a.fournisseur, a.notes, a.mode].filter(Boolean).join(' · '), lien: () => go('/depenses') })),
+  ].sort((a, b) => `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`))
+  const parModeEnc = {}
+  entreesP.forEach((a) => (parModeEnc[a.mode || 'Autre'] = (parModeEnc[a.mode || 'Autre'] || 0) + num(a.montant)))
   const panierMoyen = dansP.length ? ca / dansP.length : 0
 
   // Courbe : 14 derniers jours (30 pour le mois et l'année)
@@ -132,7 +153,7 @@ export default function Ventes({ periode: demandee, caisse }) {
     return {
       k,
       label: d.toLocaleDateString('fr-FR', { month: 'short' }),
-      ventes: ventes.filter((v) => v.date.startsWith(k)).reduce((m, v) => m + v.total, 0),
+      ventes: actions.filter((a) => a.action === 'Paiement reçu' && (a.date || '').startsWith(k)).reduce((m, a) => m + num(a.montant), 0),
       depenses: sorties.filter((a) => (a.date || '').startsWith(k)).reduce((m, a) => m + num(a.montant), 0),
     }
   })
@@ -177,7 +198,7 @@ export default function Ventes({ periode: demandee, caisse }) {
         <div>
           <h1>Bonjour{profil?.nom ? ` ${profil.nom.split(' ')[0]}` : ''}</h1>
           <div className="sub live">
-            <span className="live-dot" /> Ventes en direct · mis à jour {secondes < 10 ? "à l'instant" : `il y a ${secondes} s`}
+            <span className="live-dot" /> Tout l'argent du magasin en direct · mis à jour {secondes < 10 ? "à l'instant" : `il y a ${secondes} s`}
           </div>
         </div>
         <div className="row">
@@ -191,37 +212,100 @@ export default function Ventes({ periode: demandee, caisse }) {
       </div>
       <Tabs items={PERIODES} value={periode} onChange={setPeriode} />
       <div className="grid grid-4" style={{ marginTop: 12 }}>
-        <Kpi label="Chiffre d'affaires" value={eur(ca)} navy delta={caAvant !== null && caAvant > 0 ? Math.round(((ca - caAvant) / caAvant) * 100) : undefined} vs="période préc. (%)" />
-        <Kpi label="Articles vendus" value={nb(unites)} />
-        <Kpi label="Nombre de ventes" value={nb(dansP.length)} />
-        <Kpi label="Panier moyen" value={eur(panierMoyen)} />
-      </div>
-      <div className="grid grid-4" style={{ marginTop: 12 }}>
-        <div className="flux entree">
-          <span>Entrées (encaissé)</span>
+        <div className="flux entree" role="button" tabIndex={0} onClick={() => go('/paiements')}>
+          <span>Entrées d'argent</span>
           <strong>{eur(encaisse)}</strong>
+          <em>{nb(entreesP.length)} paiement{entreesP.length > 1 ? 's' : ''} · comptoir {eur(encComptoir)} · clients {eur(encaisse - encComptoir)}</em>
         </div>
         <div className="flux sortie" role="button" tabIndex={0} onClick={() => go('/depenses')}>
-          <span>Sorties (dépenses)</span>
+          <span>Sorties d'argent</span>
           <strong>{eur(depenses)}</strong>
+          <em>{nb(sortiesP.length)} dépense{sortiesP.length > 1 ? 's' : ''}{Object.keys(parCat).length ? ` · surtout ${Object.entries(parCat).sort((x, y) => y[1] - x[1])[0][0].toLowerCase()}` : ''}</em>
         </div>
         <div className={`flux solde ${encaisse - depenses < 0 ? 'neg' : ''}`}>
-          <span>Solde de la période</span>
+          <span>Reste en caisse (entrées − sorties)</span>
           <strong>{eur(encaisse - depenses)}</strong>
+          <em>{encaisse - depenses < 0 ? "Plus d'argent sorti qu'entré" : 'Argent gagné sur la période'}</em>
         </div>
-        <div className="flux credit" role="button" tabIndex={0} onClick={() => go('/factures?filtre=impayees')}>
-          <span>À encaisser (crédits clients)</span>
+        <div className="flux credit" role="button" tabIndex={0} onClick={() => go('/clients')}>
+          <span>On nous doit (crédits clients)</span>
           <strong>{eur(credit)}</strong>
+          <em>{nb(debiteurs.length)} client{debiteurs.length > 1 ? 's' : ''} à relancer</em>
         </div>
       </div>
+      <div className="grid grid-4" style={{ marginTop: 12 }}>
+        <Kpi label="Chiffre d'affaires (ventes)" value={eur(ca)} navy delta={caAvant !== null && caAvant > 0 ? Math.round(((ca - caAvant) / caAvant) * 100) : undefined} vs="période préc. (%)" />
+        <Kpi label={marge !== null && ca > 0 ? `Marge sur les ventes · ${Math.round((marge / ca) * 100)} %` : 'Marge sur les ventes'} value={marge !== null ? eur(marge) : '—'} />
+        <Kpi label={`Ventes · panier moyen ${eur(panierMoyen)}`} value={nb(dansP.length)} />
+        <Kpi label="Valeur du stock (prix d'achat)" value={eur(valeurStock)} onClick={() => go('/articles')} />
+      </div>
       <div className="grid ventes-grid" style={{ marginTop: 12 }}>
+        <div className="card plein">
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+            <h2 className="section" style={{ margin: 0 }}>Où entre et où sort l'argent</h2>
+            <span className="small muted">{nb(mouvements.length)} mouvement{mouvements.length > 1 ? 's' : ''} sur la période</span>
+          </div>
+          {!mouvements.length ? (
+            <Empty>Aucun mouvement d'argent sur la période.</Empty>
+          ) : (
+            <div className="mvts">
+              {mouvements.slice(0, 12).map((m) => (
+                <button key={`${m.sens}-${m.id}`} className={`mvt ${m.sens > 0 ? 'in' : 'out'}`} onClick={m.lien}>
+                  <span className="mvt-d">{m.date === today() ? m.time || "Aujourd'hui" : fmtDate(m.date)}</span>
+                  <span className="mvt-t">
+                    <b>{m.titre}</b>
+                    {m.sous && <span>{m.sous}</span>}
+                  </span>
+                  <span className="mvt-m">{m.sens > 0 ? '+' : '−'} {eur(m.montant)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="card">
+          <h2 className="section">Entrées et sorties · 6 mois</h2>
+          <VentesDepenses mois={mois} />
+        </div>
+        <div className="card">
+          <h2 className="section">Qui nous doit de l'argent</h2>
+          {!debiteurs.length && !creditComptoir ? (
+            <Empty>Personne ne doit d'argent au magasin.</Empty>
+          ) : (
+            <div className="sorties">
+              {debiteurs.slice(0, 6).map((c) => (
+                <button key={c.nom} className="so so-btn" onClick={() => go(`/clients?c=${encodeURIComponent(c.nom)}`)}>
+                  <span className="so-l">
+                    <b>{c.nom}</b>
+                    {c.ventes.some((v) => statutDe(v.doc, actions) === 'En retard') && <span className="badge b-red" style={{ marginLeft: 6 }}>en retard</span>}
+                  </span>
+                  <span className="so-m">{eur(c.reste)}</span>
+                </button>
+              ))}
+              {creditComptoir > 0 && (
+                <div className="so deux">
+                  <span className="so-l">Ventes à crédit sans nom de client</span>
+                  <span className="so-m">{eur(creditComptoir)}</span>
+                </div>
+              )}
+            </div>
+          )}
+          {devisAttente.length > 0 && (
+            <button className="toggle-link" style={{ marginTop: 10 }} onClick={() => go('/devis?filtre=attente')}>
+              + {nb(devisAttente.length)} devis en attente ({eur(devisMontant)}) qui peuvent rentrer
+            </button>
+          )}
+        </div>
+        <div className="card">
+          <h2 className="section">Entrées par mode de paiement</h2>
+          <Donut items={Object.entries(parModeEnc).map(([label, value]) => ({ label, value }))} fmt={eur} />
+        </div>
+        <div className="card">
+          <h2 className="section">Sorties par catégorie</h2>
+          <Donut items={Object.entries(parCat).map(([label, value]) => ({ label, value }))} fmt={eur} />
+        </div>
         <div className="card">
           <h2 className="section">Ventes par jour</h2>
           <Colonnes jours={jours} />
-        </div>
-        <div className="card">
-          <h2 className="section">Ventes et dépenses · 6 mois</h2>
-          <VentesDepenses mois={mois} />
         </div>
         <div className="card">
           <h2 className="section">Articles les plus vendus</h2>
@@ -253,25 +337,6 @@ export default function Ventes({ periode: demandee, caisse }) {
         <div className="card">
           <h2 className="section">Dernières ventes</h2>
           <DernieresVentes ventes={ventes} vide="Aucune vente pour l'instant. Elles apparaîtront ici dès qu'elles sont encaissées." />
-        </div>
-        <div className="card">
-          <h2 className="section">Principales dépenses</h2>
-          <Donut items={Object.entries(parCat).map(([label, value]) => ({ label, value }))} fmt={eur} />
-          {sorties.length > 0 && (
-            <div className="sorties">
-              {sorties.slice(0, 4).map((a) => (
-                <div key={a.id} className="so">
-                  <span className="so-d">{fmtDate(a.date)}</span>
-                  <span className="so-l">{a.categorie || 'Dépense'}{a.fournisseur ? ` · ${a.fournisseur}` : ''}{a.notes ? ` · ${a.notes}` : ''}</span>
-                  <span className="so-m">− {eur(a.montant)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="card">
-          <h2 className="section">Paiements reçus par mode</h2>
-          <Donut items={Object.entries(parMode).map(([label, value]) => ({ label, value }))} fmt={eur} />
         </div>
         <div className="card">
           <h2 className="section">Ventes par vendeur</h2>
@@ -326,7 +391,7 @@ function StockBas({ liste }) {
   )
 }
 
-// Ventes (bleu) et dépenses (rouge) par mois, côte à côte
+// Entrées (encaissements) et sorties (dépenses) par mois, côte à côte
 function VentesDepenses({ mois }) {
   const [ref, w] = useWidth(640)
   const H = 190
@@ -339,16 +404,17 @@ function VentesDepenses({ mois }) {
   return (
     <div ref={ref} className="cols-wrap">
       <div className="vd-leg">
-        <span><i className="vd-v" /> Ventes {eur(tot.v)}</span>
-        <span><i className="vd-d" /> Dépenses {eur(tot.d)}</span>
+        <span><i className="vd-v" /> Entrées {eur(tot.v)}</span>
+        <span><i className="vd-d" /> Sorties {eur(tot.d)}</span>
+        <span className={tot.v - tot.d < 0 ? 'neg' : ''}>Reste {eur(tot.v - tot.d)}</span>
       </div>
-      <svg width={w} height={H} role="img" aria-label="Ventes et dépenses par mois">
+      <svg width={w} height={H} role="img" aria-label="Entrées et sorties par mois">
         <line x1={pad.l} x2={w - pad.r} y1={H - pad.b} y2={H - pad.b} stroke="var(--line)" />
         {mois.map((m, i) => {
           const cx = pad.l + gw * i + gw / 2
           return (
             <g key={m.k}>
-              <title>{`${m.label} : ventes ${eur(m.ventes)}, dépenses ${eur(m.depenses)}`}</title>
+              <title>{`${m.label} : entrées ${eur(m.ventes)}, sorties ${eur(m.depenses)}, reste ${eur(m.ventes - m.depenses)}`}</title>
               <rect x={cx - bw - 2} y={y(m.ventes)} width={bw} height={Math.max(0, H - pad.b - y(m.ventes))} rx={3} fill="var(--gold)" />
               <rect x={cx + 2} y={y(m.depenses)} width={bw} height={Math.max(0, H - pad.b - y(m.depenses))} rx={3} fill="var(--red)" opacity=".8" />
               <text x={cx} y={H - 10} textAnchor="middle" fontSize="11" fill="var(--muted)">{m.label}</text>

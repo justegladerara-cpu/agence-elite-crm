@@ -1664,3 +1664,24 @@ table.ztable td { white-space: normal; }
 .droit-ligne.perso { border-color: var(--orange, #d99a00); background: rgba(217, 154, 0, .06); }
 .droit-ligne input { width: 18px; height: 18px; flex: none; }
 .droits-table td, .droits-table th { padding: 6px 8px; }
+
+/* Tableau de bord : mouvements d'argent */
+.ventes-grid .plein { grid-column: 1 / -1; }
+.flux em { font-style: normal; font-size: 12px; color: var(--muted); line-height: 1.35; }
+.flux.entree { cursor: pointer; }
+.mvts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+@media (max-width: 860px) { .mvts { grid-template-columns: minmax(0, 1fr); } }
+.mvt { display: flex; align-items: center; gap: 10px; padding: 9px 4px; border: 0; border-bottom: 1px solid var(--line-2); background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; min-width: 0; }
+.mvt:hover { background: var(--line-2); }
+.mvt-d { width: 62px; flex: none; font-size: 12px; color: var(--muted); }
+.mvt-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mvt-t b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mvt-t span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mvt-m { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mvt.in .mvt-m { color: var(--green); }
+.mvt.out .mvt-m { color: var(--red); }
+.so-btn { border: 0; background: none; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.vd-leg .neg { color: var(--red); }
+.sorties .so-btn, .sorties .so.deux { grid-template-columns: minmax(0, 1fr) auto; }
+.so-btn .so-m, .so.deux .so-m { color: var(--gold-ink, var(--text)); }
+.so-btn:hover { background: var(--line-2); }
