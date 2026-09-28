@@ -2,9 +2,11 @@
 import { createClient } from '@supabase/supabase-js'
 import { DEFAULT_SETTINGS } from './defaults'
 
-const URL = import.meta.env.VITE_SUPABASE_URL
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
-export const supabase = URL && KEY ? createClient(URL, KEY) : null
+// Base de données propre au Kangourou (séparée du CRM Agence Elite)
+const URL = 'https://ucsyokxpwyjdubjthzkn.supabase.co'
+const KEY = 'sb_publishable_fIY2a08EgjV2JIZKCYCIgw_LaFEfJDy'
+// VITE_DEMO_LOCAL=1 : essai sur l'appareil, sans toucher à la base en ligne
+export const supabase = URL && KEY && !import.meta.env.VITE_DEMO_LOCAL ? createClient(URL, KEY) : null
 export const isLocal = !supabase
 
 const ACTION_FIELDS = [
@@ -57,7 +59,7 @@ export function mergeSettings(s) {
 }
 
 // Photos de reçus en attente d'envoi (mode démo ou hors ligne) : chemin → image en data URL
-const RECUS = 'aecrm-recus'
+const RECUS = 'kgr-recus'
 const readRecus = () => {
   try {
     return JSON.parse(localStorage.getItem(RECUS)) || {}
@@ -79,7 +81,7 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() +
 const nowIso = () => new Date().toISOString()
 
 // ---------- Local ----------
-const LS = 'agence-elite-crm'
+const LS = 'kangourou-gestion'
 const readLocal = () => {
   try {
     const db = JSON.parse(localStorage.getItem(LS)) || { prospects: [], actions: [], settings: null }
@@ -237,8 +239,8 @@ const remote = {
 // ---------- Hors ligne ----------
 // Copie locale des données + file d'attente des modifications. Chaque écriture est appliquée
 // tout de suite sur la copie locale, puis envoyée à Supabase dès que la connexion le permet.
-const CACHE = 'aecrm-cache'
-const QUEUE = 'aecrm-queue'
+const CACHE = 'kgr-cache'
+const QUEUE = 'kgr-queue'
 const readJson = (k, d) => {
   try {
     return JSON.parse(localStorage.getItem(k)) ?? d

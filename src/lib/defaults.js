@@ -1,31 +1,31 @@
 // Paramètres par défaut, repris de l'onglet « Paramètres » du fichier Excel.
 import { APPARENCE_DEFAUT } from './theme'
 export const DEFAULT_SETTINGS = {
-  devise: 'EUR',
+  devise: 'XAF',
   // Identité et couleurs du CRM (logo, nom, thème)
   apparence: APPARENCE_DEFAUT,
   // Facturation : coordonnées et mentions reprises sur les factures et devis
   facturation: {
-    nom: 'AGENCE ELITE',
-    adresse: '111 Av. Moé Vangoula\nPointe-Noire, Kouilou — Congo',
-    telephone: '055222968',
-    email: 'contact@agence-elite.fr',
-    site: 'www.agence-elite.fr',
-    slogan: 'L’innovation au service de votre succès',
+    nom: 'LE KANGOUROU SERVICES',
+    adresse: 'Congo',
+    telephone: '',
+    email: '',
+    site: 'www.lekangourou-cg.com',
+    slogan: 'Votre fournisseur N°1 en équipements et fournitures industrielles',
     prefixeFacture: 'FAC-',
     prefixeDevis: 'DEV-',
-    premierNumero: 204,
+    premierNumero: 1,
     delaiPaiement: 0,
     validiteDevis: 30,
     conditions: 'Payable à réception',
     tva: 0,
-    paiement: 'Banque / Mobile Money : à compléter\nTitulaire : AGENCE ELITE',
-    notes: 'Merci de votre confiance. Le règlement est payable à réception de la présente facture.',
-    couleur: '#e60000',
+    paiement: 'Espèces, Mobile Money (MTN, Airtel), virement ou chèque\nTitulaire : LE KANGOUROU SERVICES',
+    notes: 'Merci de votre confiance. Les marchandises vendues ne sont ni reprises ni échangées sans la présente facture.',
+    couleur: '#d99a00',
     afficherLogo: true,
     signature: '',
     signataire: '',
-    cgv: 'La présente facture est soumise aux Conditions Générales de Vente d’Agence Elite disponibles sur www.agence-elite.fr/cgv. Toute validation de commande implique l’acceptation desdites conditions.',
+    cgv: '',
   },
   objectifsJour: { prospects: 10, appels: 100, dm: 100 },
   // Objectifs quotidiens façon « Rule of 100 » (modifiables jour par jour dans Ma journée)
@@ -168,8 +168,8 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Publicité agence', montant: 0 },
     { nom: 'Autre', montant: 0 },
   ],
-  categoriesDepenses: ['Transport', 'Impression', 'Matériel', 'Publicité', 'Abonnements / logiciels', 'Téléphone / internet', 'Sous-traitance', 'Repas', 'Autre'],
-  modesPaiement: ['Espèces', 'Mobile Money', 'Virement', 'Chèque', 'Carte'],
+  categoriesDepenses: ['Achat de marchandises', 'Transport / dédouanement', 'Loyer', 'Salaires', 'Électricité / eau', 'Carburant', 'Téléphone / internet', 'Entretien', 'Autre'],
+  modesPaiement: ['Espèces', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque', 'Carte'],
   // Prospection Instagram express : signaux repérés sur la pub et messages prêts à copier
   signaux: [
     'Belle offre, pub moyenne',

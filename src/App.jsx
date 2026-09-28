@@ -21,47 +21,29 @@ import Scripts from './pages/Scripts'
 import Recherche from './pages/Recherche'
 import Calendrier from './pages/Calendrier'
 import { syncRappels } from './lib/rappels'
+import Caisse from './pages/Caisse'
+import Articles from './pages/Articles'
+import Ventes from './pages/Ventes'
+import { articlesDe, enAlerte } from './lib/magasin'
 
-// Menu groupé : piloter, vendre, facturer, régler
+// Menu groupé : piloter, vendre, facturer
 const NAV = [
   {
     titre: 'Pilotage',
     items: [
-      {
-        path: 'journee',
-        memo: 'journee',
-        label: 'Ma journée',
-        ico: 'sun',
-        sub: [['?onglet=jour', "Aujourd'hui"], ['?onglet=chauds', 'Prospects chauds'], ['?onglet=alertes', 'Alertes'], ['?onglet=routine', 'Ma routine'], ['?onglet=historique', 'Bilan de la semaine']],
-      },
-      {
-        path: 'dashboard',
-        memo: 'dashboard',
-        label: 'Tableau de bord',
-        ico: 'chart',
-        sub: [['?onglet=vue', "Vue d'ensemble"], ['?onglet=acquisition', 'Acquisition'], ['?onglet=conversion', 'Conversion'], ['?onglet=finances', 'Finances']],
-      },
-      { path: 'calendrier', label: 'Calendrier', ico: 'calendar' },
+      { path: 'ventes', memo: 'ventes-periode', label: 'Tableau de bord', ico: 'chart', sub: [['?periode=jour', "Aujourd'hui"], ['?periode=7j', '7 jours'], ['?periode=mois', 'Ce mois']] },
     ],
   },
   {
-    titre: 'Commercial',
+    titre: 'Magasin',
     items: [
-      {
-        path: 'clients',
-        memo: 'hub',
-        label: 'Clients',
-        ico: 'briefcase',
-        sub: [['?onglet=potentiels', 'Potentiels'], ['?onglet=nouveaux', 'Nouveaux clients'], ['?onglet=actifs', 'Clients actifs'], ['?onglet=anciens', 'Anciens clients'], ['?onglet=perdus', 'Perdus'], ['?onglet=tous', 'Tous']],
-      },
-      { path: 'session', label: "Session d'appels", ico: 'phone' },
-      { path: 'scripts', label: 'Scripts', ico: 'message' },
+      { path: 'caisse', label: 'Caisse', ico: 'coins' },
+      { path: 'articles', label: 'Articles et stock', ico: 'layers' },
     ],
   },
   {
     titre: 'Finances',
     items: [
-      { path: 'devis', memo: 'liste-devis', label: 'Devis', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
       {
         path: 'factures',
         memo: 'liste-facture',
@@ -69,8 +51,9 @@ const NAV = [
         ico: 'file',
         sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
       },
-      { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
-      { path: 'depenses', label: 'Dépenses', ico: 'wallet' },
+      { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
+      { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
+      { path: 'depenses', label: 'Dépenses', ico: 'trend' },
     ],
   },
 ]
@@ -81,7 +64,7 @@ const PARAMETRES = {
   path: 'parametres',
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/listes', 'Listes'], ['/excel', 'Import / Export'], ['/compte', 'Compte']],
 }
 const lirePref = (k) => {
   try {
@@ -103,12 +86,13 @@ function basculer(set, k, x) {
   })
 }
 PAGES.saisie = 'Nouvelle action'
-// Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
+PAGES.facture = 'Facture'
+// Barre du bas sur téléphone : Ventes, Articles, Caisse (au centre), Factures, Réglages
 const BOTTOM = [
-  { path: 'journee', short: 'Journée', ico: 'sun' },
-  { path: 'clients', short: 'Clients', ico: 'briefcase' },
-  { path: 'saisie', short: 'Saisir', ico: 'plus', cta: true },
-  { path: 'dashboard', short: 'Stats', ico: 'chart' },
+  { path: 'ventes', short: 'Ventes', ico: 'chart' },
+  { path: 'articles', short: 'Articles', ico: 'layers' },
+  { path: 'caisse', short: 'Caisse', ico: 'plus', cta: true },
+  { path: 'factures', short: 'Factures', ico: 'file' },
   { path: 'parametres', short: 'Réglages', ico: 'settings' },
 ]
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
@@ -118,7 +102,7 @@ const enSaisie = (e) => {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'dashboard'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'ventes'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -175,7 +159,7 @@ function Crm() {
         setRecherche(true)
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault()
-        setActionModal({})
+        go('/caisse')
       }
     }
     window.addEventListener('keydown', k)
@@ -390,13 +374,17 @@ function Crm() {
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else content = <Dashboard key={route} onglet={q.get('onglet')} />
+  else if (page === 'caisse') content = <Caisse />
+  else if (page === 'articles') content = <Articles />
+  else if (page === 'dashboard') content = <Dashboard key={route} onglet={q.get('onglet')} />
+  else content = <Ventes key={route} periode={q.get('periode')} />
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
   const badges = {
     journee: [data.aRelancer.length, 'hot', 'relances à faire'],
     clients: [data.clientsAlertes.length, '', 'clients à surveiller'],
+    articles: [articlesDe(state.documents || []).filter(enAlerte).length, 'hot', 'articles à réapprovisionner'],
     factures: [retards, 'hot', 'factures en retard'],
     devis: [devisAttente, '', 'devis en attente'],
   }
@@ -463,8 +451,8 @@ function Crm() {
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          <button className="nav-new" onClick={() => setActionModal({})} aria-keyshortcuts="N">
-            <Icon n="plus" size={17} /> Nouvelle action <kbd>N</kbd>
+          <button className="nav-new" onClick={() => go('/caisse')} aria-keyshortcuts="N">
+            <Icon n="plus" size={17} /> Nouvelle vente <kbd>N</kbd>
           </button>
           <nav className="nav-scroll">
             {NAV.map((g, i) => {
@@ -509,7 +497,7 @@ function Crm() {
               {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
             </div>
           )}
-          {isLocal && (route === '' || route.startsWith('dashboard')) && (
+          {isLocal && (route === '' || route.startsWith('ventes')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
           {content}

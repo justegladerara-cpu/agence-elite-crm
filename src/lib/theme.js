@@ -2,6 +2,7 @@
 // Gardées aussi sur l'appareil pour l'écran de connexion, affiché avant le chargement des réglages.
 
 export const THEMES = [
+  { id: 'kangourou', label: 'Kangourou (anthracite & jaune)', principal: '#15191e', accent: '#d99a00' },
   { id: 'marine-or', label: 'Marine & or', principal: '#0c1833', accent: '#b8903f' },
   { id: 'noir-rouge', label: 'Noir & rouge (logo)', principal: '#121212', accent: '#e10600' },
   { id: 'noir-or', label: 'Noir & or', principal: '#141414', accent: '#c9a24e' },
@@ -11,19 +12,19 @@ export const THEMES = [
 ]
 
 export const APPARENCE_DEFAUT = {
-  nom: 'AGENCE ELITE',
-  sousTitre: 'CRM de pilotage',
-  prenom: 'Juste',
-  accroche: 'Chaque appel compte. Pilote ta prospection, du premier message à la signature.',
+  nom: 'LE KANGOUROU',
+  sousTitre: 'Gestion du magasin',
+  prenom: '',
+  accroche: 'Caisse, articles, factures et ventes en temps réel.',
   afficherNom: true,
   logo: '',
   logoSombre: '',
-  theme: 'marine-or',
-  principal: '#0c1833',
-  accent: '#b8903f',
+  theme: 'kangourou',
+  principal: '#15191e',
+  accent: '#d99a00',
 }
 
-const KEY = 'aecrm-brand'
+const KEY = 'kgr-brand'
 
 // ---------- Couleurs ----------
 const hex = (h) => {
