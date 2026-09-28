@@ -15,7 +15,7 @@ declare
   modes text[] := array['Mobile Money','Mobile Money','Virement','Espèces'];
   offres text[] := array['Site vitrine','Site vitrine','Site + réservation','Site + SEO local','Gestion Instagram','Pack complet'];
   n int := 135; i int; k int; x float; pid uuid; d date; sig date; ago int; sc text; nom text; secteur text; ville text; quartier text; canal text; offre text;
-  contact text; tel text; insta text; source text; tm text; prix numeric; abo numeric; fac text; nfac int := 0; ndev int := 0; m int; payed numeric; essais int;
+  contact text; tel text; insta text; source text; tm text; prix numeric; abo numeric; fac text; nfac int := 0; ndev int := 0; m int; payed numeric; essais int; t date;
 begin
   perform setseed(0.242);
   delete from public.documents where user_id = u;
@@ -183,6 +183,69 @@ begin
       values (u, d + 10, 'Autre', 'Dépense', 60000, 'Publicité', 'Meta', 'Mobile Money', 'Publicité Instagram agence');
     end if;
   end loop;
+  i := n;
+  -- Activité récente soutenue : chaque jour des 14 derniers jours (aujourd'hui compris) a des nouveaux prospects,
+  -- des RDV, des propositions et des signatures, pour que « Cette semaine » ne soit jamais vide, même un lundi.
+  for ago in 0..13 loop
+    for k in 1..(case when ago = 0 then 10 when extract(isodow from current_date - ago) = 7 then 2 else 5 end) loop
+      i := i + 1;
+      t := current_date - ago;
+      m := 1 + floor(random() * array_length(secteurs, 1))::int;
+      secteur := secteurs[m];
+      nom := (string_to_array(prefixes[m], '|'))[1 + floor(random() * array_length(string_to_array(prefixes[m], '|'), 1))::int] || ' ' || mots[1 + floor(random() * array_length(mots, 1))::int];
+      ville := villes[1 + floor(random() * array_length(villes, 1))::int];
+      quartier := split_part(ville, '|', 2); ville := split_part(ville, '|', 1);
+      if exists (select 1 from public.prospects where user_id = u and name = nom) then nom := nom || ' ' || case when quartier = 'Centre' then ville else quartier end; end if;
+      if exists (select 1 from public.prospects where user_id = u and name = nom) then nom := nom || ' ' || i; end if;
+      canal := canaux[1 + floor(random() * array_length(canaux, 1))::int];
+      contact := prenoms[1 + floor(random() * array_length(prenoms, 1))::int] || ' ' || noms[1 + floor(random() * array_length(noms, 1))::int];
+      tel := (array['06','05','04'])[1 + floor(random() * 3)::int] || ' ' || lpad((floor(random() * 900) + 100)::text, 3, '0') || ' ' || lpad(floor(random() * 100)::text, 2, '0') || ' ' || lpad(floor(random() * 100)::text, 2, '0');
+      offre := offres[1 + floor(random() * array_length(offres, 1))::int];
+      select coalesce((o->>'prix')::numeric, 0) into prix from public.settings s, jsonb_array_elements(s.data->'offres') o where s.user_id = u and o->>'nom' = offre;
+      prix := coalesce(prix, 0); if offre = 'Gestion Instagram' then prix := 295000; end if;
+      -- k = 1 : signature ce jour, 2 : proposition ce jour, 3 : RDV ce jour, sinon nouveau prospect contacté ce jour (le double aujourd'hui)
+      sc := case case when ago = 0 then (k + 1) / 2 else k end when 1 then 'G' when 2 then 'P' when 3 then 'R' else 'C' end;
+      d := case sc when 'G' then t - 12 when 'P' then t - 9 when 'R' then t - 7 else t end;
+      pid := gen_random_uuid();
+      tm := to_char(time '08:00' + floor(random() * 600)::int * interval '1 minute', 'HH24:MI');
+      insert into public.prospects (id, user_id, name, fiche, created_at) values (pid, u, nom, jsonb_strip_nulls(jsonb_build_object(
+        'secteur', secteur, 'ville', ville, 'zone', quartier, 'contact', contact, 'telephone', tel, 'whatsapp', tel, 'source', case when canal = 'DM' then 'Publicité Instagram' else 'Google Maps' end,
+        'offre', case when sc <> 'C' then offre end, 'presence_google', (array['Absente','Faible','Bonne'])[1 + floor(random() * 3)::int],
+        'adresse_facturation', case when sc = 'G' then quartier || ', ' || ville end)), d + time '08:00');
+      insert into public.actions (user_id, prospect_id, date, time, canal, action) values (u, pid, d, tm, canal, 'Ajout prospect');
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, resultat, duree, prochaine_action, date_relance)
+      values (u, pid, d, tm, canal, 'Premier contact', case when sc = 'C' and random() < 0.6 then 'Pas de réponse' else 'Intéressé' end,
+        case when canal = 'Appel' then 3 + floor(random() * 6)::int end, case when sc = 'C' then 'Relancer' end, case when sc = 'C' then t + 2 end);
+      if sc = 'C' then continue; end if;
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, resultat, duree) values (u, pid, d + 2, tm, 'Appel', 'Qualification', 'Intéressé', 8 + floor(random() * 15)::int);
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, resultat) values (u, pid, d + 4, tm, 'DM', 'Loom envoyé', 'Loom vu');
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, note, duree) values (u, pid, d + 4, tm, 'Autre', 'Audit réalisé', 50 + floor(random() * 40)::int, 40);
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, resultat, duree, prochaine_action, date_relance)
+      values (u, pid, d + 7, (array['09:00','10:00','11:00','15:00','16:30'])[1 + floor(random() * 5)::int], 'Appel', 'RDV', 'RDV pris', 30,
+        case when sc = 'R' then 'Envoyer la proposition' end, case when sc = 'R' then t + 1 end);
+      if sc = 'R' then continue; end if;
+      ndev := ndev + 1;
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, montant, prochaine_action, date_relance)
+      values (u, pid, d + 9, tm, 'DM', 'Proposition envoyée', prix, case when sc = 'P' then 'Relancer la proposition' end, case when sc = 'P' then t + 3 end);
+      insert into public.documents (user_id, type, numero, prospect_id, data, created_at) values (u, 'devis', 'DEV-2026' || lpad(ndev::text, 6, '0'), pid, jsonb_build_object(
+        'date', d + 9, 'validite', d + 24, 'objet', offre, 'tva', 0, 'client', jsonb_build_object('nom', nom, 'adresse', quartier || ', ' || ville),
+        'lignes', jsonb_build_array(jsonb_build_object('designation', offre, 'description', 'Conception, mise en ligne et formation', 'qte', 1, 'pu', prix::text)),
+        'conditions', '50 % à la commande, solde à la livraison', 'notes', 'Merci de votre confiance.'), d + 9 + time '12:00');
+      if sc = 'P' then continue; end if;
+      nfac := nfac + 1; fac := 'FAC-2026' || lpad(nfac::text, 6, '0');
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, montant, facture) values (u, pid, t, tm, 'Appel', 'Signature', prix, fac);
+      insert into public.documents (user_id, type, numero, prospect_id, data, created_at) values (u, 'facture', fac, pid, jsonb_build_object(
+        'date', t, 'echeance', t + 30, 'objet', offre, 'tva', 0, 'client', jsonb_build_object('nom', nom, 'adresse', quartier || ', ' || ville),
+        'lignes', jsonb_build_array(jsonb_build_object('designation', offre, 'qte', 1, 'pu', prix::text)),
+        'conditions', '50 % à la commande, solde à la livraison', 'notes', 'Merci de votre confiance.'), t + time '12:00');
+      -- Acompte de 50 % le jour même, solde une semaine plus tard
+      insert into public.actions (user_id, prospect_id, date, time, canal, action, montant, facture, mode) values (u, pid, t, '17:00', 'Autre', 'Paiement reçu', round(prix / 2), fac, modes[1 + floor(random() * 4)::int]);
+      if ago >= 7 then
+        insert into public.actions (user_id, prospect_id, date, time, canal, action, montant, facture, mode) values (u, pid, t + 7, '11:00', 'Autre', 'Paiement reçu', prix - round(prix / 2), fac, 'Mobile Money');
+      end if;
+    end loop;
+  end loop;
+
   delete from public.actions where user_id = u and date > current_date;
 end $$;
 select (select count(*) from public.prospects where user_id = '17ecf66e-9c89-4896-b7d4-a1446f037485') fiches,
