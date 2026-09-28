@@ -9,6 +9,7 @@ import { peut } from '../lib/store'
 import { num, estNombre, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
+import { copier } from '../lib/insta'
 
 
 // Bouton « Relancer » d'une facture impayée (liste des factures, Ma journée)
@@ -331,7 +332,9 @@ export function DocEditor({ id, query }) {
     withPdf(async (blob, name) => {
       const file = new File([blob], name, { type: 'application/pdf' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: name, text: remplirDoc(settings.messageEnvoi, existing, { actions, byId: data.byId, eur }) })
+        // PDF seul : avec un texte, certains téléphones ajoutent le lien de la page au message
+        await copier(remplirDoc(settings.messageEnvoi, existing, { actions, byId: data.byId, eur })).catch(() => {})
+        await navigator.share({ files: [file] })
       } else {
         const a = document.createElement('a')
         a.href = URL.createObjectURL(blob)
@@ -340,13 +343,15 @@ export function DocEditor({ id, query }) {
         toast('Partage non disponible ici : PDF téléchargé')
       }
     })
-  // Envoi sur WhatsApp : sur téléphone, le PDF part avec le message ; sur ordinateur, PDF téléchargé + WhatsApp ouvert avec le message
+  // Envoi sur WhatsApp : sur téléphone, le PDF part seul (message copié, à coller) ; sur ordinateur, PDF téléchargé + WhatsApp ouvert avec le message
   const envoyerWa = () =>
     withPdf(async (blob, name) => {
       const texte = remplirDoc(settings.messageEnvoi, existing, { actions, byId: data.byId, eur })
       const file = new File([blob], name, { type: 'application/pdf' })
       if (navigator.canShare && navigator.canShare({ files: [file] }) && /Android|iPhone|iPad/i.test(navigator.userAgent)) {
-        await navigator.share({ files: [file], text: texte })
+        await copier(texte).catch(() => {})
+        await navigator.share({ files: [file] })
+        toast('PDF envoyé. Le message est copié : colle-le dans la conversation si tu veux')
         return
       }
       const a = document.createElement('a')
