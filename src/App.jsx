@@ -365,8 +365,7 @@ function Crm() {
     loadHotelDemo: wrap(async () => {
       const { genererHotel } = await import('./lib/demoHotel')
       const { docs, actions, categoriesDepenses } = genererHotel(state)
-      await db.saveDocs(docs)
-      await db.addActions(actions)
+      await db.importDemo(docs, actions)
       // Catégories de dépenses de l'hôtel ajoutées aux réglages si elles manquent
       const cats = state.settings.categoriesDepenses || []
       const manquantes = categoriesDepenses.filter((c) => !cats.includes(c))

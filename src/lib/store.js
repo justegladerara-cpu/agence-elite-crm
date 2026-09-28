@@ -202,6 +202,10 @@ const local = {
     db.actions = []
     writeLocal(db)
   },
+  async importDemo(docs, actions) {
+    await this.saveDocs(docs)
+    await this.addActions(actions)
+  },
 }
 
 // ---------- Supabase ----------
@@ -268,6 +272,14 @@ const remote = {
   async viderDemo() {
     check(await supabase.from(T.documents).delete().eq('espace', 'demo'))
     check(await supabase.from(T.actions).delete().eq('espace', 'demo'))
+  },
+  // Gros volume de démonstration : envoyé directement par paquets, sans passer par la file hors ligne
+  async importDemo(docs, actions) {
+    // Mêmes colonnes sur chaque ligne : sinon les colonnes absentes seraient envoyées vides
+    const docRows = docs.map((d) => ({ id: d.id || uid(), type: d.type, numero: d.numero, prospect_id: d.prospect_id || null, data: d.data, created_at: d.created_at || nowIso() }))
+    for (let i = 0; i < docRows.length; i += 400) check(await supabase.from(T.documents).upsert(docRows.slice(i, i + 400), { onConflict: 'id' }))
+    const rows = actions.map((a) => ({ id: uid(), created_at: nowIso(), ...cleanAction(a) }))
+    for (let i = 0; i < rows.length; i += 400) check(await supabase.from(T.actions).upsert(rows.slice(i, i + 400), { onConflict: 'id' }))
   },
 }
 
@@ -543,6 +555,11 @@ const offline = {
     if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
     await flush()
     await remote.viderDemo()
+  },
+  async importDemo(docs, actions) {
+    if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
+    await flush()
+    await remote.importDemo(docs, actions)
   },
 }
 
