@@ -29,9 +29,9 @@ export default function Recherche({ onClose, pages = [] }) {
     const ok = (p) => pages.some((n) => n.path === p)
     // Actions rapides et pages : toujours proposées, filtrées par le texte tapé
     const rapides = [
-      ok('hotel') && { key: 'a-vente', groupe: 'Actions rapides', titre: 'Point de vente', sous: 'Salle, chambres, encaissement (touche N)', ico: 'grid', path: '/hotel' },
-      { key: 'a-devis', groupe: 'Actions rapides', titre: 'Nouveau devis / proforma', sous: '', ico: 'clipboard', path: '/facture/new?type=devis' },
-      { key: 'a-facture', groupe: 'Actions rapides', titre: 'Nouvelle facture', sous: 'Facture A4 pour un client', ico: 'file', path: '/facture/new?type=facture' },
+      { key: 'a-vente', groupe: 'Actions rapides', titre: 'Applications', sous: 'Réception, restaurant, bar… (touche N)', ico: 'grid', path: '/apps' },
+      ok('devis') && { key: 'a-devis', groupe: 'Actions rapides', titre: 'Nouveau devis / proforma', sous: '', ico: 'clipboard', path: '/facture/new?type=devis' },
+      ok('factures') && { key: 'a-facture', groupe: 'Actions rapides', titre: 'Nouvelle facture', sous: 'Facture A4 pour un client', ico: 'file', path: '/facture/new?type=facture' },
       ok('depenses') && { key: 'a-depense', groupe: 'Actions rapides', titre: 'Nouvelle dépense', sous: 'Sortie d’argent', ico: 'trend', path: '/depenses' },
     ].filter(Boolean)
     const pagesRes = pages.flatMap((n) => [

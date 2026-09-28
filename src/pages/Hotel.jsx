@@ -47,7 +47,9 @@ export function PlatImg({ p, size = 56 }) {
 }
 
 // Point de vente de l'hôtel, façon Odoo Restaurant : plan de salle, chambres, commande, note de chambre, encaissement
-export default function Hotel() {
+// Trois applications à part, installées par le superadmin : réception (chambres), restaurant (salle, terrasse), bar
+const APPS = { reception: 'Réception', restaurant: 'Restaurant', bar: 'Bar' }
+export default function Hotel({ app = 'reception' }) {
   const ctx = useApp()
   const { documents, settings, toast, actions, profil, api } = ctx
   const moi = profil?.nom || profil?.email || ''
@@ -55,9 +57,10 @@ export default function Hotel() {
   const config = peut(profil, 'articles')
   const chambres = useMemo(() => chambresDe(documents), [documents])
   const mods = modulesDe(profil?.etab)
-  // Zones de tables ouvertes : restaurant (et terrasse), bar
-  const zonesOk = ZONES.filter((z) => (z === 'Bar' ? mods.bar : mods.restaurant))
-  const tables = useMemo(() => tablesDe(documents).filter((t) => zonesOk.includes(t.zone) || !ZONES.includes(t.zone)), [documents, mods.bar, mods.restaurant]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Zones de tables de cette application : restaurant (et terrasse) ou bar
+  const zonesApp = app === 'bar' ? ['Bar'] : app === 'restaurant' ? ['Restaurant', 'Terrasse'] : []
+  const zonesOk = ZONES.filter((z) => zonesApp.includes(z) && (z === 'Bar' ? mods.bar : mods.restaurant))
+  const tables = useMemo(() => tablesDe(documents).filter((t) => zonesOk.includes(t.zone) || (app === 'restaurant' && mods.restaurant && !ZONES.includes(t.zone))), [documents, app, mods.bar, mods.restaurant]) // eslint-disable-line react-hooks/exhaustive-deps
   const plats = useMemo(() => platsDe(documents), [documents])
   const sejours = useMemo(() => sejoursEnCours(documents), [documents])
   const commandes = useMemo(() => commandesOuvertes(documents), [documents])
@@ -66,21 +69,22 @@ export default function Hotel() {
 
   // Onglets selon les droits : salle (serveurs), chambres et planning (réception), tableau (direction)
   // … et selon les modules attribués à l'établissement par le superadmin
-  const avecSalle = mods.restaurant || mods.bar
+  const reception = app === 'reception'
   const ONGLETS = [
-    ['salle', mods.restaurant ? 'Salle' : 'Bar', 'grid', peut(profil, 'salle') && avecSalle],
-    ['chambres', 'Chambres', 'layers', peut(profil, 'reception') && mods.hebergement],
-    ['planning', 'Planning', 'calendar', peut(profil, 'reception') && mods.hebergement],
+    ['salle', app === 'bar' ? 'Bar' : 'Salle', 'grid', !reception && peut(profil, 'salle') && zonesOk.length > 0],
+    ['chambres', 'Chambres', 'layers', reception && peut(profil, 'reception') && mods.hebergement],
+    ['planning', 'Planning', 'calendar', reception && peut(profil, 'reception') && mods.hebergement],
     ['tableau', 'Tableau', 'chart', peut(profil, 'finances')],
   ].filter((o) => o[3])
   const permise = (v) => ONGLETS.some((o) => o[0] === v)
+  const cleVue = `hotel-vue-${app}`
   const [vue, setVueState] = useState(() => {
-    const v = lire('hotel-vue', 'salle')
+    const v = lire(cleVue, ONGLETS[0]?.[0] || 'salle')
     return permise(v) ? v : ONGLETS[0]?.[0] || 'salle'
   })
   const setVue = (v) => {
     setVueState(v)
-    if (permise(v)) ecrire('hotel-vue', v)
+    if (permise(v)) ecrire(cleVue, v)
   }
   const [cible, setCible] = useState(null) // { kind: 'table', tableId } | { kind: 'chambre', sejourId } | { kind: 'direct' }
   const [folioId, setFolioId] = useState(null)
@@ -363,7 +367,7 @@ export default function Hotel() {
         <img className="pos-logo" src={brand.logo || '/logo-mark.png'} alt="" />
         <div className={`pos-titre ${vue === 'commande' ? 'en-commande' : ''}`}>
           <strong>{profil?.etab?.nom || settings.facturation?.nom || 'Point de vente'}</strong>
-          <span>Point de vente</span>
+          <span>{APPS[app]}</span>
         </div>
         <nav className="ho-tabs">
           {ONGLETS.map(([k, l, ico]) => {
@@ -399,13 +403,13 @@ export default function Hotel() {
               <Icon n="settings" size={16} /> <span>Réglages</span>
             </button>
           )}
-          <button className="pos-btn" onClick={() => go(peut(profil, 'finances') ? '/ventes' : '/journal')} title="Quitter le point de vente">
+          <button className="pos-btn" onClick={() => go('/apps')} title="Retour aux applications">
             <Icon n="logout" size={16} /> <span>Quitter</span>
           </button>
         </div>
       </header>
 
-      {!ONGLETS.length && <Empty>Aucun module de cet établissement ne correspond à tes droits. Demande au directeur de régler tes accès.</Empty>}
+      {!ONGLETS.length && <Empty>Cette application n'est pas installée pour cet établissement, ou tes droits ne te la donnent pas. Demande au directeur ou au superadmin.</Empty>}
 
       {vue === 'salle' && <Salle zonesOk={zonesOk} tables={tables} commandeDe={commandeDe} onTable={ouvrirTable} onDirect={venteDirecte} config={config} onConfig={() => setModal({ t: 'reglages', onglet: 'tables' })} />}
 
@@ -725,7 +729,7 @@ export default function Hotel() {
       {modal?.t === 'nuitee' && <EnNuitee sejour={modal.sejour} chambres={chambres} onClose={() => setModal(null)} />}
       {modal?.t === 'acompte' && <Acompte sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'prolonger' && <Prolonger sejour={modal.sejour} onClose={() => setModal(null)} />}
-      {modal?.t === 'reglages' && <Reglages mods={mods} zonesOk={zonesOk} onglet={modal.onglet} onClose={() => setModal(null)} />}
+      {modal?.t === 'reglages' && <Reglages mods={mods} app={app} zonesOk={zonesOk} onglet={modal.onglet} onClose={() => setModal(null)} />}
     </div>
   )
 }
@@ -1372,15 +1376,16 @@ function Prolonger({ sejour, onClose }) {
 }
 
 // ---------- Réglages : chambres, tables, carte ----------
-function Reglages({ mods, zonesOk, onglet = 'carte', onClose }) {
+function Reglages({ mods, app, zonesOk, onglet = 'carte', onClose }) {
   const { documents, settings, profil } = useApp()
-  const onglets = [['carte', 'Carte'], ...(mods.restaurant || mods.bar ? [['tables', 'Tables']] : []), ...(mods.hebergement ? [['chambres', 'Chambres']] : []), ...(mods.hebergement && peut(profil, 'reglages') ? [['passages', 'Passages']] : [])]
+  const rec = app === 'reception'
+  const onglets = [['carte', 'Carte'], ...(!rec && zonesOk.length ? [['tables', 'Tables']] : []), ...(rec && mods.hebergement ? [['chambres', 'Chambres']] : []), ...(rec && mods.hebergement && peut(profil, 'reglages') ? [['passages', 'Passages']] : [])]
   const [tab, setTab] = useState(onglets.some((o) => o[0] === onglet) ? onglet : 'carte')
   const [edit, setEdit] = useState(null)
   const listes = { chambres: chambresDe(documents), tables: tablesDe(documents), carte: platsDe(documents), passages: settings.passages || [] }
   const liste = listes[tab]
   return (
-    <Modal title="Réglages de l'hôtel" onClose={onClose} large>
+    <Modal title={`Réglages · ${APPS[app]}`} onClose={onClose} large>
       <div className="ho-zones" style={{ marginBottom: 12 }}>
         {onglets.map(([k, l]) => (
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setEdit(null) }}>

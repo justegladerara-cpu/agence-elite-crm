@@ -574,12 +574,18 @@ export function peut(profil, d) {
 
 // Établissement de démonstration hors ligne : modules réglables depuis le menu du compte
 const MODULES_DEMO = 'hs-modules-demo'
+// Applications installables par établissement, comme dans Odoo : chacune a son entrée, son menu et ses écrans
 export const MODULES = [
-  ['hebergement', 'Hébergement', 'Chambres, réservations, planning, notes et départs.'],
-  ['restaurant', 'Restaurant', 'Plan de salle du restaurant et de la terrasse, commandes, cuisine.'],
-  ['bar', 'Bar', 'Tables du bar et ventes au comptoir.'],
+  ['hebergement', 'Réception', 'Chambres, passages à l’heure, réservations, planning, notes et départs.', { ico: 'layers', couleur: '#714b67', route: 'reception', droit: 'reception' }],
+  ['restaurant', 'Restaurant', 'Plan de salle du restaurant et de la terrasse, commandes, bons de cuisine, additions.', { ico: 'grid', couleur: '#e46e4b', route: 'restaurant', droit: 'salle' }],
+  ['bar', 'Bar', 'Tables du bar et ventes au comptoir.', { ico: 'send', couleur: '#8b5cf6', route: 'bar', droit: 'salle' }],
+  ['facturation', 'Facturation', 'Factures, reçus, devis et proformas, paiements reçus.', { ico: 'file', couleur: '#017e84', route: 'factures' }],
+  ['depenses', 'Dépenses', 'Sorties d’argent, achats, charges et justificatifs.', { ico: 'trend', couleur: '#d98a00', route: 'depenses', droit: ['finances', 'depenses'] }],
+  ['tableau', 'Tableau de bord', 'Chiffre d’affaires, encaissements, meilleures ventes, rapports.', { ico: 'chart', couleur: '#2f5bd3', route: 'ventes', droit: 'finances' }],
 ]
-export const modulesDe = (e) => ({ hebergement: true, restaurant: true, bar: true, ...(e?.modules || {}) })
+// Anciens établissements : les nouvelles applications sont installées par défaut
+export const modulesDe = (e) => ({ ...Object.fromEntries(MODULES.map(([k]) => [k, true])), ...(e?.modules || {}) })
+export const moduleInfo = (k) => MODULES.find((m) => m[0] === k)
 
 export async function monProfil() {
   if (!supabase) {

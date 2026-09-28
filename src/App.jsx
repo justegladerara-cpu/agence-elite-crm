@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel } from './ui'
-import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, monProfil, setRoleDemo, ROLES, clearOffline, stockApplique, peut } from './lib/store'
+import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, monProfil, setRoleDemo, ROLES, clearOffline, stockApplique, peut, modulesDe } from './lib/store'
 import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
@@ -13,22 +13,27 @@ import Recherche from './pages/Recherche'
 import { syncRappels } from './lib/rappels'
 import Hotel from './pages/Hotel'
 import Etablissements from './pages/Etablissements'
+import { Accueil, Applications } from './pages/Apps'
 import Ventes from './pages/Ventes'
 import Equipe from './pages/Equipe'
 import { Menu } from './ui'
 
-// Menu groupé : piloter, point de vente, facturer
+// Menu groupé par application (comme Odoo) : chaque groupe n'apparaît que si le superadmin a installé l'application
 const NAV = [
   {
-    titre: 'Pilotage',
+    titre: 'Tableau de bord',
     items: [
-      { path: 'ventes', memo: 'ventes-periode', label: 'Tableau de bord', ico: 'chart', sub: [['?periode=jour', "Aujourd'hui"], ['?periode=7j', '7 jours'], ['?periode=mois', 'Ce mois']], droit: 'finances' },
+      { path: 'ventes', memo: 'ventes-periode', label: 'Tableau de bord', ico: 'chart', sub: [['?periode=jour', "Aujourd'hui"], ['?periode=7j', '7 jours'], ['?periode=mois', 'Ce mois']], droit: 'finances', module: 'tableau' },
       { path: 'journal', label: 'Mes ventes du jour', ico: 'chart', droit: 'vendre', sans: 'finances' },
     ],
   },
   {
-    titre: 'Établissement',
-    items: [{ path: 'hotel', label: 'Point de vente', ico: 'grid', droit: ['salle', 'reception', 'finances'] }],
+    titre: 'Points de vente',
+    items: [
+      { path: 'reception', label: 'Réception', ico: 'layers', droit: ['reception', 'finances'], module: 'hebergement' },
+      { path: 'restaurant', label: 'Restaurant', ico: 'grid', droit: ['salle', 'finances'], module: 'restaurant' },
+      { path: 'bar', label: 'Bar', ico: 'send', droit: ['salle', 'finances'], module: 'bar' },
+    ],
   },
   {
     titre: 'Facturation',
@@ -38,22 +43,28 @@ const NAV = [
         memo: 'liste-facture',
         label: 'Factures et reçus',
         ico: 'file',
+        module: 'facturation',
         sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
       },
-      { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
-      { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
+      { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', module: 'facturation', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
+      { path: 'paiements', label: 'Paiements reçus', ico: 'wallet', module: 'facturation' },
     ],
   },
   {
-    titre: 'Finances',
-    items: [{ path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', droit: ['finances', 'depenses'] }],
+    titre: 'Dépenses',
+    items: [{ path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', droit: ['finances', 'depenses'], module: 'depenses' }],
   },
 ]
+const POS = ['reception', 'restaurant', 'bar']
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
 const EQUIPE = { path: 'equipe', label: 'Équipe et accès', ico: 'users', droit: 'equipe' }
 const ETABS = { path: 'etablissements', label: 'Établissements', ico: 'briefcase', role: 'superadmin' }
+const APPLIS = { path: 'applications', label: 'Applications', ico: 'grid', role: 'superadmin' }
+const ACCUEIL = { path: 'apps', label: 'Accueil', ico: 'grid' }
+PAGES.applications = APPLIS.label
+PAGES.apps = 'Accueil'
 PAGES.etablissements = ETABS.label
 PAGES.equipe = EQUIPE.label
 PAGES.journal = 'Mes ventes du jour'
@@ -89,9 +100,9 @@ PAGES.facture = 'Facture'
 const BOTTOM = [
   { path: 'ventes', short: 'Tableau', ico: 'chart', droit: 'finances' },
   { path: 'journal', short: 'Ventes', ico: 'chart', droit: 'vendre', sans: 'finances' },
-  { path: 'factures', short: 'Factures', ico: 'file' },
-  { path: 'hotel', short: 'Vendre', ico: 'plus', cta: true, droit: ['salle', 'reception', 'finances'] },
-  { path: 'paiements', short: 'Paiements', ico: 'wallet' },
+  { path: 'factures', short: 'Factures', ico: 'file', module: 'facturation' },
+  { path: 'apps', short: 'Applis', ico: 'grid', cta: true },
+  { path: 'paiements', short: 'Paiements', ico: 'wallet', module: 'facturation' },
   { path: 'parametres', short: 'Réglages', ico: 'settings', droit: 'reglages' },
 ]
 // Nouveau mot de passe du compte connecté
@@ -123,7 +134,7 @@ function MotDePasse({ onClose, toast }) {
 }
 
 // Une rubrique est visible avec l'un de ses droits (et sans le droit « sans », qui la remplace par une autre)
-const permis = (n, profil) => (!n.role || profil?.role === n.role) && (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
+const permis = (n, profil) => (!n.module || modulesDe(profil?.etab)[n.module]) && (!n.role || profil?.role === n.role) && (!n.droit || [].concat(n.droit).some((d) => peut(profil, d))) && (!n.sans || !peut(profil, n.sans))
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
 const enSaisie = (e) => {
   const t = e.target
@@ -131,7 +142,7 @@ const enSaisie = (e) => {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'ventes'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'apps'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -186,7 +197,7 @@ function Crm() {
         setRecherche(true)
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault()
-        go('/hotel')
+        go('/apps')
       }
     }
     window.addEventListener('keydown', k)
@@ -391,7 +402,8 @@ function Crm() {
       </div>
     )
   const role = profil.role
-  const accueil = peut(profil, 'finances') ? 'ventes' : peut(profil, 'salle') || peut(profil, 'reception') ? 'hotel' : 'factures'
+  // Comme Odoo : on arrive sur l'écran des applications
+  const accueil = 'apps'
 
   // Nouvel établissement sans réglages : son nom sert d'en-tête de facture
   if (!state.settings.facturation?.nom && profil.etab?.nom) state.settings.facturation = { ...state.settings.facturation, nom: profil.etab.nom, adresse: state.settings.facturation?.adresse || profil.etab.ville || '' }
@@ -414,7 +426,8 @@ function Crm() {
   }
 
   const [chemin, query = ''] = route.split('?')
-  const tousItems = [...NAV.flatMap((g) => g.items), ETABS, EQUIPE, PARAMETRES]
+  const tousItems = [...NAV.flatMap((g) => g.items), ETABS, APPLIS, EQUIPE, PARAMETRES]
+  const posPermis = NAV[1].items.filter((n) => permis(n, profil))
   const pageDemandee = chemin.split('/')[0] || accueil
   const interdite = tousItems.find((n) => n.path === pageDemandee && !permis(n, profil))
   const [page, arg = ''] = (interdite || !chemin ? accueil : chemin).split(/\/(.*)/s)
@@ -427,7 +440,10 @@ function Crm() {
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else if (page === 'hotel') content = <Hotel />
+  else if (POS.includes(page)) content = <Hotel key={page} app={page} />
+  else if (page === 'hotel') content = posPermis.length ? <Hotel key={posPermis[0].path} app={posPermis[0].path} /> : <Accueil apps={[]} />
+  else if (page === 'apps' || (page === 'ventes' && !permis(NAV[0].items[0], profil))) content = <Accueil apps={[...NAV.flatMap((g) => g.items), ETABS, APPLIS, EQUIPE, PARAMETRES].filter((n) => permis(n, profil))} />
+  else if (page === 'applications') content = <Applications />
   else if (page === 'etablissements') content = <Etablissements />
   else if (page === 'equipe') content = <Equipe />
   else if (page === 'journal') content = <Ventes key={route} caisse />
@@ -489,7 +505,7 @@ function Crm() {
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className={`app ${page === 'hotel' ? 'pos-on' : ''}`}>
+      <div className={`app ${page === 'hotel' || POS.includes(page) ? 'pos-on' : ''} ${page === 'apps' ? 'apps-on' : ''}`}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
             <Logo size={36} dark={false} />
@@ -503,11 +519,9 @@ function Crm() {
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          {(peut(profil, 'salle') || peut(profil, 'reception')) && (
-            <button className="nav-new" onClick={() => go('/hotel')} aria-keyshortcuts="N">
-              <Icon n="grid" size={17} /> Point de vente <kbd>N</kbd>
-            </button>
-          )}
+          <button className="nav-new" onClick={() => go('/apps')} aria-keyshortcuts="N">
+            <Icon n="grid" size={17} /> Applications <kbd>N</kbd>
+          </button>
           <nav className="nav-scroll">
             {NAV.filter((g) => g.items.some((n) => permis(n, profil))).map((g, i) => {
               const replie = g.titre && replies.includes(g.titre) && !g.items.some((n) => n.path === current)
@@ -528,6 +542,7 @@ function Crm() {
             <div className="nav-group nav-admin">
               <div className="nav-title">Administration</div>
               {permis(ETABS, profil) && navBtn(ETABS)}
+              {permis(APPLIS, profil) && navBtn(APPLIS)}
               {permis(EQUIPE, profil) && navBtn(EQUIPE)}
               {permis(PARAMETRES, profil) && navBtn(PARAMETRES)}
             </div>
@@ -549,9 +564,12 @@ function Crm() {
             </button>
           </header>
           <header className="topbar">
-            {/* Fil d'Ariane façon Odoo : groupe du menu › page */}
+            {/* Fil d'Ariane façon Odoo : bouton des applications, groupe du menu › page */}
+            <button className="tb-home" title="Toutes les applications" aria-label="Toutes les applications" onClick={() => go('/apps')}>
+              <Icon n="grid" size={18} />
+            </button>
             <div className="tb-crumb">
-              <span>{NAV.find((g) => g.items.some((n) => n.path === current))?.titre || 'Administration'}</span>
+              <span>{NAV.find((g) => g.items.some((n) => n.path === current))?.titre || (current === 'apps' ? profil.etab?.nom || brand.nom : 'Administration')}</span>
               <Icon n="chevron" size={12} />
               <strong>{PAGES[current] || brand.nom}</strong>
             </div>
@@ -559,9 +577,9 @@ function Crm() {
               <Icon n="search" size={15} /> Rechercher une facture, un client…
             </button>
             <div className="tb-org">{state.settings.facturation?.nom || brand.nom}</div>
-            {(peut(profil, 'salle') || peut(profil, 'reception')) && (
-              <button className="btn primary sm tb-new" onClick={() => go('/hotel')}>
-                <Icon n="grid" size={15} /> Point de vente
+            {posPermis.length > 0 && (
+              <button className="btn primary sm tb-new" onClick={() => go(`/${posPermis[0].path}`)}>
+                <Icon n={posPermis[0].ico} size={15} /> {posPermis[0].label}
               </button>
             )}
             <Menu
@@ -610,7 +628,7 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" role="dialog" aria-label="Toutes les pages" onClick={(e) => e.stopPropagation()}>
-              {[...NAV, { titre: 'Administration', items: [ETABS, EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
+              {[...NAV, { titre: 'Administration', items: [ETABS, APPLIS, EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
                 <div key={g.titre} className="sheet-group">
                   <div className="nav-title">{g.titre}</div>
                   <div className="sheet-grid">
