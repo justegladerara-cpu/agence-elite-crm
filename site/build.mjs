@@ -65,7 +65,7 @@ const SOCIAL = {
 const waLink = (txt) => `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(txt)}`
 
 // ---------- Gabarit commun ----------
-function page({ chemin, titre, description, corps, actif = '' }) {
+function page({ chemin, titre, description, corps, actif = '', robots = '' }) {
   const prof = chemin === '' ? 0 : chemin.split('/').filter(Boolean).length
   const r = (p) => '../'.repeat(prof) + p
   const canon = SITE.url + '/' + chemin
@@ -98,7 +98,7 @@ function page({ chemin, titre, description, corps, actif = '' }) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(titre)}</title>
 <meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${canon}">
+${robots ? `<meta name="robots" content="${robots}">` : `<link rel="canonical" href="${canon}">`}
 <meta property="og:type" content="website">
 <meta property="og:title" content="${esc(titre)}">
 <meta property="og:description" content="${esc(description)}">
@@ -145,7 +145,7 @@ function page({ chemin, titre, description, corps, actif = '' }) {
       </div>
       <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}">Boutique</a>
       <a class="nav-btn nav-lien${actif === 'contact' ? ' actif' : ''}" href="${r('contact/')}">Contact</a>
-      <a class="btn btn-rouge nav-cta" href="${r('contact/')}">Parlez-nous de votre projet</a>
+      <a class="btn btn-rouge nav-cta" href="${r('contact/')}">Demander un devis</a>
     </nav>
     <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="nav">${ico('menu', 'i-ouvrir')}${ico('close', 'i-fermer')}</button>
   </div>
@@ -213,6 +213,7 @@ const carteProduit = (p, r) => `
         ? `<a class="btn btn-rouge" href="${esc(p.paiement)}" target="_blank" rel="noopener">Payer ${fcfa(p.prix)} ${ico('arrow')}</a>`
         : `<a class="btn btn-rouge" href="${r('contact/?produit=' + p.slug)}">Commander ${ico('arrow')}</a>`
     }
+    <a class="btn btn-rouge btn-demo" hidden href="${r('boutique/paiement/?demo=1&produit=' + p.slug)}">Payer ${fcfa(p.prix)} ${ico('arrow')}</a>
     <a class="btn btn-ligne" href="${waLink(`Bonjour Agence Elite, je souhaite commander : ${p.nom} (${fcfa(p.prix)} ${p.periode}).`)}" target="_blank" rel="noopener">${SOCIAL.whatsapp} WhatsApp</a>
   </div>
 </article>`
@@ -602,6 +603,62 @@ PAGES.push({
   </div>
 </section>
 ${blocCta(r, 'Besoin d\'une offre sur mesure ?', 'Plusieurs licences, un projet particulier ou un devis pour votre entreprise : parlons-en.')}`,
+})
+
+// Paiement simulé (démonstration, non référencé) : aucune donnée bancaire n'est saisie ni envoyée
+PAGES.push({
+  chemin: 'boutique/paiement/',
+  actif: 'boutique',
+  robots: 'noindex, nofollow',
+  titre: 'Paiement (démonstration) | Agence Elite',
+  description: 'Démonstration du parcours de paiement.',
+  corps: (r) => `
+<section class="section paiement">
+  <div class="conteneur">
+    <div class="demo-banniere" role="note">${ico('shield')}<span><strong>Mode démonstration.</strong> Aucun paiement réel : la carte de test est pré-remplie et aucune donnée n'est envoyée.</span></div>
+    <nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><a href="${r('boutique/?demo=1')}">Boutique</a><span>/</span><span>Paiement</span></nav>
+    <div class="paie-grille" id="paie" data-produits="${esc(JSON.stringify(Object.fromEntries(PRODUITS.map((p) => [p.slug, { nom: p.nom, prix: p.prix, periode: p.periode, suivi: p.suivi || '' }]))))}">
+      <form class="formulaire" id="form-paie" novalidate>
+        <h1 class="paie-titre">Finaliser la commande</h1>
+        <fieldset>
+          <legend>Vos coordonnées</legend>
+          <div class="champs-2">
+            <label>Nom et prénom *<input class="champ" name="nom" autocomplete="name" required></label>
+            <label>Téléphone *<input class="champ" name="tel" type="tel" autocomplete="tel" required></label>
+          </div>
+          <label>E-mail<input class="champ" name="email" type="email" autocomplete="email"></label>
+        </fieldset>
+        <fieldset>
+          <legend>Paiement par carte <span class="tag-demo">carte de test</span></legend>
+          <label>Numéro de carte<input class="champ verrou" value="4242 4242 4242 4242" readonly tabindex="-1" aria-readonly="true"></label>
+          <div class="champs-2">
+            <label>Expiration<input class="champ verrou" value="12 / 30" readonly tabindex="-1" aria-readonly="true"></label>
+            <label>Cryptogramme<input class="champ verrou" value="123" readonly tabindex="-1" aria-readonly="true"></label>
+          </div>
+        </fieldset>
+        <p class="form-erreur" id="paie-erreur" role="alert" hidden>Indiquez votre nom et votre téléphone.</p>
+        <button class="btn btn-rouge btn-large" type="submit" id="btn-payer">Payer</button>
+        <p class="petit">${ico('shield')} Démonstration : aucun montant ne sera débité.</p>
+      </form>
+      <aside class="recap">
+        <h2>Votre commande</h2>
+        <div class="recap-ligne"><span id="recap-nom">Choisissez un produit</span><strong id="recap-prix"></strong></div>
+        <p class="petit" id="recap-suivi"></p>
+        <label class="recap-choix">Produit
+          <select class="champ" id="choix-produit">${PRODUITS.map((p) => `<option value="${p.slug}">${esc(p.nom)} : ${fcfa(p.prix)}</option>`).join('')}</select>
+        </label>
+        <div class="recap-total"><span>Total</span><strong id="recap-total"></strong></div>
+      </aside>
+    </div>
+    <div class="confirmation" id="confirmation" hidden tabindex="-1">
+      <span class="conf-ico">${ico('check')}</span>
+      <h1>Paiement accepté</h1>
+      <p>Merci <strong id="conf-nom"></strong>, votre commande <strong id="conf-num"></strong> est confirmée.</p>
+      <div class="recap conf-recap"><div class="recap-ligne"><span id="conf-produit"></span><strong id="conf-prix"></strong></div><p class="petit">Carte •••• 4242 · Simulation, aucun montant débité.</p></div>
+      <div class="boutons"><a class="btn btn-rouge" href="${r('boutique/?demo=1')}">Retour à la boutique</a><a class="btn btn-ligne" href="${r('')}">Accueil</a></div>
+    </div>
+  </div>
+</section>`,
 })
 
 // Contact

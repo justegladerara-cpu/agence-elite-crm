@@ -104,6 +104,67 @@
     })
   })
 
+  // Boutique : les boutons de paiement simulé n'apparaissent qu'avec ?demo=1
+  if (/[?&]demo=1/.test(location.search)) {
+    document.querySelectorAll('.btn-demo').forEach(function (b) {
+      b.hidden = false
+      var voisin = b.previousElementSibling
+      if (voisin && voisin.classList.contains('btn-rouge')) voisin.hidden = true
+    })
+  }
+
+  // Paiement simulé
+  var paie = document.getElementById('paie')
+  if (paie) {
+    var catalogue = JSON.parse(paie.getAttribute('data-produits'))
+    var fmt = function (n) {
+      return n.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ') + ' FCFA'
+    }
+    var choix = document.getElementById('choix-produit')
+    var courant
+    var afficher = function (slug) {
+      courant = catalogue[slug] ? slug : Object.keys(catalogue)[0]
+      var p = catalogue[courant]
+      choix.value = courant
+      document.getElementById('recap-nom').textContent = p.nom + ' (' + p.periode + ')'
+      document.getElementById('recap-prix').textContent = fmt(p.prix)
+      document.getElementById('recap-total').textContent = fmt(p.prix)
+      document.getElementById('recap-suivi').textContent = p.suivi
+      document.getElementById('btn-payer').textContent = 'Payer ' + fmt(p.prix)
+    }
+    afficher(new URLSearchParams(location.search).get('produit'))
+    choix.addEventListener('change', function () {
+      afficher(choix.value)
+    })
+    var fp = document.getElementById('form-paie')
+    fp.addEventListener('submit', function (e) {
+      e.preventDefault()
+      var manque = [fp.nom, fp.tel].filter(function (c) {
+        c.setAttribute('aria-invalid', c.value.trim() ? 'false' : 'true')
+        return !c.value.trim()
+      })
+      document.getElementById('paie-erreur').hidden = !manque.length
+      if (manque.length) return manque[0].focus()
+      var btn = document.getElementById('btn-payer')
+      btn.disabled = true
+      btn.textContent = 'Paiement en cours…'
+      setTimeout(function () {
+        var p = catalogue[courant]
+        var d = new Date()
+        var num = 'AE-' + d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + '-' + Math.floor(1000 + Math.random() * 9000)
+        document.getElementById('conf-nom').textContent = fp.nom.value.trim()
+        document.getElementById('conf-num').textContent = num
+        document.getElementById('conf-produit').textContent = p.nom + ' (' + p.periode + ')'
+        document.getElementById('conf-prix').textContent = fmt(p.prix)
+        paie.hidden = true
+        var conf = document.getElementById('confirmation')
+        conf.hidden = false
+        conf.focus()
+        window.scrollTo(0, 0)
+      }, 1800)
+    })
+  }
+
   // Formulaire de contact
   var form = document.getElementById('form-contact')
   if (!form) return
