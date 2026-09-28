@@ -354,7 +354,8 @@ const grouper = (list, key, def) =>
 
 // ---------- Onglet Paiements reçus ----------
 export function PaiementsTab() {
-  const { actions, data } = useApp()
+  const { actions, data, profil } = useApp()
+  const saisir = peut(profil, 'vendre') || peut(profil, 'finances')
   const [periode, setPeriode] = useState('mois')
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(null)

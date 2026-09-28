@@ -357,7 +357,8 @@ function Crm() {
     }),
     loadDemo: wrap(async () => {
       const { genererDemo } = await import('./lib/demo')
-      const { docs, actions } = genererDemo()
+      const { prospects, docs, actions } = genererDemo()
+      await db.bulkImport(prospects, [])
       await db.saveDocs(docs)
       await db.addActions(actions)
       await reload()

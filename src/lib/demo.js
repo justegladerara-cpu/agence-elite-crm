@@ -1,4 +1,4 @@
-// Données fictives de l'espace démo : articles avec images, ventes des derniers mois, dépenses.
+// Données fictives de l'espace démo : articles avec images, 3 mois de ventes, factures, devis, clients et dépenses.
 import PICS from './demoPics.json'
 import { addDays, today } from './dates'
 import { uid } from './store'
@@ -34,11 +34,36 @@ const ARTICLES = [
   ['Huile hydraulique 20 L', 'Consommables', 48000, 6, 'bidon', 'Total'],
   ['Électrodes 3,2 mm (paquet)', 'Consommables', 9000, 1, 'electrode', 'ESAB'],
 ]
-const CLIENTS = ['Client comptoir', 'Client comptoir', 'Client comptoir', 'Client comptoir', 'Client comptoir', 'TOTAL E&P Congo', 'SOCOTRAM', 'Perenco', 'SNPC', 'BTP Congo Services', 'Chantier Mpita', 'Garage Moderne']
+// Clients professionnels : de vraies entreprises de Pointe-Noire et Brazzaville (les ventes, elles, sont fictives)
+const PROS = [
+  ['TotalEnergies EP Congo', 'Pointe-Noire', 'Pétrole et gaz', 'Centre-ville, Pointe-Noire'],
+  ['Perenco Congo', 'Pointe-Noire', 'Pétrole et gaz', 'Centre-ville, Pointe-Noire'],
+  ['Eni Congo', 'Pointe-Noire', 'Pétrole et gaz', 'Centre-ville, Pointe-Noire'],
+  ['Congo Terminal', 'Pointe-Noire', 'Manutention portuaire', 'Port autonome, Pointe-Noire'],
+  ['Port Autonome de Pointe-Noire', 'Pointe-Noire', 'Port', 'Zone portuaire, Pointe-Noire'],
+  ['CORAF', 'Pointe-Noire', 'Raffinage', 'Djéno, Pointe-Noire'],
+  ['CFCO', 'Pointe-Noire', 'Chemin de fer', 'Gare centrale, Pointe-Noire'],
+  ['AGL Congo', 'Pointe-Noire', 'Logistique', 'Zone portuaire, Pointe-Noire'],
+  ['SNPC', 'Brazzaville', 'Pétrole', 'Centre-ville, Brazzaville'],
+  ['Brasseries du Congo (BRASCO)', 'Brazzaville', 'Brasserie', 'Mpila, Brazzaville'],
+  ['E2C', 'Brazzaville', 'Électricité', 'Centre-ville, Brazzaville'],
+  ['LCDE', 'Brazzaville', 'Eau', 'Centre-ville, Brazzaville'],
+  ['MTN Congo', 'Brazzaville', 'Télécoms', 'Centre-ville, Brazzaville'],
+  ['Airtel Congo', 'Brazzaville', 'Télécoms', 'Centre-ville, Brazzaville'],
+]
+// Achats typiques d'une entreprise : des lots d'EPI, de tôles, de consommables
+const LOTS = [
+  ['Dotation EPI équipes', ['Casque de chantier', 'Gants de manutention (paire)', 'Bottes de sécurité S3', 'Gilet haute visibilité', 'Lunettes de protection', 'Combinaison de travail']],
+  ['Fourniture de vannes', ['Vanne papillon DN100', 'Vanne à boisseau sphérique 2"', 'Clapet anti-retour 1"', 'Vanne guillotine DN150']],
+  ['Tôlerie atelier', ['Tôle noire 2 mm (1 x 2 m)', 'Tôle noire 3 mm (1 x 2 m)', 'Électrodes 3,2 mm (paquet)', 'Disque à tronçonner 230']],
+  ['Maintenance et entretien', ["Chiffons d'essuyage 10 kg", 'Huile hydraulique 20 L', 'Peinture antirouille 20 L', 'Diluant 5 L']],
+  ['Plomberie et robinetterie', ['Robinet laiton 1/2"', "Robinet d'arrêt 3/4\"", 'Clapet anti-retour 1"', 'Tige filetée M12 (1 m)']],
+  ['Ferraillage chantier', ['Fer rond 12 mm (12 m)', 'Tige filetée M16 (1 m)', 'Tige filetée M12 (1 m)', 'Disque à tronçonner 230']],
+]
 const VENDEURS = ['Narcie KANGOU', 'Narcie KANGOU', 'Narcie KANGOU', 'Achille KANGOU']
-const MODES = ['Espèces', 'Espèces', 'Espèces', 'Espèces', 'MTN Mobile Money', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque']
+const MODES = ['Espèces', 'Espèces', 'Espèces', 'Espèces', 'MTN Mobile Money', 'MTN Mobile Money', 'Airtel Money']
 const DEPENSES = [
-  ['Achat de marchandises', 'Fournisseur Douala', 850000],
+  ['Achat de marchandises', 'Fournisseur Douala', 2500000],
   ['Transport / dédouanement', 'Transit Pointe-Noire', 180000],
   ['Loyer', 'Propriétaire', 250000],
   ['Salaires', 'Personnel', 450000],
@@ -59,6 +84,7 @@ function hasard(graine) {
 export function genererDemo() {
   const r = hasard(7)
   const pick = (l) => l[Math.floor(r() * l.length)]
+  const entre = (a, b) => a + Math.floor(r() * (b - a + 1))
   const t = today()
   const docs = []
   const actions = []
@@ -67,49 +93,153 @@ export function genererDemo() {
     docs.push({ id, type: 'produit', numero: `ART-${String(i + 1).padStart(4, '0')}`, prospect_id: null, data: { nom, categorie, prix, stock, seuil: 3, photo: PICS[pic], marque, prixAchat: Math.round((prix * 0.68) / 100) * 100, description: '' } })
     return { id, nom, prix }
   })
-  let n = 0
-  const vente = (date, heure) => {
-    n++
-    const k = pick([1, 1, 2, 2, 3])
-    const choix = [...prods].sort(() => r() - 0.5).slice(0, k)
+  const parNom = Object.fromEntries(prods.map((p) => [p.nom, p]))
+  const prospects = PROS.map(([name, ville, secteur, adresse], i) => ({
+    id: uid(),
+    name,
+    created_at: `${addDays(t, -95 + i)}T09:00:00Z`,
+    fiche: { contact: 'Service achats', ville, secteur, adresse_facturation: adresse, source: 'Client professionnel' },
+  }))
+  const heure = () => `${String(entre(8, 17)).padStart(2, '0')}:${String(entre(0, 59)).padStart(2, '0')}`
+  const ferme = (d) => new Date(`${d}T12:00`).getDay() === 0
+  const ouvrable = (d) => {
+    while (ferme(d)) d = addDays(d, 1)
+    return d
+  }
+  // Les numéros sont donnés à la fin, dans l'ordre des dates
+  const factures = []
+  const devis = []
+  const paiements = []
+
+  // Vente au comptoir : 1 à 3 articles, payée tout de suite
+  const comptoir = (date, h) => {
+    const choix = [...prods].sort(() => r() - 0.5).slice(0, pick([1, 1, 2, 2, 3]))
     const lignes = choix.map((p) => ({ designation: p.nom, description: '', qte: p.prix < 20000 ? pick([1, 1, 2, 2, 3, 5, 10]) : pick([1, 1, 2]), pu: p.prix, produitId: p.id }))
-    const client = pick(CLIENTS)
-    let mode = pick(MODES)
-    const credit = client !== 'Client comptoir' && r() < 0.25
-    if (credit) mode = 'À crédit'
-    const numero = `FAC-${t.slice(0, 4)}${String(n).padStart(6, '0')}`
-    const total = lignes.reduce((m, l) => m + l.qte * l.pu, 0)
-    docs.push({
-      id: uid(),
-      type: 'facture',
-      numero,
-      prospect_id: null,
-      created_at: `${date}T${heure}:00Z`,
-      data: { date, echeance: credit ? addDays(date, 30) : date, validite: '', objet: 'Vente au comptoir', client: { nom: client, adresse: '' }, lignes, remise: '', tva: 0, conditions: 'Payable à réception', notes: '', paiement: '', vente: { vendeur: pick(VENDEURS), mode, heure } },
+    const mode = pick(MODES)
+    const f = { date, heure: h, client: 'Client comptoir', prospect: null, lignes, mode, echeance: date, objet: 'Vente au comptoir', conditions: 'Payable à réception' }
+    factures.push(f)
+    paiements.push({ f, date, time: h, mode, part: 1 })
+  }
+  // Lot pour une entreprise : quantités de professionnel
+  const lot = () => {
+    const [objet, noms] = pick(LOTS)
+    const choix = [...noms].sort(() => r() - 0.5).slice(0, entre(2, noms.length))
+    const lignes = choix.map((n) => {
+      const p = parNom[n]
+      const qte = p.prix < 5000 ? pick([20, 30, 50, 100]) : p.prix < 30000 ? pick([5, 10, 15, 20, 25]) : pick([1, 2, 3, 4])
+      return { designation: p.nom, description: '', qte, pu: p.prix, produitId: p.id }
     })
-    if (!credit) actions.push({ prospect_id: null, date, time: heure, canal: 'Autre', action: 'Paiement reçu', montant: total, mode, facture: numero, notes: 'Vente au comptoir' })
+    return { objet, lignes }
   }
-  const heure = () => `${String(8 + Math.floor(r() * 10)).padStart(2, '0')}:${String(Math.floor(r() * 60)).padStart(2, '0')}`
-  // Mois précédents : quelques ventes ; 30 derniers jours : plus dense ; aujourd'hui : 4 ventes
-  for (let j = 150; j >= 1; j--) {
+  const total = (lignes) => lignes.reduce((m, l) => m + l.qte * l.pu, 0)
+  // Vente à une entreprise : payée au comptant, ou à 30 jours puis réglée (ou pas encore)
+  const pro = (date, h, client, contenu, extra = {}) => {
+    const credit = r() < 0.55
+    const mode = credit ? 'À crédit' : pick(['Virement', 'Chèque', 'Espèces', 'MTN Mobile Money'])
+    const f = { date, heure: h, client: client.name, prospect: client.id, ...contenu, mode, echeance: credit ? addDays(date, 30) : date, conditions: credit ? 'Paiement à 30 jours' : 'Payable à réception', bc: `BC-${entre(1000, 9999)}`, ...extra }
+    factures.push(f)
+    if (!credit) paiements.push({ f, date, time: h, mode, part: 1 })
+    else {
+      const age = Math.round((new Date(`${t}T12:00`) - new Date(`${date}T12:00`)) / 864e5)
+      const x = r()
+      // Réglé à l'échéance (ou un peu avant), en une ou deux fois ; quelques retards pour le réalisme
+      if (age > 38 && x < 0.8) paiements.push({ f, date: ouvrable(addDays(date, entre(20, 36))), time: '11:00', mode: pick(['Virement', 'Virement', 'Chèque']), part: 1 })
+      else if (age > 25 && x < 0.9) paiements.push({ f, date: ouvrable(addDays(date, entre(12, 24))), time: '10:30', mode: 'Virement', part: 0.5 })
+      else if (age > 20 && x < 0.35) paiements.push({ f, date: ouvrable(addDays(date, entre(8, 18))), time: '15:00', mode: 'Chèque', part: 1 })
+    }
+    return f
+  }
+
+  for (let j = 90; j >= 0; j--) {
     const d = addDays(t, -j)
-    if (new Date(`${d}T12:00`).getDay() === 0) continue
-    const nb = j <= 30 ? 1 + Math.floor(r() * 4) : r() < 0.75 ? 1 + Math.floor(r() * 2) : 0
-    const hs = Array.from({ length: nb }, heure).sort()
-    hs.forEach((h) => vente(d, h))
+    if (ferme(d)) continue
+    const nb = j === 0 ? 4 : entre(2, 6)
+    Array.from({ length: nb }, heure).sort().forEach((h) => comptoir(d, h))
+    if (j > 0 && r() < 0.45) pro(d, heure(), pick(prospects), lot())
   }
-  ;['08:14', '09:02', '09:47', '10:31'].forEach((h) => vente(t, h))
-  // Dépenses : chaque mois des 6 derniers
-  for (let m = 5; m >= 0; m--) {
+
+  // Devis aux entreprises : acceptés (puis facturés), refusés, en attente ou expirés
+  for (let i = 0; i < 26; i++) {
+    const client = pick(prospects)
+    const date = ouvrable(addDays(t, -entre(1, 88)))
+    const contenu = lot()
+    const dv = { date, heure: heure(), client: client.name, prospect: client.id, ...contenu, validite: addDays(date, 30) }
+    const age = Math.round((new Date(`${t}T12:00`) - new Date(`${date}T12:00`)) / 864e5)
+    const x = r()
+    if (age > 6 && x < 0.5) {
+      dv.statut = 'Accepté'
+      const df = ouvrable(addDays(date, entre(2, Math.min(age, 12))))
+      dv.facture = pro(df, heure(), client, contenu, { devis: dv })
+    } else if (age > 10 && x < 0.72) dv.statut = 'Refusé'
+    devis.push(dv)
+  }
+
+  // Numérotation chronologique, puis documents et paiements
+  const ordre = (a, b) => `${a.date} ${a.heure}`.localeCompare(`${b.date} ${b.heure}`)
+  const an = t.slice(0, 4)
+  factures.sort(ordre).forEach((f, i) => {
+    f.id = uid()
+    f.numero = `FAC-${an}${String(i + 1).padStart(6, '0')}`
+  })
+  devis.sort(ordre).forEach((dv, i) => {
+    dv.id = uid()
+    dv.numero = `DEV-${an}${String(i + 1).padStart(6, '0')}`
+    if (dv.facture) dv.facture.devis = dv
+  })
+  factures.forEach((f) => {
+    const p = f.prospect && prospects.find((x) => x.id === f.prospect)
+    docs.push({
+      id: f.id,
+      type: 'facture',
+      numero: f.numero,
+      prospect_id: f.prospect,
+      created_at: `${f.date}T${f.heure}:00Z`,
+      data: {
+        date: f.date, echeance: f.echeance, validite: '',
+        objet: f.bc ? `${f.objet} (bon de commande ${f.bc})` : f.objet,
+        client: { nom: f.client, adresse: p ? p.fiche.adresse_facturation : '' },
+        lignes: f.lignes, remise: '', tva: 0, conditions: f.conditions, notes: '', paiement: '',
+        vente: { vendeur: pick(VENDEURS), mode: f.mode, heure: f.heure },
+        ...(f.devis ? { devisId: f.devis.id, devisNumero: f.devis.numero } : {}),
+      },
+    })
+  })
+  devis.forEach((dv) => {
+    const p = prospects.find((x) => x.id === dv.prospect)
+    docs.push({
+      id: dv.id,
+      type: 'devis',
+      numero: dv.numero,
+      prospect_id: dv.prospect,
+      created_at: `${dv.date}T${dv.heure}:00Z`,
+      data: {
+        date: dv.date, echeance: '', validite: dv.validite, objet: dv.objet,
+        client: { nom: dv.client, adresse: p.fiche.adresse_facturation },
+        lignes: dv.lignes, remise: '', tva: 0, conditions: 'Devis valable 30 jours',
+        notes: 'Merci de votre confiance. Bon pour accord : date, signature et cachet.', paiement: '',
+        ...(dv.statut ? { statut: dv.statut } : {}),
+        ...(dv.facture ? { factureNumero: dv.facture.numero } : {}),
+      },
+    })
+  })
+  paiements.forEach(({ f, date, time, mode, part }) => {
+    if (date > t) return
+    const montant = part === 1 ? total(f.lignes) : Math.round((total(f.lignes) * part) / 1000) * 1000
+    actions.push({ prospect_id: f.prospect, date, time, canal: 'Autre', action: 'Paiement reçu', montant, mode, facture: f.numero, notes: f.prospect ? `Règlement ${f.client}` : 'Vente au comptoir' })
+  })
+
+  // Dépenses des 3 derniers mois (et du mois en cours)
+  for (let m = 3; m >= 0; m--) {
     const base = new Date(`${t.slice(0, 7)}-01T12:00`)
     base.setMonth(base.getMonth() - m)
     const ym = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`
     DEPENSES.forEach(([categorie, fournisseur, montant]) => {
-      if (categorie === 'Achat de marchandises' && r() < 0.3) return
       const jour = Math.min(m === 0 ? Number(t.slice(8)) : 27, 2 + Math.floor(r() * 25))
-      actions.push({ prospect_id: null, date: `${ym}-${String(jour).padStart(2, '0')}`, time: '10:00', canal: 'Autre', action: 'Dépense', montant: Math.round((montant * (0.8 + r() * 0.4)) / 1000) * 1000, categorie, fournisseur, mode: montant < 100000 ? 'Espèces' : 'Virement', notes: '' })
+      const date = `${ym}-${String(jour).padStart(2, '0')}`
+      if (date < addDays(t, -92)) return
+      actions.push({ prospect_id: null, date, time: '10:00', canal: 'Autre', action: 'Dépense', montant: Math.round((montant * (0.8 + r() * 0.4)) / 1000) * 1000, categorie, fournisseur, mode: montant < 100000 ? 'Espèces' : 'Virement', notes: '' })
     })
   }
   actions.push({ prospect_id: null, date: t, time: '08:30', canal: 'Autre', action: 'Dépense', montant: 15000, categorie: 'Carburant', fournisseur: 'Station Puma', mode: 'Espèces', notes: 'Plein du véhicule de livraison' })
-  return { docs, actions }
+  return { prospects, docs, actions }
 }
