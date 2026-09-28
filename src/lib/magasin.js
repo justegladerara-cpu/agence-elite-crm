@@ -74,10 +74,15 @@ export async function enregistrerVente({ panier, client, mode, vendeur, remise }
   if (!credit && total > 0)
     await api.addActions([{ prospect_id: null, date: today(), time: nowTime(), canal: 'Autre', action: 'Paiement reçu', montant: total, mode, facture: numero, notes: 'Vente au comptoir' }])
   // Stock : on retire les quantités vendues
-  for (const l of panier) {
-    const p = documents.find((d) => d.id === l.id)
-    if (p) await api.saveDoc({ ...p, data: { ...p.data, stock: num(p.data?.stock) - num(l.qte) } })
-  }
+  const parArticle = {}
+  panier.forEach((l) => (parArticle[l.id] = (parArticle[l.id] || 0) + num(l.qte)))
+  const maj = Object.entries(parArticle)
+    .map(([id, q]) => {
+      const p = documents.find((d) => d.id === id && d.type === 'produit')
+      return p && { ...p, data: { ...p.data, stock: num(p.data?.stock) - q } }
+    })
+    .filter(Boolean)
+  if (maj.length) await (api.saveDocs ? api.saveDocs(maj) : Promise.all(maj.map((d) => api.saveDoc(d))))
   return { doc, total }
 }
 

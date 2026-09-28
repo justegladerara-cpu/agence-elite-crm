@@ -38,26 +38,27 @@ const NAV = [
     ],
   },
   {
-    titre: 'Magasin',
+    titre: 'Ventes',
     items: [
-      { path: 'caisse', label: 'Caisse', ico: 'coins', roles: ['superadmin', 'pdg', 'caisse'] },
-      { path: 'articles', label: 'Articles et stock', ico: 'layers' },
-    ],
-  },
-  {
-    titre: 'Finances',
-    items: [
+      { path: 'caisse', label: 'Point de vente', ico: 'coins', roles: ['superadmin', 'pdg', 'caisse'] },
       {
         path: 'factures',
         memo: 'liste-facture',
-        label: 'Factures',
+        label: 'Factures et reçus',
         ico: 'file',
         sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
       },
       { path: 'devis', memo: 'liste-devis', label: 'Devis / proforma', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
       { path: 'paiements', label: 'Paiements reçus', ico: 'wallet' },
-      { path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', roles: ['superadmin', 'pdg', 'comptable'] },
     ],
+  },
+  {
+    titre: 'Stock',
+    items: [{ path: 'articles', label: 'Articles et stock', ico: 'layers' }],
+  },
+  {
+    titre: 'Finances',
+    items: [{ path: 'depenses', label: 'Dépenses et sorties', ico: 'trend', roles: ['superadmin', 'pdg', 'comptable'] }],
   },
 ]
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
@@ -99,7 +100,7 @@ const BOTTOM = [
   { path: 'ventes', short: 'Ventes', ico: 'chart', roles: ['superadmin', 'pdg', 'comptable'] },
   { path: 'journal', short: 'Ventes', ico: 'chart', roles: ['caisse'] },
   { path: 'articles', short: 'Articles', ico: 'layers' },
-  { path: 'caisse', short: 'Caisse', ico: 'plus', cta: true, roles: ['superadmin', 'pdg', 'caisse'] },
+  { path: 'caisse', short: 'Vendre', ico: 'plus', cta: true, roles: ['superadmin', 'pdg', 'caisse'] },
   { path: 'factures', short: 'Factures', ico: 'file' },
   { path: 'parametres', short: 'Réglages', ico: 'settings', roles: ['superadmin', 'pdg'] },
   { path: 'paiements', short: 'Paiements', ico: 'wallet', roles: ['caisse', 'comptable'] },
@@ -250,6 +251,14 @@ function Crm() {
     return () => clearTimeout(t)
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Espace démo vide : on le remplit d'articles, de ventes et de dépenses fictifs
+  const demoVide = !!state && profil?.espace === 'demo' && !(state.documents || []).some((d) => d.type === 'produit')
+  useEffect(() => {
+    if (!demoVide || window.__demoSeeded) return
+    window.__demoSeeded = true
+    api.loadDemo().then(() => toast('Données de démonstration chargées ✓')).catch(() => {})
+  }, [demoVide]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const wrap = (fn) => async (...args) => {
     try {
       return await fn(...args)
@@ -297,6 +306,12 @@ function Crm() {
       setState((s) => ({ ...s, documents: [...s.documents.filter((x) => x.id !== d.id), d] }))
       return d
     }),
+    saveDocs: wrap(async (docs) => {
+      const rows = await db.saveDocs(docs)
+      const ids = new Set(rows.map((r) => r.id))
+      setState((s) => ({ ...s, documents: [...s.documents.filter((x) => !ids.has(x.id)), ...rows] }))
+      return rows
+    }),
     deleteDoc: wrap(async (id) => {
       await db.deleteDoc(id)
       setState((s) => ({ ...s, documents: s.documents.filter((x) => x.id !== id) }))
@@ -318,6 +333,13 @@ function Crm() {
       const k = (DEVISES.find((d) => d.code === state.settings.devise) || DEVISES.find((x) => x.code === 'EUR')).parEuro
       const actions = raw.map((a) => (a.montant ? { ...a, montant: Math.round((a.montant * k) / 50) * 50 || a.montant } : a))
       await db.bulkImport(prospects, actions)
+      await reload()
+    }),
+    loadDemo: wrap(async () => {
+      const { genererDemo } = await import('./lib/demo')
+      const { docs, actions } = genererDemo()
+      await db.saveDocs(docs)
+      await db.addActions(actions)
       await reload()
     }),
     clearSeed: wrap(async () => {
@@ -469,7 +491,7 @@ function Crm() {
 
   return (
     <AppCtx.Provider value={ctx}>
-      <div className="app">
+      <div className={`app ${page === 'caisse' ? 'pos-on' : ''}`}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
             <Logo size={36} />

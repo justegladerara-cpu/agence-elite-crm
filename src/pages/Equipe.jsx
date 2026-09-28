@@ -27,7 +27,7 @@ export default function Equipe() {
     if (!f.nom.trim()) return toast('Indique son nom', true)
     setBusy(true)
     try {
-      await membres.save(f)
+      await membres.save({ ...f, espace: profil.espace })
       toast(`${f.nom} ajouté(e) ✓`)
       setF({ email: '', nom: '', role: 'caisse' })
       await charger()
@@ -131,6 +131,19 @@ export default function Equipe() {
               </button>
               <div className="small muted">
                 Ensuite, la personne ouvre le logiciel, touche « Première connexion ? Crée ton mot de passe » avec cet e-mail, et choisit son mot de passe.
+              </div>
+            </div>
+          )}
+          {admin && (
+            <div className="card stack">
+              <h2 className="section">Espace affiché</h2>
+              <div className="small muted">Tu es dans l'espace « {profil.espace === 'demo' ? 'Démo (données fictives)' : 'Le Kangourou (vraies données)'} ». Les deux espaces sont séparés.</div>
+              <div className="row">
+                {[['kangourou', 'Le Kangourou'], ['demo', 'Démo']].map(([k, l]) => (
+                  <button key={k} className={`btn ${profil.espace === k ? 'primary' : ''}`} disabled={profil.espace === k} onClick={async () => { await membres.setEspace(profil.email, k); window.location.hash = '/'; window.location.reload() }}>
+                    {l}
+                  </button>
+                ))}
               </div>
             </div>
           )}

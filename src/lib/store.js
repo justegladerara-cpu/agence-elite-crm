@@ -118,6 +118,14 @@ const local = {
     db.documents = db.documents.filter((x) => x.id !== id)
     writeLocal(db)
   },
+  async saveDocs(docs) {
+    const db = readLocal()
+    const rows = docs.map((doc) => ({ created_at: nowIso(), ...doc, id: doc.id || uid() }))
+    const ids = new Set(rows.map((r) => r.id))
+    db.documents = [...db.documents.filter((x) => !ids.has(x.id)), ...rows]
+    writeLocal(db)
+    return rows
+  },
   async addProspect(name, fiche) {
     const db = readLocal()
     const p = { id: uid(), name, fiche: fiche || {}, created_at: nowIso() }
@@ -224,9 +232,9 @@ const remote = {
     const { data: u, error } = await supabase.auth.getUser()
     if (error || !u?.user) throw new Error(`auth : ${error?.message || 'session expirée'}`)
     // Réglages communs à la société : une seule ligne, mise à jour par n'importe quel membre
-    const { data: row } = await supabase.from('settings').select('user_id').order('updated_at', { ascending: false }).limit(1).maybeSingle()
-    if (row) check(await supabase.from('settings').update({ data: settings, updated_at: nowIso() }).eq('user_id', row.user_id))
-    else check(await supabase.from('settings').upsert({ user_id: u.user.id, data: settings, updated_at: nowIso() }))
+    const { data: row } = await supabase.from('settings').select('espace').order('updated_at', { ascending: false }).limit(1).maybeSingle()
+    if (row) check(await supabase.from('settings').update({ data: settings, updated_at: nowIso() }).eq('espace', row.espace))
+    else check(await supabase.from('settings').insert({ data: settings, updated_at: nowIso() }))
   },
   async bulkImport(prospects, actions) {
     for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500)))
@@ -303,6 +311,10 @@ function applyLocal(c, op) {
   if (op.t === 'saveSettings') c.settings = op.settings
   if (op.t === 'saveDoc') c.documents = [...(c.documents || []).filter((x) => x.id !== op.row.id), op.row]
   if (op.t === 'deleteDoc') c.documents = (c.documents || []).filter((x) => x.id !== op.id)
+  if (op.t === 'saveDocs') {
+    const ids = new Set(op.rows.map((r) => r.id))
+    c.documents = [...(c.documents || []).filter((x) => !ids.has(x.id)), ...op.rows]
+  }
   return c
 }
 
@@ -317,6 +329,7 @@ async function sendRemote(op) {
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
   if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
   if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
+  if (op.t === 'saveDocs') for (let i = 0; i < op.rows.length; i += 50) check(await supabase.from('documents').upsert(op.rows.slice(i, i + 50), { onConflict: 'id' }))
   if (op.t === 'upload') {
     const m = readRecus()
     if (m[op.path]) {
@@ -457,6 +470,15 @@ const offline = {
   async deleteDoc(id) {
     await queued({ t: 'deleteDoc', id })
   },
+  async saveDocs(docs) {
+    const rows = docs.map((doc) => {
+      const row = { created_at: nowIso(), ...doc, id: doc.id || uid() }
+      delete row.user_id
+      return row
+    })
+    await queued({ t: 'saveDocs', rows })
+    return rows
+  },
   // Photo du reçu : gardée sur l'appareil puis envoyée dans le stockage privé
   async uploadRecu(dataUrl, ext, type) {
     const { data } = await supabase.auth.getSession()
@@ -518,7 +540,7 @@ export async function monProfil() {
     } catch {
       /* rôle par défaut */
     }
-    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : 'Démo', role }
+    return { email: 'demo@local', nom: role === 'caisse' ? 'Narcie KANGOU' : role === 'pdg' ? 'Achille KANGOU' : 'Démo', role, espace: 'demo' }
   }
   const { data } = await supabase.auth.getSession()
   const email = (data?.session?.user?.email || '').toLowerCase()
@@ -547,12 +569,18 @@ export const membres = {
     return check(await supabase.from('membres').select('*').order('created_at'))
   },
   async save(m) {
-    const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role }
+    const row = { email: m.email.trim().toLowerCase(), nom: m.nom.trim(), role: m.role, ...(m.espace ? { espace: m.espace } : {}) }
     if (!supabase) {
       writeJson('kgr-membres-demo', [...readJson('kgr-membres-demo', []).filter((x) => x.email !== row.email), row])
       return row
     }
     return check(await supabase.from('membres').upsert(row, { onConflict: 'email' }).select().single())
+  },
+  // Super admin : passer de l'espace du client à l'espace démo (et inversement)
+  async setEspace(email, espace) {
+    if (!supabase) return
+    check(await supabase.from('membres').update({ espace }).eq('email', email))
+    clearOffline()
   },
   async remove(email) {
     if (!supabase) return writeJson('kgr-membres-demo', readJson('kgr-membres-demo', []).filter((x) => x.email !== email))
