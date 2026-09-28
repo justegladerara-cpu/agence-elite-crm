@@ -168,6 +168,7 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Publicité agence', montant: 0 },
     { nom: 'Autre', montant: 0 },
   ],
+  categoriesArticles: ['Robinetterie', 'Vannes', 'EPI', 'Tôles noires', 'Chiffons', 'Peinture', 'Tiges', 'Outillage', 'Consommables', 'Autre'],
   categoriesDepenses: ['Achat de marchandises', 'Transport / dédouanement', 'Loyer', 'Salaires', 'Électricité / eau', 'Carburant', 'Téléphone / internet', 'Entretien', 'Autre'],
   modesPaiement: ['Espèces', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque', 'Carte'],
   // Prospection Instagram express : signaux repérés sur la pub et messages prêts à copier
@@ -269,6 +270,6 @@ export const ACTION_COLS = {
 export const LIST_CAPACITY = {
   canaux: 5, etapes: 8, actions: 28, resultats: 12, offres: 10, secteurs: 15,
   objections: 12, modeles: 9, sources: 11, zones: 8, depensesFixes: 7,
-  categoriesDepenses: 20, modesPaiement: 10, objectifsQuotidiens: 12, routine: 15, signaux: 15,
+  categoriesArticles: 30, categoriesDepenses: 20, modesPaiement: 10, objectifsQuotidiens: 12, routine: 15, signaux: 15,
 }
 export const MAX_PROSPECTS = 500

@@ -72,7 +72,7 @@ const PARAMETRES = {
   roles: ['superadmin', 'pdg'],
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/listes', 'Listes'], ['/excel', 'Import / Export'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/magasin', 'Magasin'], ['/facturation', 'Facturation'], ['/compte', 'Compte']],
 }
 const lirePref = (k) => {
   try {

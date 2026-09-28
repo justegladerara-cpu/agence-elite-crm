@@ -19,13 +19,9 @@ const NUM_GROUPS = [
 ]
 
 const SECTIONS = [
-  ['identite', 'Identité', 'Ton logo, tes couleurs et le nom affiché.', 'sparkles'],
-  ['facturation', 'Facturation', 'Devise, factures et devis, tarifs et dépenses.', 'file'],
-  ['objectifs', 'Objectifs', 'Objectifs du mois et du jour, relances, alertes et score.', 'target'],
-  ['listes', 'Listes', 'Canaux, secteurs, sources, actions et étapes.', 'tag'],
-  ['scripts', 'Scripts', "Messages Instagram, script d'appel et accroches.", 'message'],
-  ['rappels', 'Rappels', 'Notifications sur ton téléphone à l’heure des relances.', 'bell'],
-  ['excel', 'Import / Export', 'Excel, Zoho Invoice et données d’exemple.', 'folder'],
+  ['identite', 'Identité', 'Logo, couleurs et nom affiché.', 'sparkles'],
+  ['magasin', 'Magasin', 'Catégories d’articles, modes de paiement et catégories de dépenses.', 'tag'],
+  ['facturation', 'Facturation', 'Devise, factures, reçus et devis.', 'file'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
 
@@ -41,6 +37,7 @@ const LIST_DEFS = [
   ['depensesFixes', 'Dépenses fixes / mois', [['nom', 'Poste'], ['montant', 'Montant (€)', 'num']]],
   ['objectifsQuotidiens', '🎯 Objectifs du jour (par défaut)', [['nom', 'Objectif'], ['cible', 'Cible / jour', 'num'], ['source', 'Compté automatiquement', 'select', SOURCES]]],
   ['routine', 'Routine quotidienne (to-do de chaque matin)', null],
+  ['categoriesArticles', 'Catégories d’articles', null],
   ['categoriesDepenses', 'Catégories de dépenses', null],
   ['modesPaiement', 'Modes de paiement', null],
   ['actions', 'Actions', [['nom', 'Action'], ['rang', 'Étape atteinte (n°)', 'num'], ['prospection', 'Prospection ?', 'bool']]],
@@ -650,7 +647,7 @@ export default function Parametres({ section }) {
           value={s[key]}
           cols={cols}
           max={LIST_CAPACITY[key]}
-          excel={!['categoriesDepenses', 'modesPaiement', 'objectifsQuotidiens', 'routine', 'signaux'].includes(key)}
+          excel={false}
           fixedLength={key === 'etapes'}
           onChange={(v) => change({ ...s, [key]: v })}
         />
@@ -778,7 +775,7 @@ export default function Parametres({ section }) {
       <div className="card">
         <h2 className="section"><span className="sec-ic"><Icon n="coins" size={16} /></span> Devise</h2>
         <p className="small muted" style={{ marginTop: 0 }}>
-          Monnaie utilisée partout dans le CRM (montants, tableau de bord, clients).
+          Monnaie utilisée partout (caisse, factures, tableau de bord).
         </p>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <Field label="Devise" style={{ minWidth: 240 }}>
@@ -794,14 +791,12 @@ export default function Parametres({ section }) {
             </select>
           </Field>
           <label className="row small" style={{ paddingBottom: 10, flexWrap: 'nowrap', alignItems: 'flex-start', flex: '1 1 260px' }}>
-            <input type="checkbox" checked={convertir} onChange={(e) => setConvertir(e.target.checked)} /> Convertir aussi mes tarifs, objectif de CA et
-            dépenses fixes (1 € = 655,957 FCFA)
+            <input type="checkbox" checked={convertir} onChange={(e) => setConvertir(e.target.checked)} /> Convertir aussi les montants des réglages (1 € = 655,957 FCFA)
           </label>
         </div>
         {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
       </div>
 
-              {cols(listCard('offres'), listCard('modesPaiement'), listCard('depensesFixes'), listCard('categoriesDepenses'))}
             </>
           )}
           {sec === 'objectifs' && (
@@ -811,117 +806,7 @@ export default function Parametres({ section }) {
               {cols(numCard('alertes'), numCard('score'))}
             </>
           )}
-          {sec === 'listes' && (
-            <>
-              {cols(listCard('canaux'), listCard('sources'), listCard('secteurs'), listCard('zones'), listCard('objections'), numCard('clients'))}
-              {cols(listCard('actions'), listCard('resultats'))}
-              {listCard('etapes')}
-            </>
-          )}
-          {sec === 'scripts' && (
-            <>
-              <div className="grid grid-2" style={{ alignItems: 'start' }}>
-              {msgEditor('scriptsDM', 'instagram', 'Scripts Instagram (à copier depuis la fiche)', 15)}
-        <div className="card">
-          <h2 className="section"><span className="sec-ic"><Icon n="phone" size={16} /></span> Script d'appel</h2>
-          {s.script.map((x, i) => (
-            <Field key={i} label={x.titre} style={{ marginBottom: 10 }}>
-              <textarea value={x.texte} onChange={(e) => change({ ...s, script: s.script.map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
-            </Field>
-          ))}
-        </div>
-              </div>
-              <div className="grid grid-2" style={{ alignItems: 'start' }}>
-                {msgEditor('messagesRelance', 'repeat', 'Messages de relance (1re, 2e, 3e relance…)', 6)}
-                <div className="card">
-                  <h2 className="section"><span className="sec-ic"><Icon n="file" size={16} /></span> Messages WhatsApp des factures</h2>
-                  <div className="tiny muted" style={{ marginBottom: 10 }}>
-                    Remplis automatiquement : {'{contact}'}, {'{client}'}, {'{document}'}, {'{numero}'}, {'{date}'}, {'{montant}'}, {'{reste}'}, {'{echeance}'}.
-                  </div>
-                  <Field label="Relance d'une facture impayée" style={{ marginBottom: 10 }}>
-                    <textarea rows={4} value={s.messageImpaye || ''} onChange={(e) => change({ ...s, messageImpaye: e.target.value })} />
-                  </Field>
-                  <Field label="Envoi d'une facture ou d'un devis">
-                    <textarea rows={4} value={s.messageEnvoi || ''} onChange={(e) => change({ ...s, messageEnvoi: e.target.value })} />
-                  </Field>
-                </div>
-              </div>
-              {cols(listCard('modeles'), listCard('signaux'))}
-            </>
-          )}
-          {sec === 'rappels' && <RappelsCard s={s} change={change} setS={setS} />}
-          {sec === 'excel' && (
-            <>
-              <ZohoCard />
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="folder" size={16} /></span> Fichier Excel</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Le CRM est ta base principale. L'export génère ton fichier de pilotage complet (Saisie remplie, tous les onglets et calculs,
-          Paramètres à jour). L'import reprend ce que tu as saisi dans le fichier Excel.
-        </p>
-        <div className="row">
-          <button className="btn primary" disabled={!!busy} onClick={exportXlsx}>
-            {busy === 'export' ? 'Préparation…' : <><Icon n="download" size={16} /> Exporter vers Excel</>}
-          </button>
-          <button className="btn" disabled={!!busy} onClick={() => fileRef.current.click()}>
-            <Icon n="upload" size={16} /> Importer un fichier Excel
-          </button>
-          <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={pickFile} />
-        </div>
-        {prospects.length > MAX_PROSPECTS && (
-          <div className="tiny orange" style={{ marginTop: 8 }}>
-            Le fichier Excel affiche {MAX_PROSPECTS} prospects au maximum, tu en as {prospects.length}.
-          </div>
-        )}
-        {imp && (
-          <div className="card" style={{ marginTop: 14, background: 'var(--gold-soft)' }}>
-            <b>{imp.file}</b>
-            <div className="small" style={{ margin: '6px 0 10px' }}>
-              {imp.prospects.length} prospects et {imp.actions.length} actions trouvés
-              {imp.skipped ? ` · ${imp.skipped} lignes ignorées (exemples ou sans date)` : ''}.
-            </div>
-            <label className="row small" style={{ marginBottom: 6 }}>
-              <input type="radio" checked={!imp.replace} onChange={() => setImp({ ...imp, replace: false })} /> Ajouter à mes données actuelles
-            </label>
-            <label className="row small" style={{ marginBottom: 6 }}>
-              <input type="radio" checked={imp.replace} onChange={() => setImp({ ...imp, replace: true })} /> Remplacer toutes mes données
-              ({prospects.length} prospects, {actions.length} actions seront supprimés)
-            </label>
-            {imp.settings && (
-              <label className="row small" style={{ marginBottom: 10 }}>
-                <input type="checkbox" checked={imp.withSettings} onChange={(e) => setImp({ ...imp, withSettings: e.target.checked })} /> Reprendre aussi les
-                Paramètres du fichier
-              </label>
-            )}
-            <div className="row">
-              <button className="btn primary" disabled={!!busy} onClick={runImport}>
-                {busy === 'import' ? 'Import en cours…' : 'Importer'}
-              </button>
-              <button className="btn" onClick={() => setImp(null)}>
-                Annuler
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <h2 className="section"><span className="sec-ic"><Icon n="flask" size={16} /></span> Données d'exemple</h2>
-        <p className="small muted" style={{ marginTop: 0 }}>
-          8 prospects et clients fictifs marqués « (EXEMPLE) » pour voir le CRM rempli. Supprime-les avant de commencer pour de vrai.
-        </p>
-        <div className="row">
-          <button className="btn" disabled={!!busy || prospects.some(isExample)} onClick={async () => { setBusy('seed'); try { await api.loadSeed(); toast('Exemples chargés ✓') } catch { /* toast */ } setBusy('') }}>
-            Charger les exemples
-          </button>
-          <button className="btn danger" disabled={!!busy || !prospects.some(isExample)} onClick={async () => { if (!window.confirm('Supprimer tous les prospects « (EXEMPLE) » et leur historique ?')) return; setBusy('seed'); try { await api.clearSeed(); toast('Exemples supprimés ✓') } catch { /* toast */ } setBusy('') }}>
-            Supprimer les exemples
-          </button>
-        </div>
-      </div>
-
-            </>
-          )}
+          {sec === 'magasin' && cols(listCard('categoriesArticles'), listCard('modesPaiement'), listCard('categoriesDepenses'))}
           {sec === 'compte' && (
             <>
       <div className="card">
@@ -944,7 +829,7 @@ export default function Parametres({ section }) {
           )}
           <button
             className="btn ghost sm"
-            onClick={() => window.confirm('Remettre les paramètres par défaut du fichier Excel ? (ton logo, tes couleurs et ton cachet sont gardés)') && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
+            onClick={() => window.confirm('Remettre les paramètres par défaut ? (ton logo, tes couleurs et ton cachet sont gardés)') && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
           >
             Paramètres par défaut
           </button>
