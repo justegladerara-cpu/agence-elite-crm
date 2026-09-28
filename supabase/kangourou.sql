@@ -133,7 +133,7 @@ create or replace function public.droit_defaut(r text, d text) returns boolean
 language sql immutable set search_path = '' as $$
   select case
     when r in ('superadmin', 'pdg') then true
-    when r = 'caisse' then d in ('vendre', 'remises', 'credit', 'articles')
+    when r = 'caisse' then d in ('vendre', 'remises', 'credit', 'articles', 'salle', 'reception')
     when r = 'comptable' then d in ('annuler', 'finances', 'depenses')
     else false end
 $$;

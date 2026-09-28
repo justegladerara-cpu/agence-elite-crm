@@ -560,8 +560,10 @@ export const DROITS = [
   ['depenses', 'Enregistrer des dépenses', "Sorties d'argent avec justificatif."],
   ['equipe', "Gérer l'équipe et les accès", 'Ajouter des personnes, régler leurs droits.'],
   ['reglages', 'Modifier les paramètres', 'Logo, factures, catégories, modes de paiement.'],
+  ['salle', 'Hôtel : service en salle et au bar', 'Plan de salle, commandes aux tables, addition.'],
+  ['reception', 'Hôtel : réception', 'Arrivées, départs, réservations, planning des chambres.'],
 ]
-const DEFAUT = { caisse: ['vendre', 'remises', 'credit', 'articles'], comptable: ['annuler', 'finances', 'depenses'] }
+const DEFAUT = { caisse: ['vendre', 'remises', 'credit', 'articles', 'salle', 'reception'], comptable: ['annuler', 'finances', 'depenses'] }
 export const droitDefaut = (role, d) => role === 'superadmin' || role === 'pdg' || (DEFAUT[role] || []).includes(d)
 export function peut(profil, d) {
   if (!profil?.role) return false

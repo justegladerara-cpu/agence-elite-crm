@@ -47,7 +47,7 @@ const NAV = [
   },
   {
     titre: 'Hôtel',
-    items: [{ path: 'hotel', label: 'Point de vente hôtel', ico: 'grid', droit: 'vendre' }],
+    items: [{ path: 'hotel', label: 'Point de vente hôtel', ico: 'grid', droit: ['salle', 'reception', 'finances'] }],
   },
   {
     titre: 'Stock',

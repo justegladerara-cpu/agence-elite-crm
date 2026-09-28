@@ -71,9 +71,12 @@ export function folio(sejour, jusqua = today()) {
 }
 
 // Arrivée : crée le séjour ; un acompte éventuel est gardé sur la note
-export async function arrivee({ chambre, client, tel, piece, personnes, depart, prixNuit, acompte, mode, par }, { documents, api }) {
+export async function arrivee({ chambre, client, tel, piece, personnes, depart, prixNuit, acompte, mode, par, reservation }, { documents, api }) {
   const acomptes = num(acompte) > 0 ? [{ id: uid(), date: today(), heure: nowTime(), montant: num(acompte), mode, par }] : []
-  return api.saveDoc({
+  // Acompte versé à la réservation : repris sur la note
+  const r = reservation?.data
+  if (r && num(r.acompte) > 0) acomptes.unshift({ id: uid(), date: r.creee || today(), heure: '', montant: num(r.acompte), mode: r.modeAcompte || 'Espèces', par: r.par || '' })
+  const sejour = await api.saveDoc({
     type: 'sejour',
     numero: numeroInterne(documents, 'sejour', 'SEJ'),
     prospect_id: null,
@@ -90,8 +93,11 @@ export async function arrivee({ chambre, client, tel, piece, personnes, depart, 
       lignes: [],
       acomptes,
       par: par || '',
+      ...(reservation ? { reservation: reservation.numero } : {}),
     },
   })
+  if (reservation) await api.saveDoc({ ...reservation, data: { ...reservation.data, statut: 'arrivee', sejourId: sejour.id, chambreId: chambre.id, chambre: chambre.nom } })
+  return sejour
 }
 
 // Ajoute des consommations sur la note d'une chambre (room service, restaurant, minibar…)
@@ -180,5 +186,91 @@ export function etatHotel(documents) {
     aNettoyer: chambres.filter((c) => !occ.has(c.id) && c.menage).length,
     departs: sejours.filter((s) => s.data.depart && s.data.depart <= t).length,
     arrivees: sejours.filter((s) => s.data.arrivee === t).length,
+    attendues: reservationsDe(documents).filter((r) => r.data.arrivee <= t).length,
   }
+}
+
+// ---------- Réservations et planning ----------
+// Réservation : chambre retenue pour des dates à venir ; devient un séjour à l'arrivée du client
+export const reservationsDe = (documents) => documents.filter((d) => d.type === 'reservation' && d.data?.statut === 'confirmee')
+
+// Nuits occupées par un séjour ou une réservation : [début, fin[ (la nuit du départ n'est pas comptée)
+export function occupation(documents, t = today()) {
+  const out = []
+  documents.forEach((d) => {
+    const x = d.data || {}
+    if (d.type === 'sejour' && x.statut === 'en cours') out.push({ doc: d, kind: 'sejour', chambreId: x.chambreId, debut: x.arrivee, fin: x.depart && x.depart > t ? x.depart : addDays(t, 1), client: x.client?.nom })
+    else if (d.type === 'sejour' && x.statut === 'clos') out.push({ doc: d, kind: 'clos', chambreId: x.chambreId, debut: x.arrivee, fin: x.departReel && x.departReel > x.arrivee ? x.departReel : addDays(x.arrivee, 1), client: x.client?.nom })
+    else if (d.type === 'reservation' && x.statut === 'confirmee') out.push({ doc: d, kind: 'reservation', chambreId: x.chambreId, debut: x.arrivee, fin: x.depart, client: x.client?.nom })
+  })
+  return out
+}
+// Une chambre est-elle déjà prise sur ces nuits ? (renvoie ce qui gêne)
+export function conflit(documents, chambreId, debut, fin, sauf) {
+  return occupation(documents).find((o) => o.kind !== 'clos' && o.chambreId === chambreId && o.doc.id !== sauf && o.debut < fin && debut < o.fin)
+}
+export async function enregistrerReservation(r, { documents, api }) {
+  const doc = r.id ? documents.find((d) => d.id === r.id) : null
+  return api.saveDoc({
+    ...(doc || { type: 'reservation', prospect_id: null, numero: numeroInterne(documents, 'reservation', 'RES') }),
+    data: {
+      ...(doc?.data || { statut: 'confirmee', creee: today() }),
+      chambreId: r.chambre.id,
+      chambre: r.chambre.nom,
+      client: { nom: r.client.trim(), tel: r.tel || '' },
+      personnes: num(r.personnes) || 1,
+      arrivee: r.arrivee,
+      depart: r.depart,
+      prixNuit: num(r.prixNuit),
+      acompte: num(r.acompte) || 0,
+      modeAcompte: r.mode || '',
+      source: r.source || 'Téléphone',
+      note: r.note || '',
+      par: r.par || doc?.data?.par || '',
+    },
+  })
+}
+
+// ---------- Tableau de bord hôtel ----------
+// Répartit les factures de l'hôtel : hébergement, restaurant, bar, terrasse, extras de chambre
+export function chiffresHotel(ventes) {
+  const parts = { Hébergement: 0, Restaurant: 0, Bar: 0, Terrasse: 0, 'Extras chambres': 0, 'Vente directe': 0 }
+  let nuitees = 0
+  const plats = {}
+  const modes = {}
+  let n = 0
+  ventes.forEach((v) => {
+    const objet = v.doc.data?.objet || ''
+    const sejour = objet.startsWith('Séjour chambre')
+    const zone = ZONES.find((z) => objet.startsWith(`${z} ·`)) || (objet === 'Vente directe' ? 'Vente directe' : null)
+    if (!sejour && !zone) return
+    n++
+    modes[v.mode || 'Autre'] = (modes[v.mode || 'Autre'] || 0) + v.total
+    ;(v.doc.data.lignes || []).forEach((l) => {
+      const m = num(l.qte) * num(l.pu)
+      if (sejour && String(l.designation).startsWith('Hébergement')) {
+        parts['Hébergement'] += m
+        nuitees += num(l.qte)
+        return
+      }
+      parts[sejour ? 'Extras chambres' : zone] += m
+      const nom = String(l.designation).replace(/ \(remise .*\)$/, '')
+      plats[nom] = plats[nom] || { nom, qte: 0, montant: 0 }
+      plats[nom].qte += num(l.qte)
+      plats[nom].montant += m
+    })
+  })
+  const total = Object.values(parts).reduce((a, b) => a + b, 0)
+  return { parts, total, nuitees, prixMoyen: nuitees ? parts['Hébergement'] / nuitees : 0, top: Object.values(plats).sort((a, b) => b.montant - a.montant).slice(0, 8), modes, n }
+}
+// Taux d'occupation par nuit sur une période
+export function occupationParJour(documents, nbChambres, debut, jours) {
+  const occ = occupation(documents).filter((o) => o.kind !== 'reservation')
+  const res = occupation(documents).filter((o) => o.kind === 'reservation')
+  return Array.from({ length: jours }, (_, i) => {
+    const d = addDays(debut, i)
+    const pris = new Set(occ.filter((o) => o.debut <= d && d < o.fin).map((o) => o.chambreId))
+    const reserve = new Set(res.filter((o) => o.debut <= d && d < o.fin).map((o) => o.chambreId))
+    return { date: d, occupees: pris.size, reservees: reserve.size, taux: nbChambres ? (pris.size + reserve.size) / nbChambres : 0 }
+  })
 }

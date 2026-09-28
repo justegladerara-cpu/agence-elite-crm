@@ -5,12 +5,12 @@ import { num } from '../lib/invoice'
 import { today, nowTime, addDays, fmtDate, diffDays } from '../lib/dates'
 import { getBrand } from '../lib/theme'
 import { peut, uid } from '../lib/store'
-import { photoArticle } from '../lib/magasin'
+import { photoArticle, ventesDe, periodeBornes, dansPeriode } from '../lib/magasin'
 import { facturePdf } from './Caisse'
 import {
   ZONES, CATEGORIES_CHAMBRE, CATEGORIES_CARTE, TEINTES,
   chambresDe, tablesDe, platsDe, sejoursEnCours, commandesOuvertes, numeroInterne,
-  folio, nuitsPrevues, arrivee, ajouterSurNote, encaisser, depart, lignesCommande, prixNet, totalLignes, imprimerTicket, etatHotel,
+  folio, nuitsPrevues, arrivee, reservationsDe, occupation, conflit, enregistrerReservation, chiffresHotel, occupationParJour, ajouterSurNote, encaisser, depart, lignesCommande, prixNet, totalLignes, imprimerTicket, etatHotel,
 } from '../lib/hotel'
 
 const PAVE = [['1', '2', '3', 'qte'], ['4', '5', '6', 'remise'], ['7', '8', '9', 'prix'], ['C', '0', ',', 'del']]
@@ -60,10 +60,21 @@ export default function Hotel() {
   const sejourDe = (chambreId) => sejours.find((s) => s.data.chambreId === chambreId)
   const commandeDe = (tableId) => commandes.find((c) => c.data.tableId === tableId)
 
-  const [vue, setVueState] = useState(() => (lire('hotel-vue', 'salle') === 'chambres' ? 'chambres' : 'salle'))
+  // Onglets selon les droits : salle (serveurs), chambres et planning (réception), tableau (direction)
+  const ONGLETS = [
+    ['salle', 'Salle', 'grid', peut(profil, 'salle')],
+    ['chambres', 'Chambres', 'layers', peut(profil, 'reception')],
+    ['planning', 'Planning', 'calendar', peut(profil, 'reception')],
+    ['tableau', 'Tableau', 'chart', peut(profil, 'finances')],
+  ].filter((o) => o[3])
+  const permise = (v) => ONGLETS.some((o) => o[0] === v)
+  const [vue, setVueState] = useState(() => {
+    const v = lire('hotel-vue', 'salle')
+    return permise(v) ? v : ONGLETS[0]?.[0] || 'salle'
+  })
   const setVue = (v) => {
     setVueState(v)
-    if (v === 'salle' || v === 'chambres') ecrire('hotel-vue', v)
+    if (permise(v)) ecrire('hotel-vue', v)
   }
   const [cible, setCible] = useState(null) // { kind: 'table', tableId } | { kind: 'chambre', sejourId } | { kind: 'direct' }
   const [folioId, setFolioId] = useState(null)
@@ -149,6 +160,15 @@ export default function Hotel() {
     setSel(null)
     setQ('')
     setVue('commande')
+  }
+  // Changer d'onglet : la commande de la table est enregistrée avant
+  const allerA = async (v) => {
+    if (vue === 'commande') {
+      if (cible?.kind === 'table' && sale.current) await sauver().catch(() => {})
+      if (cible?.kind === 'chambre' && lignes.length && !window.confirm('Les articles non ajoutés à la chambre seront perdus. Quitter ?')) return
+    }
+    setCible(null)
+    setVue(v)
   }
   const quitterCommande = async () => {
     if (cible?.kind === 'table' && sale.current) await sauver().catch(() => {})
@@ -340,12 +360,14 @@ export default function Hotel() {
           <span>{settings.facturation?.nom}</span>
         </div>
         <nav className="ho-tabs">
-          <button className={vue === 'salle' || (vue === 'commande' && cible?.kind !== 'chambre') ? 'on' : ''} onClick={() => (vue === 'commande' ? quitterCommande() : setVue('salle'))}>
-            <Icon n="grid" size={16} /> <span>Salle</span>
-          </button>
-          <button className={vue === 'chambres' || vue === 'folio' || cible?.kind === 'chambre' ? 'on' : ''} onClick={async () => { if (vue === 'commande' && cible?.kind === 'table' && sale.current) await sauver().catch(() => {}); setCible(null); setVue('chambres') }}>
-            <Icon n="layers" size={16} /> <span>Chambres</span>
-          </button>
+          {ONGLETS.map(([k, l, ico]) => {
+            const on = vue === k || (k === 'salle' && vue === 'commande' && cible?.kind !== 'chambre') || (k === 'chambres' && (vue === 'folio' || cible?.kind === 'chambre'))
+            return (
+              <button key={k} className={on ? 'on' : ''} onClick={() => allerA(k)}>
+                <Icon n={ico} size={16} /> <span>{l}</span>
+              </button>
+            )
+          })}
           {vue === 'commande' && (
             <span className="ho-cible">
               {cible?.kind === 'table' ? `${table?.nom || ''}${couverts ? ` · ${couverts} pers.` : ''}` : cible?.kind === 'chambre' ? `Chambre ${sejourCible?.data.chambre} · room service` : 'Vente directe'}
@@ -386,11 +408,27 @@ export default function Hotel() {
           etat={etat}
           config={config}
           onConfig={() => setModal({ t: 'reglages', onglet: 'chambres' })}
-          onLibre={(c) => setModal({ t: 'arrivee', chambre: c })}
+          onLibre={(c, reservation) => setModal({ t: 'arrivee', chambre: c, reservation })}
           onOccupee={(s) => { setFolioId(s.id); setVue('folio') }}
           onMenage={async (c) => { await api.saveDoc({ ...c.doc, data: { ...c.doc.data, menage: false } }); toast(`Chambre ${c.nom} prête ✓`) }}
         />
       )}
+
+      {vue === 'planning' && (
+        <Planning
+          chambres={chambres}
+          onNouvelle={(chambre, arrivee) => setModal({ t: 'reservation', chambre, arrivee })}
+          onOuvrir={(o) => {
+            if (o.kind === 'reservation') setModal({ t: 'reservation', doc: o.doc })
+            else if (o.kind === 'sejour') {
+              setFolioId(o.doc.id)
+              setVue('folio')
+            }
+          }}
+        />
+      )}
+
+      {vue === 'tableau' && <TableauHotel chambres={chambres} onChambres={() => setVue('chambres')} onPlanning={() => setVue('planning')} />}
 
       {vue === 'folio' && folioDoc && (
         <Folio
@@ -642,7 +680,17 @@ export default function Hotel() {
         />
       )}
       {modal?.t === 'surChambre' && <ChoixChambre sejours={sejours} total={total} onClose={() => setModal(null)} onChoix={surChambre} />}
-      {modal?.t === 'arrivee' && <Arrivee chambre={modal.chambre} onClose={() => setModal(null)} onDone={(s) => { setModal(null); setFolioId(s.id); setVue('folio') }} />}
+      {modal?.t === 'reservation' && (
+        <Reservation
+          doc={modal.doc}
+          chambre={modal.chambre}
+          arrivee={modal.arrivee}
+          chambres={chambres}
+          onClose={() => setModal(null)}
+          onArrivee={(res, ch) => setModal({ t: 'arrivee', chambre: ch, reservation: res })}
+        />
+      )}
+      {modal?.t === 'arrivee' && <Arrivee chambre={modal.chambre} reservation={modal.reservation} onClose={() => setModal(null)} onDone={(s) => { setModal(null); setFolioId(s.id); setVue('folio') }} />}
       {modal?.t === 'acompte' && <Acompte sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'prolonger' && <Prolonger sejour={modal.sejour} onClose={() => setModal(null)} />}
       {modal?.t === 'reglages' && <Reglages onglet={modal.onglet} onClose={() => setModal(null)} />}
@@ -714,8 +762,12 @@ function Salle({ tables, commandeDe, onTable, onDirect, config, onConfig }) {
 // ---------- Chambres ----------
 const FILTRES = [['', 'Toutes'], ['libre', 'Libres'], ['occ', 'Occupées'], ['menage', 'À nettoyer'], ['depart', 'Départs du jour']]
 function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccupee, onMenage }) {
+  const { documents } = useApp()
   const [filtre, setFiltre] = useState('')
   const t = today()
+  // Client attendu aujourd'hui (ou en retard) sur une chambre libre
+  const attendus = reservationsDe(documents).filter((r) => r.data.arrivee <= t)
+  const attenduDe = (id) => attendus.find((r) => r.data.chambreId === id)
   const statut = (c) => {
     const s = sejourDe(c.id)
     if (s) return s.data.depart && s.data.depart <= t ? 'depart' : 'occ'
@@ -730,7 +782,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
         <div className="ho-kpi"><span>Occupation</span><strong>{taux} %</strong><em>{etat.occupees} / {etat.total} chambres</em></div>
         <div className="ho-kpi"><span>Libres</span><strong>{etat.total - etat.occupees - etat.aNettoyer}</strong><em>prêtes à louer</em></div>
         <div className="ho-kpi warn"><span>À nettoyer</span><strong>{etat.aNettoyer}</strong><em>après un départ</em></div>
-        <div className="ho-kpi"><span>Départs du jour</span><strong>{etat.departs}</strong><em>{etat.arrivees} arrivée{etat.arrivees > 1 ? 's' : ''} aujourd'hui</em></div>
+        <div className="ho-kpi"><span>Départs du jour</span><strong>{etat.departs}</strong><em>{etat.attendues} arrivée{etat.attendues > 1 ? 's' : ''} attendue{etat.attendues > 1 ? 's' : ''}</em></div>
       </div>
       <div className="ho-bar">
         <div className="ho-zones">
@@ -755,7 +807,7 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
                 const st = statut(c)
                 const f = s ? folio(s) : null
                 return (
-                  <button key={c.id} className={`ho-room st-${st}`} onClick={() => (s ? onOccupee(s) : c.menage ? onMenage(c) : onLibre(c))}>
+                  <button key={c.id} className={`ho-room st-${st} ${!s && attenduDe(c.id) ? 'attendu' : ''}`} onClick={() => (s ? onOccupee(s) : c.menage ? onMenage(c) : onLibre(c, attenduDe(c.id)))}>
                     <span className="hr-top">
                       <strong>{c.nom}</strong>
                       <span className="hr-cat">{c.categorie}</span>
@@ -771,7 +823,13 @@ function Chambres({ chambres, sejourDe, etat, config, onConfig, onLibre, onOccup
                     ) : c.menage ? (
                       <>
                         <span className="hr-client">À nettoyer</span>
-                        <span className="hr-info">Touche quand la chambre est prête</span>
+                        <span className="hr-info">{attenduDe(c.id) ? `Attendu : ${attenduDe(c.id).data.client?.nom}` : 'Touche quand la chambre est prête'}</span>
+                      </>
+                    ) : attenduDe(c.id) ? (
+                      <>
+                        <span className="hr-client">Réservée · {attenduDe(c.id).data.client?.nom}</span>
+                        <span className="hr-info">Arrivée prévue {attenduDe(c.id).data.arrivee < t ? `le ${fmtDate(attenduDe(c.id).data.arrivee)} (en retard)` : "aujourd'hui"}</span>
+                        <span className="hr-solde">Touche pour l'arrivée</span>
                       </>
                     ) : (
                       <>
@@ -928,19 +986,22 @@ function ChoixChambre({ sejours, total, onChoix, onClose }) {
   )
 }
 
-function Arrivee({ chambre, onDone, onClose }) {
+function Arrivee({ chambre, reservation, onDone, onClose }) {
   const ctx = useApp()
-  const { settings, toast, profil } = ctx
-  const [f, setF] = useState({ client: '', tel: '', piece: '', personnes: 1, depart: addDays(today(), 1), prixNuit: chambre.prix, acompte: '', mode: (settings.modesPaiement || ['Espèces'])[0] })
+  const { settings, toast, profil, documents } = ctx
+  const r = reservation?.data
+  const [f, setF] = useState({ client: r?.client?.nom || '', tel: r?.client?.tel || '', piece: '', personnes: r?.personnes || 1, depart: r?.depart > today() ? r.depart : addDays(today(), 1), prixNuit: r?.prixNuit || chambre.prix, acompte: '', mode: (settings.modesPaiement || ['Espèces'])[0] })
   const [busy, setBusy] = useState(false)
   const set = (p) => setF((x) => ({ ...x, ...p }))
   const nuits = Math.max(1, diffDays(f.depart, today()))
   const valider = async () => {
     if (!f.client.trim()) return toast('Nom du client obligatoire', true)
     if (f.depart <= today()) return toast('Le départ doit être après aujourd’hui', true)
+    const gene = conflit(documents, chambre.id, today(), f.depart, reservation?.id)
+    if (gene && !window.confirm(`Attention : chambre ${chambre.nom} réservée pour ${gene.client} à partir du ${fmtDate(gene.debut)}. Continuer quand même ?`)) return
     setBusy(true)
     try {
-      const s = await arrivee({ chambre, ...f, par: profil?.nom }, ctx)
+      const s = await arrivee({ chambre, ...f, par: profil?.nom, reservation }, ctx)
       toast(`Chambre ${chambre.nom} attribuée à ${f.client.trim()} ✓`)
       onDone(s)
     } catch {
@@ -970,6 +1031,7 @@ function Arrivee({ chambre, onDone, onClose }) {
             ))}
           </div>
         )}
+        {r && num(r.acompte) > 0 && <div className="ho-estim">Acompte déjà versé à la réservation : <strong>{eur(num(r.acompte))}</strong> (repris sur la note)</div>}
         <div className="ho-estim">
           {nuits} nuit{nuits > 1 ? 's' : ''} × {eur(num(f.prixNuit))} = <strong>{eur(nuits * num(f.prixNuit))}</strong>
         </div>
@@ -1167,6 +1229,274 @@ function Fiche({ type, item, onDone }) {
         <button className="btn" onClick={onDone}>Annuler</button>
         {item && <button className="btn danger" onClick={() => window.confirm('Retirer de la liste ? Les ventes passées restent.') && enregistrer(true)}><Icon n="trash" size={14} /> Retirer</button>}
         <button className="btn primary" onClick={() => enregistrer()}>Enregistrer</button>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Planning des chambres (comme le tableau de réservation d'Odoo) ----------
+const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.']
+const jourCourt = (iso) => {
+  const d = new Date(`${iso}T12:00`)
+  return [JOURS[d.getDay()], `${iso.slice(8, 10)}/${iso.slice(5, 7)}`]
+}
+function Planning({ chambres, onNouvelle, onOuvrir }) {
+  const { documents } = useApp()
+  const [debut, setDebut] = useState(() => addDays(today(), -1))
+  const N = 14
+  const jours = Array.from({ length: N }, (_, i) => addDays(debut, i))
+  const fin = addDays(debut, N)
+  const occ = occupation(documents).filter((o) => o.debut < fin && debut < o.fin)
+  const res = reservationsDe(documents)
+  const aVenir = res.filter((r) => r.data.arrivee >= today()).length
+  const t = today()
+  return (
+    <div className="ho-page">
+      <div className="ho-bar">
+        <div className="ho-zones">
+          <button onClick={() => setDebut(addDays(debut, -7))} aria-label="Semaine précédente">
+            <Icon n="chevron" size={15} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <button className={debut === addDays(t, -1) ? 'on' : ''} onClick={() => setDebut(addDays(t, -1))}>Aujourd'hui</button>
+          <button onClick={() => setDebut(addDays(debut, 7))} aria-label="Semaine suivante">
+            <Icon n="chevron" size={15} />
+          </button>
+        </div>
+        <span className="muted ho-resume">{aVenir} réservation{aVenir > 1 ? 's' : ''} à venir · touche une case libre pour réserver</span>
+        <button className="btn primary" onClick={() => onNouvelle(null, t)}>
+          <Icon n="plus" size={15} /> Réservation
+        </button>
+      </div>
+      <div className="hp-scroll">
+        <div className="hp-grid" style={{ gridTemplateColumns: `110px repeat(${N}, minmax(58px, 1fr))` }}>
+          <div className="hp-coin">Chambre</div>
+          {jours.map((d) => {
+            const [j, dm] = jourCourt(d)
+            return (
+              <div key={d} className={`hp-jour ${d === t ? 'auj' : ''} ${[0, 6].includes(new Date(`${d}T12:00`).getDay()) ? 'we' : ''}`}>
+                <span>{j}</span>
+                <strong>{dm}</strong>
+              </div>
+            )
+          })}
+          {chambres.map((c, i) => {
+            const row = i + 2
+            const barres = occ.filter((o) => o.chambreId === c.id)
+            return [
+              <div key={`n-${c.id}`} className="hp-ch" style={{ gridRow: row }}>
+                <strong>{c.nom}</strong>
+                <span>{c.categorie}</span>
+              </div>,
+              ...jours.map((d, k) => (
+                <button key={`${c.id}-${d}`} className={`hp-case ${d === t ? 'auj' : ''} ${d < t ? 'passe' : ''}`} style={{ gridRow: row, gridColumn: k + 2 }} disabled={d < t} onClick={() => onNouvelle(c, d)} aria-label={`Réserver la chambre ${c.nom} le ${fmtDate(d)}`} />
+              )),
+              ...barres.map((o) => {
+                const a = Math.max(0, diffDays(o.debut, debut))
+                const b = Math.min(N, diffDays(o.fin, debut))
+                return (
+                  <button key={o.doc.id} className={`hp-barre k-${o.kind} ${o.debut < debut ? 'coupe-g' : ''} ${o.fin > fin ? 'coupe-d' : ''}`} style={{ gridRow: row, gridColumn: `${a + 2} / ${b + 2}` }} onClick={() => onOuvrir(o)} title={`${o.client} · ${fmtDate(o.debut)} → ${fmtDate(o.fin)}`}>
+                    <span>{o.client}</span>
+                  </button>
+                )
+              }),
+            ]
+          })}
+        </div>
+      </div>
+      <div className="ho-legende">
+        <span><i className="k-sejour" /> Client dans l'hôtel</span>
+        <span><i className="k-reservation" /> Réservation</span>
+        <span><i className="k-clos" /> Séjour terminé</span>
+      </div>
+    </div>
+  )
+}
+
+const SOURCES = ['Téléphone', 'Sur place', 'WhatsApp', 'E-mail', 'Booking', 'Entreprise']
+function Reservation({ doc, chambre, arrivee: arr, chambres, onClose, onArrivee }) {
+  const ctx = useApp()
+  const { documents, settings, toast, profil, api } = ctx
+  const r = doc?.data
+  const [f, setF] = useState(() => ({
+    chambreId: r?.chambreId || chambre?.id || '',
+    client: r?.client?.nom || '',
+    tel: r?.client?.tel || '',
+    personnes: r?.personnes || 1,
+    arrivee: r?.arrivee || arr || today(),
+    depart: r?.depart || addDays(arr || today(), 1),
+    prixNuit: r?.prixNuit ?? chambre?.prix ?? '',
+    acompte: r?.acompte || '',
+    mode: r?.modeAcompte || (settings.modesPaiement || ['Espèces'])[0],
+    source: r?.source || 'Téléphone',
+    note: r?.note || '',
+  }))
+  const [busy, setBusy] = useState(false)
+  const set = (p) => setF((x) => ({ ...x, ...p }))
+  const ch = chambres.find((c) => c.id === f.chambreId)
+  const nuits = Math.max(0, diffDays(f.depart, f.arrivee))
+  // Chambres libres sur ces dates (la chambre choisie reste dans la liste)
+  const libres = chambres.filter((c) => c.id === f.chambreId || !conflit(documents, c.id, f.arrivee, f.depart, doc?.id))
+  const gene = ch && conflit(documents, ch.id, f.arrivee, f.depart, doc?.id)
+  const valider = async () => {
+    if (!f.client.trim()) return toast('Nom du client obligatoire', true)
+    if (!ch) return toast('Choisis la chambre', true)
+    if (!(f.depart > f.arrivee)) return toast('Le départ doit être après l’arrivée', true)
+    if (gene) return toast(`Chambre ${ch.nom} déjà prise par ${gene.client} sur ces dates`, true)
+    setBusy(true)
+    try {
+      await enregistrerReservation({ id: doc?.id, ...f, chambre: ch, par: profil?.nom }, ctx)
+      toast(`Réservation enregistrée · chambre ${ch.nom} ✓`)
+      onClose()
+    } catch {
+      setBusy(false)
+    }
+  }
+  const annuler = async () => {
+    if (!window.confirm('Annuler cette réservation ?')) return
+    await api.saveDoc({ ...doc, data: { ...doc.data, statut: 'annulee', annuleeLe: today() } })
+    toast('Réservation annulée')
+    onClose()
+  }
+  return (
+    <Modal title={doc ? `Réservation ${doc.numero}` : 'Nouvelle réservation'} onClose={onClose}>
+      <div className="stack">
+        <label className="field"><span>Nom du client *</span><input className="input" value={f.client} onChange={(e) => set({ client: e.target.value })} autoFocus={!doc} /></label>
+        <div className="ho-2">
+          <label className="field"><span>Téléphone</span><input className="input" inputMode="tel" value={f.tel} onChange={(e) => set({ tel: e.target.value })} /></label>
+          <label className="field"><span>Personnes</span><input className="input" type="number" min="1" value={f.personnes} onChange={(e) => set({ personnes: e.target.value })} /></label>
+        </div>
+        <div className="ho-2">
+          <label className="field"><span>Arrivée</span><input className="input" type="date" value={f.arrivee} onChange={(e) => set({ arrivee: e.target.value, ...(f.depart <= e.target.value ? { depart: addDays(e.target.value, 1) } : {}) })} /></label>
+          <label className="field"><span>Départ</span><input className="input" type="date" min={addDays(f.arrivee, 1)} value={f.depart} onChange={(e) => set({ depart: e.target.value })} /></label>
+        </div>
+        <label className="field"><span>Chambre ({libres.length} libre{libres.length > 1 ? 's' : ''} sur ces dates)</span>
+          <select className="input" value={f.chambreId} onChange={(e) => { const c = chambres.find((x) => x.id === e.target.value); set({ chambreId: e.target.value, prixNuit: c?.prix ?? f.prixNuit }) }}>
+            <option value="">Choisir…</option>
+            {libres.map((c) => <option key={c.id} value={c.id}>Chambre {c.nom} · {c.categorie} · {eur(c.prix)}</option>)}
+          </select>
+        </label>
+        {gene && <div className="ho-alerte">Chambre déjà prise par {gene.client} du {fmtDate(gene.debut)} au {fmtDate(gene.fin)}.</div>}
+        <div className="ho-2">
+          <label className="field"><span>Prix par nuit</span><input className="input" inputMode="numeric" disabled={!peut(profil, 'remises')} value={f.prixNuit} onChange={(e) => set({ prixNuit: e.target.value })} /></label>
+          <label className="field"><span>Acompte versé</span><input className="input" inputMode="numeric" placeholder="0" value={f.acompte} onChange={(e) => set({ acompte: e.target.value })} /></label>
+        </div>
+        {num(f.acompte) > 0 && (
+          <div className="ho-modes">
+            {(settings.modesPaiement || ['Espèces']).map((m) => <button key={m} className={`chip ${f.mode === m ? 'on' : ''}`} onClick={() => set({ mode: m })}>{m}</button>)}
+          </div>
+        )}
+        <div className="field"><span>Provenance</span>
+          <div className="ho-modes">
+            {SOURCES.map((x) => <button key={x} className={`chip sm ${f.source === x ? 'on' : ''}`} onClick={() => set({ source: x })}>{x}</button>)}
+          </div>
+        </div>
+        <label className="field"><span>Note</span><input className="input" placeholder="Heure d'arrivée, demande particulière…" value={f.note} onChange={(e) => set({ note: e.target.value })} /></label>
+        {nuits > 0 && <div className="ho-estim">{nuits} nuit{nuits > 1 ? 's' : ''} × {eur(num(f.prixNuit))} = <strong>{eur(nuits * num(f.prixNuit))}</strong>{num(f.acompte) > 0 ? ` · reste ${eur(Math.max(0, nuits * num(f.prixNuit) - num(f.acompte)))}` : ''}</div>}
+        <div className="ho-btns">
+          {doc && <button className="btn danger" onClick={annuler}><Icon n="trash" size={14} /> Annuler la réservation</button>}
+          {doc && ch && f.arrivee <= today() && (
+            <button className="btn" onClick={() => { const m = documents.find((d) => d.id === ch.id); if (m?.data?.menage && !window.confirm(`La chambre ${ch.nom} est marquée à nettoyer. Faire entrer le client quand même ?`)) return; onArrivee(doc, ch) }}>
+              <Icon n="check" size={14} /> Arrivée du client
+            </button>
+          )}
+          <button className="btn primary" disabled={busy} onClick={valider}>{busy ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ---------- Tableau de bord de l'hôtel ----------
+const PERIODES = [['jour', "Aujourd'hui"], ['7j', '7 jours'], ['mois', 'Ce mois'], ['annee', 'Cette année']]
+const COULEURS = { Hébergement: '#2f5bd3', Restaurant: '#b8903f', Bar: '#8b5cf6', Terrasse: '#0f7b55', 'Extras chambres': '#d98a00', 'Vente directe': '#64748b' }
+function TableauHotel({ chambres, onChambres, onPlanning }) {
+  const { documents, actions } = useApp()
+  const [periode, setPeriode] = useState(() => lire('hotel-periode', 'mois'))
+  const bornes = periodeBornes(periode)
+  const ventes = useMemo(() => ventesDe(documents, actions), [documents, actions])
+  const c = chiffresHotel(ventes.filter((v) => dansPeriode(v.date, bornes)))
+  const t = today()
+  const jours = occupationParJour(documents, chambres.length, addDays(t, -13), 21)
+  const auj = jours[13]
+  const nbJours = Math.max(1, diffDays(bornes[1], bornes[0] === '0000-01-01' ? bornes[1] : bornes[0]) + 1)
+  const revpar = chambres.length ? c.parts['Hébergement'] / (chambres.length * nbJours) : 0
+  const sejours = sejoursEnCours(documents)
+  const departs = sejours.filter((s) => s.data.depart && s.data.depart <= t)
+  const arrivees = reservationsDe(documents).filter((r) => r.data.arrivee <= t)
+  const aEncaisser = sejours.reduce((m, s) => m + folio(s).reste, 0)
+  const maxPart = Math.max(1, ...Object.values(c.parts))
+  const modes = Object.entries(c.modes).sort((a, b) => b[1] - a[1])
+  return (
+    <div className="ho-page ho-tableau">
+      <div className="ho-bar">
+        <div className="ho-zones">
+          {PERIODES.map(([k, l]) => (
+            <button key={k} className={periode === k ? 'on' : ''} onClick={() => { setPeriode(k); ecrire('hotel-periode', k) }}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div className="ho-kpis ho-kpis-6">
+        <div className="ho-kpi navy"><span>Chiffre d'affaires hôtel</span><strong>{eur(c.total)}</strong><em>{c.n} facture{c.n > 1 ? 's' : ''}</em></div>
+        <div className="ho-kpi"><span>Occupation ce soir</span><strong>{Math.round(auj.taux * 100)} %</strong><em>{auj.occupees} occupée{auj.occupees > 1 ? 's' : ''}{auj.reservees ? ` + ${auj.reservees} réservée${auj.reservees > 1 ? 's' : ''}` : ''} / {chambres.length}</em></div>
+        <div className="ho-kpi"><span>Nuitées vendues</span><strong>{nb(c.nuitees)}</strong><em>prix moyen {eur(c.prixMoyen)} / nuit</em></div>
+        <div className="ho-kpi"><span>Revenu par chambre</span><strong>{eur(revpar)}</strong><em>hébergement ÷ chambres ÷ jours</em></div>
+        <div className="ho-kpi warn"><span>À encaisser (clients présents)</span><strong>{eur(aEncaisser)}</strong><em>{sejours.length} note{sejours.length > 1 ? 's' : ''} ouverte{sejours.length > 1 ? 's' : ''}</em></div>
+      </div>
+      <div className="ht-grid">
+        <div className="card ht-card">
+          <h3>D'où vient l'argent</h3>
+          {Object.entries(c.parts).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([k, v]) => (
+            <div key={k} className="ht-part">
+              <span className="ht-lbl"><i style={{ background: COULEURS[k] }} />{k}</span>
+              <span className="ht-bar"><span style={{ width: `${(v / maxPart) * 100}%`, background: COULEURS[k] }} /></span>
+              <strong>{eur(v)}</strong>
+              <em>{c.total ? Math.round((v / c.total) * 100) : 0} %</em>
+            </div>
+          ))}
+          {!c.total && <p className="muted">Aucune vente de l'hôtel sur cette période.</p>}
+        </div>
+        <div className="card ht-card">
+          <h3>Occupation des chambres · 3 semaines</h3>
+          <div className="ht-occ">
+            {jours.map((j) => (
+              <div key={j.date} className={`ht-col ${j.date === t ? 'auj' : ''} ${j.date > t ? 'futur' : ''}`} title={`${fmtDate(j.date)} : ${j.occupees} occupée(s), ${j.reservees} réservée(s)`}>
+                <span className="ht-v">{Math.round(j.taux * 100)}</span>
+                <span className="ht-pile">
+                  <span className="r" style={{ height: `${chambres.length ? (j.reservees / chambres.length) * 100 : 0}%` }} />
+                  <span className="o" style={{ height: `${chambres.length ? (j.occupees / chambres.length) * 100 : 0}%` }} />
+                </span>
+                <span className="ht-d">{j.date.slice(8, 10)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="ho-legende"><span><i className="k-sejour" /> Occupées</span><span><i className="k-reservation" /> Réservées</span><span>% du total des chambres</span></div>
+        </div>
+        <div className="card ht-card">
+          <h3>Meilleures ventes · restaurant, bar, extras</h3>
+          <table className="hf-table">
+            <tbody>
+              {c.top.map((p, i) => (
+                <tr key={p.nom}><td className="muted">{i + 1}</td><td>{p.nom}</td><td className="num">{nb(p.qte)}</td><td className="num"><strong>{eur(p.montant)}</strong></td></tr>
+              ))}
+            </tbody>
+          </table>
+          {!c.top.length && <p className="muted">Rien sur cette période.</p>}
+        </div>
+        <div className="card ht-card">
+          <h3>Aujourd'hui à la réception</h3>
+          <div className="ht-liste">
+            <button className="ht-l-t" onClick={onPlanning}>{arrivees.length} arrivée{arrivees.length > 1 ? 's' : ''} attendue{arrivees.length > 1 ? 's' : ''}</button>
+            {arrivees.map((r) => <div key={r.id} className="ht-l"><strong>Ch. {r.data.chambre}</strong><span>{r.data.client?.nom}</span><em>{r.data.arrivee < t ? 'en retard' : r.data.source}</em></div>)}
+            <button className="ht-l-t" onClick={onChambres}>{departs.length} départ{departs.length > 1 ? 's' : ''} prévu{departs.length > 1 ? 's' : ''}</button>
+            {departs.map((s) => <div key={s.id} className="ht-l"><strong>Ch. {s.data.chambre}</strong><span>{s.data.client?.nom}</span><em>{eur(folio(s).reste)}</em></div>)}
+          </div>
+          {modes.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 14 }}>Encaissements par moyen de paiement</h3>
+              {modes.map(([m, v]) => <div key={m} className="ht-l"><span>{m}</span><strong>{eur(v)}</strong></div>)}
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
