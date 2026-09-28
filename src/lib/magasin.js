@@ -2,7 +2,7 @@
 import { num, totals, nextNumero, nouveauDoc, paiementsDe } from './invoice'
 import { today, nowTime, addDays } from './dates'
 
-export const CATEGORIES_ARTICLES = ['EPI et sécurité', 'Outillage à main', 'Outillage électrique', 'Consommables', 'Quincaillerie', 'Levage et manutention', 'Lubrifiants', 'Électricité', 'Autre']
+export const CATEGORIES_ARTICLES = ['Robinetterie', 'Vannes', 'EPI', 'Tôles noires', 'Chiffons', 'Peinture', 'Tiges', 'Outillage', 'Consommables', 'Autre']
 export const A_CREDIT = 'À crédit'
 
 // Articles : un document « produit » par article
