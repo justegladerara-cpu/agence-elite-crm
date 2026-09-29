@@ -146,7 +146,7 @@ const blank = (prefill) => ({
 })
 
 export function ActionForm({ prefill = {}, onDone }) {
-  const { settings, data, api, toast } = useApp()
+  const { settings, data, api, toast, openAction } = useApp()
   const editing = prefill.edit
   const init = editing
     ? Object.fromEntries(Object.entries(blank(editing)).map(([k, v]) => [k, v === null || v === undefined ? '' : v]))
@@ -164,6 +164,14 @@ export function ActionForm({ prefill = {}, onDone }) {
 
   const set = (k) => (v) => setF((s) => ({ ...s, [k]: v }))
   const setE = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }))
+  // Paiement ou dépense : formulaire dédié (montant d'abord, frais liés, reçu, facture)
+  const choisirAction = (a) => {
+    if (!editing && (a === 'Paiement reçu' || a === 'Dépense')) {
+      onDone?.()
+      return openAction({ action: a, prospect_id: pid || null })
+    }
+    set('action')(f.action === a ? '' : a)
+  }
   const L = data.L
   const actDef = L.act[f.action]
   const prospection = !!actDef?.prospection
@@ -318,7 +326,7 @@ export function ActionForm({ prefill = {}, onDone }) {
               </div>
               <div className="tiles" role="radiogroup" aria-label={`Actions : ${g}`}>
                 {list.map((a) => (
-                  <Tuile key={a} on={f.action === a} ico={ICO_ACTION[a] || (a.startsWith('Onboarding') ? 'clipboard' : 'tag')} label={a.replace('Onboarding - ', 'Onboarding · ')} onClick={() => set('action')(f.action === a ? '' : a)} ton={COUL_GROUPE[g] || COUL_GROUPE.Autre} />
+                  <Tuile key={a} on={f.action === a} ico={ICO_ACTION[a] || (a.startsWith('Onboarding') ? 'clipboard' : 'tag')} label={a.replace('Onboarding - ', 'Onboarding · ')} onClick={() => choisirAction(a)} ton={COUL_GROUPE[g] || COUL_GROUPE.Autre} />
                 ))}
               </div>
             </div>

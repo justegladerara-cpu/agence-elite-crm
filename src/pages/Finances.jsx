@@ -96,8 +96,9 @@ function RecuField({ value, onChange }) {
   const [preview, setPreview] = useState('')
   useEffect(() => {
     let ok = true
-    if (value) api.recuUrl(value).then((u) => ok && setPreview(u || '')).catch(() => {})
-    else setPreview('')
+    Promise.resolve(value ? api.recuUrl(value) : '')
+      .then((u) => ok && setPreview(u || ''))
+      .catch(() => {})
     return () => {
       ok = false
     }
@@ -224,8 +225,25 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
   }
   return (
     <div className="stack" style={{ gap: 14 }}>
+      {/* Le montant d'abord : c'est la seule information obligatoire */}
+      <div className="form-grid tight">
+        <Field label={lbl('Montant reçu (€)')}>
+          <input inputMode="decimal" placeholder="Ex. 34 000" autoFocus={!edit} value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
+        </Field>
+        <Field label="Mode de paiement">
+          <select value={f.mode} onChange={(e) => set({ mode: e.target.value })}>
+            <option value="">—</option>
+            {(settings.modesPaiement || []).map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
       <Field label="Client (facultatif)">
         <ProspectPicker value={f.prospect_id} onPick={(id) => set({ prospect_id: id, facture: '' })} />
+      </Field>
+      <Field label="Notes">
+        <input placeholder="Pour quel travail ? Ex. dépannage du soir" value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
       </Field>
       <Field label="Facture concernée">
         <select value={f.facture} onChange={(e) => choisirFacture(e.target.value)}>
@@ -242,24 +260,10 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
         <Field label="Date">
           <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
         </Field>
-        <Field label={lbl('Montant reçu (€)')}>
-          <input inputMode="decimal" value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
-        </Field>
-        <Field label="Mode de paiement">
-          <select value={f.mode} onChange={(e) => set({ mode: e.target.value })}>
-            <option value="">—</option>
-            {(settings.modesPaiement || []).map((m) => (
-              <option key={m}>{m}</option>
-            ))}
-          </select>
-        </Field>
         <Field label="Référence">
           <input placeholder="N° de transaction, chèque…" value={f.reference} onChange={(e) => set({ reference: e.target.value })} />
         </Field>
       </div>
-      <Field label="Notes">
-        <input value={f.notes} onChange={(e) => set({ notes: e.target.value })} />
-      </Field>
       <div className="row">
         <button className="btn gold" disabled={busy} onClick={save}>
           {busy ? 'Enregistrement…' : 'Enregistrer le paiement'}
@@ -327,11 +331,11 @@ export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
         </div>
       )}
       <div className="form-grid tight">
+        <Field label={lbl('Montant (€)')}>
+          <input inputMode="decimal" placeholder="Ex. 2 000" autoFocus={!edit} value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
+        </Field>
         <Field label="Date">
           <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
-        </Field>
-        <Field label={lbl('Montant (€)')}>
-          <input inputMode="decimal" value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
         </Field>
         <Field label="Catégorie">
           <select value={f.categorie} onChange={(e) => set({ categorie: e.target.value })}>

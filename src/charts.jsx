@@ -40,10 +40,11 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
   const R = 60
   const r = 40
   const C = 70
-  let a0 = -Math.PI / 2
-  const arcs = parts.map((p) => {
-    const a = (p.value / total) * Math.PI * 2
-    const a1 = a0 + a
+  // Angle de départ de chaque part : cumul des parts précédentes
+  const debuts = parts.map((_, i) => -Math.PI / 2 + (parts.slice(0, i).reduce((m, x) => m + x.value, 0) / total) * Math.PI * 2)
+  const arcs = parts.map((p, i) => {
+    const a0 = debuts[i]
+    const a1 = a0 + (p.value / total) * Math.PI * 2
     const gap = parts.length > 1 ? 0.025 : 0
     const s = a0 + gap / 2
     const e = a1 - gap / 2
@@ -53,7 +54,6 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
       parts.length === 1
         ? `M${C},${C - R} A${R},${R} 0 1 1 ${C - 0.01},${C - R} L${C - 0.01},${C - r} A${r},${r} 0 1 0 ${C},${C - r} Z`
         : `M${pt(R, s)} A${R},${R} 0 ${large} 1 ${pt(R, e)} L${pt(r, e)} A${r},${r} 0 ${large} 0 ${pt(r, s)} Z`
-    a0 = a1
     return { ...p, d }
   })
   const h = hover !== null ? arcs[hover] : null

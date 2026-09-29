@@ -505,7 +505,9 @@ export default function Parametres({ section }) {
   const fileRef = useRef()
   // Aperçu des couleurs pendant le réglage ; on revient aux couleurs enregistrées en quittant
   const saved = useRef(settings.apparence)
-  saved.current = settings.apparence
+  useEffect(() => {
+    saved.current = settings.apparence
+  }, [settings.apparence])
   useEffect(() => applyTheme(s.apparence), [s.apparence])
   useEffect(() => () => applyTheme(saved.current), [])
   const change = (next) => {

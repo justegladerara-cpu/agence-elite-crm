@@ -1679,3 +1679,10 @@ button.at:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 }
 .rentab table.t { width: 100%; }
 .rentab .cell-nom { max-width: 38cqi; }
+/* Ma journée : l'argent du jour */
+.argent-jour { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: var(--sp-2) var(--sp-3); }
+.aj-resume { all: unset; box-sizing: border-box; cursor: pointer; flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) 0; color: var(--text); }
+.aj-resume:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+.aj-resume span { min-width: 0; overflow-wrap: anywhere; }
+.aj-resume b { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aj-resume svg { color: var(--gold-3); }

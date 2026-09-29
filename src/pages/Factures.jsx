@@ -227,7 +227,7 @@ export function DocEditor({ id, query }) {
       } else if (p && (d.client.adresse || '') !== (p.fiche?.adresse_facturation || '')) {
         await api.updateProspect(p.id, { fiche: { ...p.fiche, adresse_facturation: d.client.adresse || '' } })
       }
-      const dataOut = { ...d, lignes: t.lignes.filter((l) => (l.designation || '').trim()).map(({ montant, ...l }) => l) }
+      const dataOut = { ...d, lignes: t.lignes.filter((l) => (l.designation || '').trim()).map(({ montant: _montant, ...l }) => l) }
       // Suivi client : l'intervention (ou la proposition pour un devis) reprend le montant et le numéro
       if (pid && !dataOut.annulee) {
         const linked = dataOut.actionId ? actions.find((a) => a.id === dataOut.actionId) : null

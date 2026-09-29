@@ -12,6 +12,8 @@ import { MiniListe } from './pages/Prospects'
 import Hub, { ESPACES } from './pages/Hub'
 import { lienHub } from './lib/hub'
 const Fiche = lazy(() => import('./pages/Fiche'))
+const SaisieArgent = lazy(() => import('./pages/Tresorerie').then((m) => ({ default: m.SaisieArgent })))
+const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Parametres = lazy(() => import('./pages/Parametres'))
 const Session = lazy(() => import('./pages/Session'))
@@ -697,7 +699,12 @@ function Crm() {
           ))}
         </nav>
       </div>
-      {actionModal && actionModal.prospect_id && !actionModal.edit && !actionModal.complet ? (
+      {actionModal && !actionModal.edit && !actionModal.complet && ARGENT[actionModal.action] ? (
+        // Paiement ou dépense : formulaires dédiés (frais liés au paiement, reçu, facture)
+        <Suspense fallback={null}>
+          <SaisieArgent modal={{ type: ARGENT[actionModal.action], prefill: { prospect_id: actionModal.prospect_id || null } }} onClose={() => setActionModal(null)} />
+        </Suspense>
+      ) : actionModal && actionModal.prospect_id && !actionModal.edit && !actionModal.complet ? (
         <Modal title="Noter une action" onClose={() => setActionModal(null)}>
           <QuickForm prospectId={actionModal.prospect_id} canal={actionModal.canal} action={actionModal.action} onDone={() => setActionModal(null)} onComplet={(x) => setActionModal({ ...x, complet: true })} />
         </Modal>

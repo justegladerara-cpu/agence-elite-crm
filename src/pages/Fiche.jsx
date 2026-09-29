@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SaisieArgent, modalPour } from './Tresorerie'
 import { Icon } from '../icons'
 import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
 import { ActionForm, ActionLine } from './Saisie'
@@ -223,6 +224,8 @@ export default function Fiche({ id }) {
                     ['Renouvellement', client.renouvellement ? fmtDate(client.renouvellement) : '—'],
                     ['Onboarding', `${Math.round(client.onboarding * 100)} %`],
                     ['Valeur vie client', eur(client.valeurVie)],
+                    ['Frais engagés', client.depenses ? eur(client.depenses) : '—'],
+                    ['Gain net encaissé', eur(client.encaisse - client.depenses)],
                   ]}
                 />
                 <div className="row" style={{ gap: 6, marginTop: 12 }}>
@@ -231,6 +234,9 @@ export default function Fiche({ id }) {
                   </button>
                   <button className="btn sm" onClick={() => openAction({ prospect_id: p.id, action: 'Paiement reçu' })}>
                     + Paiement
+                  </button>
+                  <button className="btn sm" onClick={() => openAction({ prospect_id: p.id, action: 'Dépense' })}>
+                    + Frais
                   </button>
                 </div>
               </div>
@@ -357,7 +363,9 @@ export default function Fiche({ id }) {
           </div>
         </Modal>
       )}
-      {editAction && (
+      {editAction && (editAction.action === 'Paiement reçu' || editAction.action === 'Dépense') ? (
+        <SaisieArgent modal={modalPour(editAction)} onClose={() => setEditAction(null)} />
+      ) : editAction && (
         <Modal title="Modifier l'action" onClose={() => setEditAction(null)} large>
           <ActionForm prefill={{ edit: editAction }} onDone={() => setEditAction(null)} />
         </Modal>

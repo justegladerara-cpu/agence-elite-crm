@@ -289,7 +289,9 @@ export default function Dashboard({ onglet: ongletDemande }) {
   const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
-  dernierePeriode = mois
+  useEffect(() => {
+    dernierePeriode = mois
+  }, [mois])
   const year = /^\d{4}-\d{2}$/.test(mois) ? Number(mois.slice(0, 4)) : Number(today().slice(0, 4))
   const series = useMemo(() => monthlySeries(data, settings, year, canal), [data, settings, year, canal])
   const months = useMemo(() => {

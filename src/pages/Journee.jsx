@@ -10,6 +10,39 @@ import { avancement, compterJour } from '../lib/journee'
 import { isLocal } from '../lib/store'
 import { derniereSauvegarde, telechargerSauvegarde } from '../lib/sauvegarde'
 import { today, fmtDate, diffDays, weekday } from '../lib/dates'
+import { mouvements, resumeArgent } from '../lib/tresorerie'
+
+// L'argent du jour en une ligne : ce qui est rentré, ce qui est sorti, ce qui reste ; mène au détail
+function ArgentDuJour() {
+  const { actions, openAction } = useApp()
+  const t = today()
+  const r = resumeArgent(mouvements(actions, t, t))
+  return (
+    <div className="argent-jour">
+      <button type="button" className="aj-resume" onClick={() => go('/dashboard?onglet=vue')}>
+        <Icon n="coins" size={16} />
+        {r.nbEntrees || r.nbSorties ? (
+          <span>
+            Aujourd'hui : <b className="green">+ {eur(r.encaisse)}</b>
+            {r.depenses ? (
+              <>
+                {' '}· <b className="red">− {eur(r.depenses)}</b> · il te reste <b>{eur(r.net)}</b>
+              </>
+            ) : null}
+          </span>
+        ) : (
+          <span className="muted">Aucun paiement noté aujourd'hui</span>
+        )}
+      </button>
+      <button type="button" className="btn sm" onClick={() => openAction({ action: 'Paiement reçu' })}>
+        <Icon n="plus" size={13} /> Paiement
+      </button>
+      <button type="button" className="btn sm" onClick={() => openAction({ action: 'Dépense' })}>
+        <Icon n="plus" size={13} /> Frais
+      </button>
+    </div>
+  )
+}
 
 function ProspectRow({ p, children, overdue, relance }) {
   const { openAction } = useApp()
@@ -118,6 +151,8 @@ export default function Journee({ onglet: ongletDemande }) {
           </button>
         </div>
       )}
+
+      {tab === 'jour' && <ArgentDuJour />}
 
       {tab === 'jour' && (
         <button type="button" className="score-fin" onClick={() => document.getElementById('objectifs-jour')?.scrollIntoView({ behavior: 'smooth' })}>
