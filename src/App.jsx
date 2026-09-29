@@ -26,6 +26,9 @@ const Scripts = lazy(() => import('./pages/Scripts'))
 const Recherche = lazy(() => import('./pages/Recherche'))
 const Calendrier = lazy(() => import('./pages/Calendrier'))
 const Boutique = lazy(() => import('./pages/Boutique'))
+const SiteVue = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SiteVue })))
+const SiteDemandes = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SiteDemandes })))
+const SitePages = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePages })))
 import Applications from './pages/Applications'
 import { syncRappels } from './lib/rappels'
 import { QuickForm, AppelSheet } from './pages/Rapide'
@@ -71,6 +74,14 @@ const NAV = [
       },
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
+    ],
+  },
+  {
+    titre: 'Site web',
+    items: [
+      { path: 'site', label: "Vue d'ensemble", ico: 'globe' },
+      { path: 'site-demandes', memo: 'site-demandes', label: 'Demandes', ico: 'mail', sub: [['?onglet=atraiter', 'À traiter'], ['?onglet=traitees', 'Traitées']] },
+      { path: 'site-pages', label: 'Pages du site', ico: 'layers' },
       {
         path: 'boutique',
         memo: 'boutique',
@@ -127,8 +138,7 @@ const APPS = [
   { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures, paiements et dépenses', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements', 'depenses'] },
   { id: 'analytics', nom: 'Tableau de bord', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'] },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
-  { id: 'store', nom: 'Elite Store', desc: 'Commandes, produits et clés de licence', ico: 'tag', couleur: '#e10600', pages: ['boutique'] },
-  { id: 'site', nom: 'Site web', desc: 'Le site agence-elite et sa boutique', ico: 'globe', couleur: '#10151f', pages: [], lien: '/site/' },
+  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'boutique'] },
   { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'] },
 ].map((a) => ({ ...a, route: a.pages[0], items: a.pages.map((x) => ITEM[x]) }))
 const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])))
@@ -530,6 +540,9 @@ function Crm() {
   else if (page === 'paiements') content = <Paiements />
   else if (page === 'depenses') content = <Depenses />
   else if (page === 'boutique') content = <Boutique key={route} onglet={q.get('onglet')} />
+  else if (page === 'site') content = <SiteVue />
+  else if (page === 'site-demandes') content = <SiteDemandes key={route} onglet={q.get('onglet')} />
+  else if (page === 'site-pages') content = <SitePages />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'apps') content = <Applications apps={APPS} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
   else content = <Dashboard key={route} onglet={q.get('onglet')} />

@@ -24,7 +24,7 @@ export default function Applications({ apps, pastilles }) {
       .in('statut', ['en_attente', 'payee'])
       .then(({ count }) => setStore(count || 0), () => {})
   }, [])
-  const extra = { store: store ? [store, 'hot', 'commandes à traiter'] : null }
+  const extra = { site: store ? [store, 'hot', 'commandes à traiter'] : null }
   const date = new Date(`${today()}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (

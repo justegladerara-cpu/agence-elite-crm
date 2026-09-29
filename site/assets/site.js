@@ -105,6 +105,44 @@
     /* stockage indisponible : pas de compteur */
   }
 
+  // Envoi vers le CRM (fonctions publiques de la base, sans cookie) ; n'empêche jamais la navigation
+  var envoyer = function (fn, corps) {
+    var C = window.AE_SITE
+    if (!C || !window.fetch) return
+    try {
+      fetch(C.url + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        keepalive: true,
+        headers: { apikey: C.cle, Authorization: 'Bearer ' + C.cle, 'Content-Type': 'application/json' },
+        body: JSON.stringify(corps),
+      }).catch(function () {})
+    } catch (e) {
+      /* réseau indisponible : la demande part quand même par WhatsApp ou e-mail */
+    }
+  }
+  // Mesure d'audience anonyme : page, site d'origine, type d'appareil (rien si « ne pas suivre »)
+  try {
+    var dnt = navigator.doNotTrack === '1' || window.doNotTrack === '1'
+    var local = /^(localhost|127\.)/.test(location.hostname)
+    if (!dnt && !local) {
+      var origine = ''
+      try {
+        var h = document.referrer ? new URL(document.referrer).hostname : ''
+        if (h && h !== location.hostname) origine = h.replace(/^www\./, '')
+      } catch (e) {
+        origine = ''
+      }
+      var w = window.innerWidth
+      envoyer('site_visite', {
+        p_page: location.pathname.replace(/^\/site/, '').replace(/index\.html$/, '') || '/',
+        p_source: origine || null,
+        p_appareil: w < 700 ? 'mobile' : w < 1100 ? 'tablette' : 'ordinateur',
+      })
+    }
+  } catch (e) {
+    /* mesure impossible : sans effet sur le site */
+  }
+
   // Formulaire de contact
   var form = document.getElementById('form-contact')
   if (!form) return
@@ -146,6 +184,19 @@
       return l !== '' || i < 4
     })
     var texte = lignes.join('\n')
+    // La demande arrive aussi dans le CRM (fiche + action « Demande site web »)
+    envoyer('site_contact', {
+      p: {
+        nom: form.nom.value.trim(),
+        entreprise: form.entreprise.value.trim(),
+        tel: form.tel.value.trim(),
+        email: form.email.value.trim(),
+        solution: sel.value ? sel.options[sel.selectedIndex].text : '',
+        message: form.message.value.trim(),
+        canal: canal,
+        page: location.pathname,
+      },
+    })
     if (canal === 'email') {
       var sujet = 'Demande de projet' + (sel.value ? ' : ' + sel.options[sel.selectedIndex].text : '')
       location.href = 'mailto:' + form.getAttribute('data-email') + '?subject=' + encodeURIComponent(sujet) + '&body=' + encodeURIComponent(texte)

@@ -179,6 +179,7 @@ ${corps(r)}
   <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite. Tous droits réservés.</span><a href="${r('mentions-legales/')}">Mentions légales</a></div>
 </footer>
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
+<script>window.AE_SITE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle })}</script>
 <script src="${r('assets/site.js')}?v=${VERSION}" defer></script>
 ${scripts ? scripts(r) : ''}
 </body>
@@ -233,8 +234,8 @@ const PAGES = []
 // Accueil
 PAGES.push({
   chemin: '',
-  titre: "Agence Elite | Communication, web, IA et informatique à Pointe-Noire",
-  description: "Agence Elite, agence de marketing 360 à Pointe-Noire : réseaux sociaux, sites internet, création graphique et audiovisuelle, impression, intelligence artificielle, Microsoft 365 et ERP.",
+  titre: "Agence Elite | Web, communication et IA à Pointe-Noire",
+  description: "Agence de marketing 360 à Pointe-Noire : réseaux sociaux, sites internet, création graphique, impression, intelligence artificielle, Microsoft 365 et ERP.",
   corps: (r) => `
 <section class="hero">
   <div class="hero-fond" aria-hidden="true"></div>
@@ -370,7 +371,7 @@ PAGES.push({
   chemin: 'solutions/',
   actif: 'solutions',
   titre: 'Nos solutions | Agence Elite',
-  description: 'Communication digitale, création graphique et audiovisuelle, impression, sites internet, intelligence artificielle, services informatiques, Microsoft 365 et ERP.',
+  description: 'Communication digitale, création graphique et vidéo, impression, sites internet, intelligence artificielle, informatique, Microsoft 365 et ERP.',
   corps: (r) => `
 <section class="bandeau">
   <div class="conteneur">
@@ -572,7 +573,7 @@ PAGES.push({
   chemin: 'boutique/',
   actif: 'boutique',
   titre: 'Elite Store : licences et logiciels professionnels | Agence Elite',
-  description: 'Microsoft 365, Windows, Office, antivirus Kaspersky et ESET, Adobe, Canva, Google Workspace, AutoCAD : licences officielles en FCFA, livrées et installées par Agence Elite à Pointe-Noire.',
+  description: 'Microsoft 365, Windows, Office, antivirus, Adobe, Canva, AutoCAD : licences officielles en FCFA, livrées et installées par Agence Elite à Pointe-Noire.',
   scripts: storeScript,
   corps: (r) => `
 <section class="bandeau bandeau-store">
@@ -600,7 +601,7 @@ PAGES.push({
   chemin: 'boutique/produit/',
   actif: 'boutique',
   titre: 'Produit | Elite Store | Agence Elite',
-  description: 'Licence officielle livrée et installée par Agence Elite.',
+  description: 'Licence ou logiciel officiel, payé en FCFA, livré et installé par Agence Elite à Pointe-Noire. Commande en ligne sur Elite Store.',
   scripts: storeScript,
   corps: (r) => `
 <section class="section section-fiche">
@@ -728,7 +729,7 @@ PAGES.push({
 PAGES.push({
   chemin: 'mentions-legales/',
   titre: 'Mentions légales | Agence Elite',
-  description: 'Mentions légales du site agence-elite.fr.',
+  description: 'Mentions légales du site agence-elite.fr : éditeur, hébergement, propriété intellectuelle et données personnelles.',
   corps: (r) => `
 <section class="bandeau"><div class="conteneur"><nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>Mentions légales</span></nav><h1>Mentions légales</h1></div></section>
 <section class="section"><div class="conteneur texte">
@@ -741,7 +742,8 @@ PAGES.push({
   <h2>Crédits photos</h2>
   <p>Visuels du catalogue Agence Elite. Photographies libres de droits issues d'Unsplash (licence Unsplash) : ${esc(CREDITS_PHOTOS)}.</p>
   <h2>Données personnelles</h2>
-  <p>Le formulaire de contact n'enregistre aucune donnée sur ce site : votre message est transmis directement par WhatsApp ou par e-mail. Les informations que vous nous envoyez servent uniquement à répondre à votre demande. Vous pouvez demander leur suppression à tout moment en écrivant à ${esc(SITE.email)}.</p>
+  <p>Quand vous envoyez le formulaire de contact, votre demande (nom, entreprise, téléphone, e-mail, message) est enregistrée dans notre outil de suivi client, puis transmise par WhatsApp ou par e-mail. Ces informations servent uniquement à répondre à votre demande et à suivre notre échange ; elles ne sont ni vendues ni cédées. Vous pouvez demander leur consultation ou leur suppression à tout moment en écrivant à ${esc(SITE.email)}.</p>
+  <p>Mesure d'audience : nous comptons les pages vues de façon anonyme (page visitée, site d'origine, type d'appareil), sans cookie ni adresse IP. Si votre navigateur demande de ne pas être suivi, rien n'est compté.</p>
 </div></section>`,
 })
 
@@ -755,6 +757,10 @@ PAGES.push({
 })
 
 // ---------- Écriture ----------
+// Référencement : un titre trop court pour Google (moins de 30 caractères) précise la ville
+for (const p of PAGES) {
+  if (p.titre.length < 30 && p.titre.endsWith(' | Agence Elite')) p.titre = p.titre.replace(' | Agence Elite', ' à Pointe-Noire | Agence Elite')
+}
 rmSync(OUT, { recursive: true, force: true })
 mkdirSync(OUT, { recursive: true })
 cpSync(join(ici, 'assets'), join(OUT, 'assets'), { recursive: true })
@@ -771,4 +777,13 @@ for (const p of PAGES) {
 const urls = PAGES.filter((p) => p.chemin !== '404/').map((p) => `  <url><loc>${SITE.url}/${p.chemin}</loc></url>`)
 writeFileSync(join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`)
 writeFileSync(join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE.url}/sitemap.xml\n`)
+// Liste des pages pour le hub « Site web » du CRM (titres et descriptions, pour le référencement)
+writeFileSync(
+  join(OUT, 'pages.json'),
+  JSON.stringify({
+    genere: new Date().toISOString(),
+    url: SITE.url,
+    pages: PAGES.filter((p) => p.chemin !== '404/').map((p) => ({ chemin: p.chemin, titre: p.titre, description: p.description || '', indexee: !/noindex/.test(p.robots || '') })),
+  }),
+)
 console.log(`Site Agence Elite : ${PAGES.length} pages dans ${OUT}`)
