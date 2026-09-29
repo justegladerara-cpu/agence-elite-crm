@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
-import { REF_PAIEMENT } from '../lib/tresorerie'
+import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
 import { ProspectPicker } from './Saisie'
 import { totals, paiementsDe, num } from '../lib/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
@@ -383,7 +383,7 @@ export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
 }
 
 // Répartition (par mode ou par catégorie)
-function Repartition({ rows, empty }) {
+export function Repartition({ rows, empty }) {
   const tot = rows.reduce((m, [, v]) => m + v, 0)
   if (!rows.length) return <Empty>{empty}</Empty>
   return (
@@ -481,11 +481,11 @@ export function PaiementsTab() {
 }
 
 // ---------- Onglet Dépenses ----------
-export function DepensesTab() {
+export function DepensesTab({ nouveau }) {
   const { actions, data, settings } = useApp()
   const [periode, setPeriode] = useState('mois')
   const [q, setQ] = useState('')
-  const [modal, setModal] = useState(null)
+  const [modal, setModal] = useState(nouveau ? {} : null)
   const toutes = useMemo(() => actions.filter((a) => a.action === 'Dépense'), [actions])
   const liste = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -496,7 +496,7 @@ export function DepensesTab() {
   }, [toutes, periode, q, data])
   const total = liste.reduce((m, a) => m + num(a.montant), 0)
   const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && inPeriode(a.date, periode)).reduce((m, a) => m + num(a.montant), 0)
-  const fixes = (settings.depensesFixes || []).reduce((m, d) => m + num(d.montant), 0)
+  const fixes = chargesFixesMois(settings.depensesFixes)
 
   return (
     <>
@@ -533,7 +533,7 @@ export function DepensesTab() {
             ))}
           </div>
           <div className="tiny muted" style={{ marginTop: 8 }}>
-            Les dépenses fixes mensuelles (réglées dans Paramètres) s'ajoutent automatiquement au tableau de bord.
+            Tes abonnements et charges fixes (menu Charges) s'ajoutent automatiquement au tableau de bord.
           </div>
         </div>
         <div className="card">
@@ -566,7 +566,7 @@ export function Paiements() {
     </div>
   )
 }
-export function Depenses() {
+export function Depenses({ nouveau }) {
   return (
     <div className="stack">
       <div className="page-head">
@@ -575,7 +575,7 @@ export function Depenses() {
           <div className="sub">Tes achats et frais, avec les reçus, pour connaître ton vrai bénéfice.</div>
         </div>
       </div>
-      <DepensesTab />
+      <DepensesTab nouveau={nouveau} />
     </div>
   )
 }

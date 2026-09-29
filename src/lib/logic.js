@@ -1,6 +1,7 @@
 // Tous les calculs automatiques, repris des formules du fichier Excel
 // (onglets Prospects, Clients, Ma journée et Tableau de bord).
 import { iso, addDays, addMonths, diffDays, today, monthStart, monthEnd, prevMonth, weekday } from './dates'
+import { chargesFixesMois } from './tresorerie'
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? 0 : Number(v))
 
@@ -317,7 +318,7 @@ export function computeStats(data, settings, periode, canal) {
   const { list, byId, clients, sorted, L } = data
   const inP = (d, a, b) => d && d >= a && d <= b
   const canalOk = (c) => canal === 'Tous' || c === canal
-  const fixes = settings.depensesFixes.reduce((m, d) => m + num(d.montant), 0)
+  const fixes = chargesFixesMois(settings.depensesFixes)
 
   // CA des nouveaux clients (gagnés dans la période) et des clients fidèles (gagnés avant)
   const caParType = (ventes, debut) => {

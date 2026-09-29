@@ -1,5 +1,5 @@
 // Tests des calculs du CRM : étapes, relances, périodes, factures, lecture des fichiers
-import { mouvements, resumeArgent, rentabiliteClients } from '../src/lib/tresorerie'
+import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../src/lib/tresorerie'
 import { describe, test, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { computeAll, periodeFor, waLink, handleInsta, montantRetenu } from '../src/lib/logic'
 import { mergeSettings } from '../src/lib/store'
@@ -176,5 +176,18 @@ describe('trésorerie : paiements, frais liés et net', () => {
       expect.objectContaining({ id: 'c1', encaisse: 150000, frais: 5000, net: 145000 }),
       expect.objectContaining({ id: '', nom: 'Sans client', encaisse: 34000, frais: 2000, net: 32000 }),
     ])
+  })
+})
+
+describe('abonnements et charges fixes', () => {
+  it('ramène chaque abonnement au mois et ignore ceux en pause', () => {
+    const l = [{ nom: 'Loyer', montant: 50000 }, { nom: 'Logiciel', montant: 120000, periodicite: 'an' }, { nom: 'Pause', montant: 9000, actif: false }]
+    expect(mensuel(l[1])).toBe(10000)
+    expect(chargesFixesMois(l)).toBe(60000)
+  })
+  it('avance la prochaine échéance tant qu’elle est passée, en gardant le jour', () => {
+    expect(prochaineEcheance({ montant: 1, echeance: '2026-01-31' }, '2026-03-05')).toBe('2026-03-31')
+    expect(prochaineEcheance({ montant: 1, echeance: '2026-02-10', periodicite: 'trimestre' }, '2026-06-01')).toBe('2026-08-10')
+    expect(echeancesEntre([{ nom: 'A', montant: 5, echeance: '2026-01-15' }], '2026-03-01', '2026-04-30').map((e) => e.date)).toEqual(['2026-03-15', '2026-04-15'])
   })
 })

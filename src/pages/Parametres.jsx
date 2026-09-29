@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Field, eur, lbl, go, DEVISES, confirmer } from '../ui'
+import { useApp, Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
@@ -8,6 +8,7 @@ import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
 import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desactiverRappels, testerRappels } from '../lib/rappels'
 import { totals, nouveauDoc } from '../lib/invoice'
+import { mensuel, estActif } from '../lib/tresorerie'
 import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
@@ -283,7 +284,7 @@ function normalize(s) {
     if (!cols) out[key] = out[key].map((x) => x.trim()).filter(Boolean)
     else {
       out[key] = out[key]
-        .map((it) => Object.fromEntries(cols.map(([k, , t]) => [k, t === 'num' ? Number(it[k]) || 0 : t === 'bool' ? !!it[k] : String(it[k] ?? '').trim()])))
+        .map((it) => ({ ...(key === 'depensesFixes' ? it : {}), ...Object.fromEntries(cols.map(([k, , t]) => [k, t === 'num' ? Number(it[k]) || 0 : t === 'bool' ? !!it[k] : String(it[k] ?? '').trim()])) }))
         .filter((it) => it.nom)
     }
   })
@@ -609,6 +610,9 @@ export default function Parametres({ section }) {
       if (imp.withSettings && imp.settings) {
         const merged = { ...settings }
         Object.entries(imp.settings).forEach(([k, v]) => (merged[k] = Array.isArray(v) ? v : { ...settings[k], ...v }))
+        // Abonnements : le fichier n'a que le nom et le coût par mois, on garde le détail de ceux qui n'ont pas changé
+        if (imp.settings.depensesFixes)
+          merged.depensesFixes = imp.settings.depensesFixes.map((d) => settings.depensesFixes.find((x) => x.nom === d.nom && Math.round(mensuel(x)) === Math.round(Number(d.montant))) || d).concat(settings.depensesFixes.filter((x) => !estActif(x)))
         // Objectifs du jour du fichier Excel : repris dans les objectifs quotidiens
         const oj = imp.settings.objectifsJour
         if (oj) merged.objectifsQuotidiens = (merged.objectifsQuotidiens || []).map((o) => (oj[o.source] !== undefined ? { ...o, cible: Number(oj[o.source]) || 0 } : o))
@@ -648,6 +652,18 @@ export default function Parametres({ section }) {
         </div>
       </div>
     ))
+  // Les charges fixes ont leur propre page (hub Charges)
+  const chargesCard = (
+    <div className="card" key="charges">
+      <h2 className="section">{withIcon('Abonnements et charges fixes')}</h2>
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Loyer, internet, logiciels… se gèrent dans le menu Charges, avec leur périodicité et leur date d'échéance.
+      </p>
+      <button type="button" className="btn sm" onClick={() => go('/abonnements')}>
+        Ouvrir mes abonnements
+      </button>
+    </div>
+  )
   const listCard = (key) =>
     LIST_DEFS.filter((x) => x[0] === key).map(([key, title, cols]) => (
       <div className="card" key={key}>
@@ -719,13 +735,7 @@ export default function Parametres({ section }) {
       </div>
 
       <div className="settings">
-        <nav className="set-menu">
-          {SECTIONS.map(([k, label, , ico]) => (
-            <button key={k} className={sec === k ? 'on' : ''} onClick={() => go(`/parametres/${k}`)}>
-              <Icon n={ico} size={16} /> {label}
-            </button>
-          ))}
-        </nav>
+        {/* Les sections sont dans le menu de gauche (et en onglets sur téléphone) */}
         <div className="set-body stack">
           {sec === 'identite' && <ApparenceCard s={s} change={change} />}
           {sec === 'facturation' && (
@@ -807,7 +817,7 @@ export default function Parametres({ section }) {
         {dirty && (s.devise || 'EUR') !== (settings.devise || 'EUR') && <div className="tiny orange" style={{ marginTop: 8 }}>Clique sur « Enregistrer » en haut pour appliquer.</div>}
       </div>
 
-              {cols(listCard('offres'), listCard('modesPaiement'), listCard('depensesFixes'), listCard('categoriesDepenses'))}
+              {cols(listCard('offres'), listCard('modesPaiement'), chargesCard, listCard('categoriesDepenses'))}
             </>
           )}
           {sec === 'objectifs' && (

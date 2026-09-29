@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Modal, Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
 import { PaiementForm, DepenseForm } from './Finances'
-import { mouvements, resumeArgent, rentabiliteClients } from '../lib/tresorerie'
+import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois } from '../lib/tresorerie'
 import { fmtDate } from '../lib/dates'
 
 // Fenêtre de saisie ou de modification d'un paiement / d'une dépense, partagée par le tableau de bord et le détail
@@ -80,8 +80,8 @@ function Ligne({ m, onOpen }) {
 // depensesTotal : dépenses du tableau de bord (charges fixes comprises), pour afficher leur part
 export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compact }) {
   const { actions, settings } = useApp()
-  const postesFixes = (settings.depensesFixes || []).filter((d) => Number(d.montant) > 0)
-  const fixesMois = postesFixes.reduce((m, d) => m + Number(d.montant), 0)
+  const postesFixes = (settings.depensesFixes || []).filter((d) => mensuel(d) > 0)
+  const fixesMois = chargesFixesMois(postesFixes)
   const [modal, setModal] = useState(null)
   const [tout, setTout] = useState(false)
   const mvts = useMemo(() => mouvements(actions, periode.debut, periode.fin), [actions, periode.debut, periode.fin])
@@ -142,9 +142,9 @@ export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compa
           <Icon n="info" size={14} />
           <span>
             Le dépensé comprend <b>{eur(r.fixes)}</b> de charges fixes : la part de cette période de tes {eur(fixesMois)} par mois (
-            {postesFixes.map((d) => `${d.nom} ${eur(Number(d.montant))}`).join(', ')}). Ce ne sont pas des dépenses que tu as notées.
+            {postesFixes.map((d) => `${d.nom} ${eur(mensuel(d))}`).join(', ')}). Ce ne sont pas des dépenses que tu as notées.
           </span>
-          <button type="button" className="toggle-link tiny" onClick={() => go('/parametres/listes')}>
+          <button type="button" className="toggle-link tiny" onClick={() => go('/abonnements')}>
             Modifier
           </button>
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useApp, Kpi, eur, pct, nb, court, Tabs, useTab } from '../ui'
+import { useApp, Kpi, eur, pct, nb, court } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
@@ -276,16 +276,13 @@ function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
 
 let dernierePeriode = '7 derniers jours'
 
-export default function Dashboard({ onglet: ongletDemande }) {
+const NOMS = { vue: 'Tableau de bord', acquisition: 'Acquisition', conversion: 'Conversion', finances: 'Finances' }
+
+// onglet : section choisie dans le menu de gauche (Vue d'ensemble, Acquisition, Conversion, Finances)
+export default function Dashboard({ onglet = 'vue' }) {
   const { data, settings, actions } = useApp()
   const [mois, setMois] = useState(dernierePeriode)
   const [canal, setCanal] = useState('Tous')
-  // Onglet mémorisé sur l'appareil ; les anciens noms d'onglets mènent au nouvel équivalent
-  const [onglet, setOngletBrut] = useTab('dashboard', lireOnglet(), ANCIENS[ongletDemande] || ongletDemande)
-  const setOnglet = (v) => {
-    setOngletBrut(v)
-    ecrireOnglet(v)
-  }
   const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -346,7 +343,7 @@ export default function Dashboard({ onglet: ongletDemande }) {
     <div className="stack dash">
       <div className="page-head" style={{ marginBottom: 0 }}>
         <div>
-          <h1>Tableau de bord</h1>
+          <h1>{NOMS[onglet] || 'Tableau de bord'}</h1>
           <div className="sub">
             {titre}
             {canal !== 'Tous' ? `, canal ${canal}` : ', tous canaux'}
@@ -382,17 +379,6 @@ export default function Dashboard({ onglet: ongletDemande }) {
       </div>
 
       {drill && <Drill titre={drill.titre} sous={drill.sous || titre} res={drillRes} onClose={() => setDrill(null)} />}
-
-      <Tabs
-        items={[
-          ['vue', "Vue d'ensemble"],
-          ['acquisition', 'Acquisition'],
-          ['conversion', 'Conversion'],
-          ['finances', 'Finances'],
-        ]}
-        value={onglet}
-        onChange={setOnglet}
-      />
 
       {onglet === 'vue' && (
         <>
@@ -665,25 +651,6 @@ export default function Dashboard({ onglet: ongletDemande }) {
       )}
     </div>
   )
-}
-
-// Onglet du tableau de bord gardé sur l'appareil
-const ONGLETS = ['vue', 'acquisition', 'conversion', 'finances']
-const ANCIENS = { prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
-function lireOnglet() {
-  try {
-    const v = localStorage.getItem('crm-dash-onglet')
-    return ONGLETS.includes(v) ? v : 'vue'
-  } catch {
-    return 'vue'
-  }
-}
-function ecrireOnglet(v) {
-  try {
-    localStorage.setItem('crm-dash-onglet', v)
-  } catch {
-    /* stockage indisponible */
-  }
 }
 
 // Chiffre secondaire de la ligne compacte, avec son évolution

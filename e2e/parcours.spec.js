@@ -3,15 +3,17 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 async function avecExemples(page) {
-  await page.goto('/')
+  await page.goto('/#/journee')
   await expect(page.getByRole('heading', { name: 'Ajoute tes premiers prospects' })).toBeVisible()
   await page.getByRole('button', { name: 'Charger des exemples' }).click()
   await expect(page.getByText('Exemples chargés')).toBeVisible()
 }
 
-test('l’application s’ouvre sur Ma journée avec les relances en haut', async ({ page }) => {
+test('l’application s’ouvre sur le tableau de bord ; Ma journée garde les relances en haut', async ({ page }) => {
   await avecExemples(page)
-  await expect(page).toHaveURL(/\/$|#\/?$|journee/)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: 'Tableau de bord' })).toBeVisible()
+  await page.goto('/#/journee')
   const relances = page.getByRole('heading', { name: /Aujourd'hui et en retard/ })
   const objectifs = page.locator('#objectifs-jour')
   await expect(relances).toBeVisible()
@@ -84,7 +86,7 @@ test('raccourcis clavier et tableau de bord sur 7 jours', async ({ page, isMobil
 
 test('accessibilité : aucune violation grave sur les écrans principaux', async ({ page }) => {
   await avecExemples(page)
-  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'parametres/listes', 'parametres/securite', 'saisie']) {
+  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres/listes', 'parametres/securite', 'saisie']) {
     await page.goto(`/#/${route}`)
     await page.waitForTimeout(400)
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
@@ -95,7 +97,7 @@ test('accessibilité : aucune violation grave sur les écrans principaux', async
 
 test('pas de défilement horizontal', async ({ page }) => {
   await avecExemples(page)
-  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'parametres']) {
+  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres']) {
     await page.goto(`/#/${route}`)
     await page.waitForTimeout(300)
     const deborde = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)

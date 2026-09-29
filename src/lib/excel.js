@@ -5,6 +5,7 @@ import { FICHE_FIELDS, ACTION_COLS } from './defaults'
 import { sortActions } from './logic'
 import { uid } from './store'
 import { parse, pad, iso } from './dates'
+import { estActif, mensuel } from './tresorerie'
 
 // ---------- Correspondance Paramètres <-> cellules ----------
 const SCALARS = [
@@ -237,7 +238,7 @@ export async function buildExcel(templateBuffer, prospects, actions, settings) {
     pe[ref] = type === 'text' ? String(v ?? '') : v === '' || v === undefined ? null : Number(v)
   })
   LISTS.forEach(([key, r1, r2, cols]) => {
-    const list = settings[key] || []
+    const list = key === 'depensesFixes' ? (settings[key] || []).filter(estActif).map((d) => ({ nom: d.nom, montant: Math.round(mensuel(d)) })) : settings[key] || []
     for (let r = r1; r <= r2; r++) {
       const item = list[r - r1]
       cols.forEach(([col, field, type]) => {

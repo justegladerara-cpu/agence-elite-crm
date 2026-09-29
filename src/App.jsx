@@ -22,6 +22,8 @@ const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
 const Paiements = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Paiements })))
 const Depenses = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Depenses })))
+const ChargesVue = lazy(() => import('./pages/Charges').then((m) => ({ default: m.ChargesVue })))
+const Abonnements = lazy(() => import('./pages/Charges').then((m) => ({ default: m.Abonnements })))
 const Scripts = lazy(() => import('./pages/Scripts'))
 const Recherche = lazy(() => import('./pages/Recherche'))
 const Calendrier = lazy(() => import('./pages/Calendrier'))
@@ -103,7 +105,14 @@ const NAV = [
         sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
       },
       { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
+    ],
+  },
+  {
+    titre: 'Charges',
+    items: [
+      { path: 'charges', label: "Vue d'ensemble", ico: 'chart' },
       { path: 'depenses', label: 'Dépenses', ico: 'wallet' },
+      { path: 'abonnements', label: 'Abonnements', ico: 'repeat' },
     ],
   },
 ]
@@ -121,7 +130,14 @@ PAGES.apps = 'Applications'
 
 // Applications (façon Odoo / Zoho One) : chaque module a son icône, sa couleur et ses propres pages
 const ITEM = Object.fromEntries([...NAV.flatMap((g) => g.items), PARAMETRES].map((n) => [n.path, n]))
+const SECTIONS_DASH = [
+  ['dashboard', "Vue d'ensemble"],
+  ['dashboard/acquisition', 'Acquisition'],
+  ['dashboard/conversion', 'Conversion'],
+  ['dashboard/finances', 'Finances'],
+]
 const APPS = [
+  { id: 'analytics', nom: 'Tableau de bord', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'], entrees: SECTIONS_DASH },
   {
     id: 'commercial',
     nom: 'Commercial',
@@ -129,22 +145,19 @@ const APPS = [
     ico: 'briefcase',
     couleur: '#2f6fed',
     pages: ['journee', 'acquisition', 'session', 'scripts', 'clients'],
-    groupes: [
-      [null, ['journee']],
-      ['Acquisition', ['acquisition', 'session', 'scripts']],
-      ['Suivi des clients', ['clients']],
-    ],
   },
-  { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures, paiements et dépenses', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements', 'depenses'] },
-  { id: 'analytics', nom: 'Tableau de bord', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'] },
+  { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures et paiements reçus', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements'] },
+  { id: 'charges', nom: 'Charges', desc: 'Dépenses, abonnements et charges fixes', ico: 'wallet', couleur: '#c2410c', pages: ['charges', 'depenses', 'abonnements'] },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
   { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'boutique'] },
-  { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'] },
-].map((a) => ({ ...a, route: a.pages[0], items: a.pages.map((x) => ITEM[x]) }))
+  { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]) },
+].map((a) => ({ ...a, route: a.pages[0], entrees: (a.entrees || a.pages.map((x) => [x, ITEM[x].label])).map(([route, label]) => ({ route, label, badge: route.split('/')[0] === route ? route : null })) }))
+// Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
+const ONGLET_DASH = { vue: 'vue', acquisition: 'acquisition', conversion: 'conversion', finances: 'finances', prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
 const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])))
 // Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
 const BOTTOM = [
-  { path: 'apps', short: 'Applis', ico: 'grid' },
+  { path: 'dashboard', short: 'Tableau', ico: 'chart' },
   { path: 'journee', short: 'Journée', ico: 'sun' },
   { path: 'saisie', short: 'Noter', ico: 'plus', cta: true },
   { path: 'acquisition', short: 'Prospects', ico: 'target' },
@@ -167,7 +180,7 @@ function Attente() {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'journee'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'dashboard'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -506,6 +519,9 @@ function Crm() {
   const ongletAcq = page === 'clients' && ESPACES.acquisition.cats.includes(q.get('onglet'))
   const current =
     page === 'prospect' ? (estClient(arg) ? 'clients' : 'acquisition') : page === 'prospects' || ongletAcq ? 'acquisition' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
+  // Entrée du menu à surligner : section du tableau de bord ou des paramètres, sinon la page
+  const ongletDash = ONGLET_DASH[arg || q.get('onglet')] || ''
+  const cle = page === 'dashboard' ? (ongletDash && ongletDash !== 'vue' ? `dashboard/${ongletDash}` : 'dashboard') : page === 'parametres' ? `parametres/${arg || 'identite'}` : current
   // Pastilles du menu : ce qui attend une action dans chaque rubrique
   const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
   const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
@@ -538,14 +554,16 @@ function Crm() {
   else if (page === 'calendrier') content = <Calendrier />
   else if (page === 'factures' || page === 'devis') content = <Factures key={route} type={page === 'devis' ? 'devis' : 'facture'} filtre={q.get('filtre')} />
   else if (page === 'paiements') content = <Paiements />
-  else if (page === 'depenses') content = <Depenses />
+  else if (page === 'depenses') content = <Depenses key={route} nouveau={q.get('nouveau')} />
+  else if (page === 'charges') content = <ChargesVue />
+  else if (page === 'abonnements') content = <Abonnements key={route} nouveau={q.get('nouveau')} />
   else if (page === 'boutique') content = <Boutique key={route} onglet={q.get('onglet')} />
   else if (page === 'site') content = <SiteVue />
   else if (page === 'site-demandes') content = <SiteDemandes key={route} onglet={q.get('onglet')} />
   else if (page === 'site-pages') content = <SitePages />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'apps') content = <Applications apps={APPS} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
-  else content = <Dashboard key={route} onglet={q.get('onglet')} />
+  else content = <Dashboard onglet={ongletDash || 'vue'} />
   const pastille = (path) => {
     const [n, cls, t] = badges[path] || []
     return n ? (
@@ -574,10 +592,6 @@ function Crm() {
             <Icon n="plus" size={17} /> Nouvelle action <kbd>N</kbd>
           </button>
           <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
-            <button className={`nav-item ${page === 'apps' ? 'active' : ''}`} aria-current={page === 'apps' ? 'page' : undefined} onClick={() => go('/apps')}>
-              <span className="ico"><Icon n="grid" size={17} /></span>
-              Accueil
-            </button>
             {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
             {APPS.map((a) => {
               const actif = appli?.id === a.id
@@ -588,7 +602,7 @@ function Crm() {
                     {a.nom}
                   </button>
                 )
-              if (a.pages.length === 1)
+              if (a.entrees.length === 1)
                 return (
                   <button key={a.id} className={`nav-item ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => go(`/${a.route}`)}>
                     <span className="ico"><Icon n={a.ico} size={17} /></span>
@@ -602,20 +616,17 @@ function Crm() {
                   <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => basculerRubrique(a.id, ouvert)}>
                     <span className="ico"><Icon n={a.ico} size={17} /></span>
                     {a.nom}
-                    {!ouvert && pastille(a.pages.find((x) => badges[x]?.[0]))}
+                    {!ouvert && pastille(a.entrees.map((e) => e.badge).find((x) => badges[x]?.[0]))}
                     <span className="nav-chev" aria-hidden="true"><Icon n="chevron" size={12} /></span>
                   </button>
                   {ouvert && (
                     <div className="nav-enfants">
-                      {a.pages.map((x) => {
-                        const n = ITEM[x]
-                        return (
-                          <button key={x} className={`nav-item nav-enfant ${current === x ? 'active' : ''}`} aria-current={current === x ? 'page' : undefined} onClick={() => go(`/${x}`)}>
-                            {n.label}
-                            {pastille(x)}
-                          </button>
-                        )
-                      })}
+                      {a.entrees.map((e) => (
+                        <button key={e.route} className={`nav-item nav-enfant ${cle === e.route ? 'active' : ''}`} aria-current={cle === e.route ? 'page' : undefined} onClick={() => go(`/${e.route}`)}>
+                          {e.label}
+                          {pastille(e.badge)}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -629,7 +640,7 @@ function Crm() {
             <Logo size={32} />
             <div style={{ minWidth: 0 }}>
               {avecNom && <div className="brand-name">{brand.nom}</div>}
-              <div className="brand-sub">{appli && appli.pages.length > 1 ? `${appli.nom} · ${PAGES[current]}` : appli ? appli.nom : PAGES[current] || brand.sousTitre}</div>
+              <div className="brand-sub">{appli && appli.entrees.length > 1 ? `${appli.nom} · ${appli.entrees.find((e) => e.route === cle)?.label || PAGES[current]}` : appli ? appli.nom : PAGES[current] || brand.sousTitre}</div>
             </div>
             <button className="icon-btn mobile-settings" aria-label="Rechercher" onClick={() => setRecherche(true)}>
               <Icon n="search" size={18} />
@@ -648,12 +659,12 @@ function Crm() {
           {isLocal && (route === '' || route.startsWith('dashboard')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
-          {appli && appli.items.length > 1 && (
+          {appli && appli.entrees.length > 1 && (
             <nav className="app-onglets" aria-label={`Menu ${appli.nom}`}>
-              {appli.items.map((n) => (
-                <button key={n.path} className={current === n.path ? 'on' : ''} onClick={() => go(`/${n.path}`)}>
-                  {n.label}
-                  {pastille(n.path)}
+              {appli.entrees.map((e) => (
+                <button key={e.route} className={cle === e.route ? 'on' : ''} onClick={() => go(`/${e.route}`)}>
+                  {e.label}
+                  {pastille(e.badge)}
                 </button>
               ))}
             </nav>
