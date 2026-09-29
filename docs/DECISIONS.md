@@ -6,3 +6,6 @@
 2026-09-28 · Remplacement de la lib xlsx par `tableur.js` · Raison : failles non corrigées · Impact : ne pas réintroduire xlsx.
 2026-09-29 · Aucun chiffre inventé dans le tableau de bord · Raison : décisions sur données réelles · Impact : afficher « pas de données » plutôt qu'une valeur.
 2026-09-29 · Protocole d'économie de contexte · Raison : demande de Juste · Impact : lire ces 3 fichiers en début de session, contexte minimal, mise à jour ciblée.
+2026-09-29 · Architecture core + modules, migration progressive (docs/ARCHITECTURE.md) · Raison : ajouter des modules sans réécrire · Impact : un module n'importe que core/ et lib/ pur ; désactiver ne supprime aucune donnée.
+2026-09-29 · Espaces de travail + rôles, plus d'identifiant en dur · Raison : multi-utilisateur futur, module Vie perso · Impact : nouvelles tables liées à un espace ; bascule user_id → workspace_id table par table.
+2026-09-29 · Journal d'audit séparé du journal métier · Raison : sécurité · Impact : ne jamais écrire d'événement métier dans audit_log ni l'inverse.

@@ -1,7 +1,7 @@
 -- Journal d'audit (sécurité), séparé du journal métier `actions` : qui a fait quoi, sur quoi, quand, depuis quel appareil.
 -- Seules les opérations réussies y figurent (une opération refusée est annulée avec sa ligne de journal).
 -- Lecture seule pour le propriétaire des données ; personne ne peut le modifier depuis l'application.
--- Préparé le 2026-09-29, à appliquer après espaces.sql.
+-- Appliqué le 2026-09-29 (migration journal_audit), après espaces.sql.
 
 create table if not exists public.audit_log (
   id bigint generated always as identity primary key,

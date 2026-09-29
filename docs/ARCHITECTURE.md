@@ -22,9 +22,9 @@ Supabase
 Hypothèses « un seul » trouvées :
 | Hypothèse | Où | Statut |
 |---|---|---|
-| Un seul propriétaire (uid en dur) | `site_visite`, `site_contact`, `store_passer_commande`, politique `catalogue public` | à remplacer par l'espace « site public » (étape 1b) |
-| Deux e-mails autorisés en dur | trigger `crm_single_owner` | à remplacer par la table `private.inscriptions_autorisees` (étape 1b) |
-| Un seul compte = un seul espace | toutes les tables (`user_id`) | modèle workspace ajouté, données encore rattachées à `user_id` |
+| Un seul propriétaire (uid en dur) | `site_visite`, `site_contact`, `store_passer_commande`, politique `catalogue public` | remplacé par l'espace « site public » (`private.site_proprietaire()`) |
+| Deux e-mails autorisés en dur | trigger `crm_single_owner` | remplacé par la table `private.inscriptions_autorisees` |
+| Un seul compte = un seul espace | toutes les tables (`user_id`) | `workspaces` + `workspace_members` créés (2 espaces), données encore rattachées à `user_id` |
 | Un seul contexte global | `AppCtx` porte tout | à découper (étape 3) |
 | Chargement total | `fetchAll` au démarrage | à découper (étape 4) |
 | Un seul pipeline | `settings.etapes` | acceptable pour l'instant |
@@ -155,7 +155,7 @@ Aujourd'hui tout est chargé (`fetchAll`, pages de 1000). Cible : noyau minimal 
 |---|---|---|
 | 0 | Audit, cartographie, ce document | fait |
 | 1a | Registre des modules (activation, dépendances, permissions), événements dérivés + bus, section Paramètres › Modules | fait (2026-09-29) |
-| 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | scripts prêts, non appliqués (accord de Juste requis) |
+| 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | fait (2026-09-29), vérifié : 0 identifiant en dur, catalogue et visites OK en anonyme, audit testé |
 | 2 | Code rangé par module (`src/modules/<id>`) avec réexports, sans casser les imports ; règle d'import vérifiée par un test | à faire |
 | 3 | Contexte découpé : core (session, espace, réglages) + données par module | à faire |
 | 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | à faire |

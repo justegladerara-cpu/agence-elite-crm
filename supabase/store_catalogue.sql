@@ -2,7 +2,7 @@
 -- Prix : prix publics des éditeurs convertis en FCFA (1 € = 655,957 FCFA), arrondis, marqués « à confirmer »
 -- tant qu'Agence Elite ne les a pas validés dans le CRM. Relançable : met à jour les produits existants par slug.
 insert into public.store_produits (user_id, slug, categorie, nom, editeur, resume, duree, appareils, inclus, prix, periode, livraison, a_confirmer, vedette, ordre)
-select '759b0b53-9fa9-4394-a2cd-beccce1a05d0', slug, categorie, nom, editeur, resume, duree, appareils, inclus::jsonb, prix, periode, livraison, a_confirmer, vedette, ordre
+select (select owner_id from public.workspaces where site_public), slug, categorie, nom, editeur, resume, duree, appareils, inclus::jsonb, prix, periode, livraison, a_confirmer, vedette, ordre
 from (values
   -- Bureautique
   ('microsoft-365-business-standard', 'Bureautique', 'Microsoft 365 Business Standard', 'Microsoft', 'Word, Excel, PowerPoint, Outlook, Teams et 1 To de stockage OneDrive, avec e-mail professionnel.', '1 an', '5 PC ou Mac + 5 tablettes + 5 téléphones', '["Applications Office installables","E-mail professionnel sur votre domaine","Teams et 1 To OneDrive","Installation et configuration par Agence Elite"]', 77000, 'par an', 'compte', false, true, 1),

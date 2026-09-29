@@ -66,7 +66,7 @@ alter table public.store_cles enable row level security;
 drop policy if exists "catalogue public" on public.store_produits;
 -- Seul le catalogue du propriétaire est public (un autre compte du CRM ne publie rien sur le site)
 create policy "catalogue public" on public.store_produits for select to anon, authenticated
-  using ((actif and user_id = '759b0b53-9fa9-4394-a2cd-beccce1a05d0'::uuid) or user_id = (select auth.uid()));
+  using ((actif and user_id = (select private.site_proprietaire())) or user_id = (select auth.uid()));
 drop policy if exists "produits proprietaire" on public.store_produits;
 create policy "produits proprietaire" on public.store_produits for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
@@ -86,7 +86,7 @@ security definer
 set search_path = public
 as $$
 declare
-  proprio uuid := '759b0b53-9fa9-4394-a2cd-beccce1a05d0';
+  proprio uuid := private.site_proprietaire();
   l jsonb;
   pr record;
   q int;

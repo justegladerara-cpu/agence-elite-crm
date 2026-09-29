@@ -45,4 +45,6 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - CI : lint, tests, build, bundle < 700 Ko, e2e, npm audit.
 
 ## Comptes
-- Propriétaire unique (uid 759b0b53-…) + démo demo@agence-elite.fr (reset `supabase/demo.sql`).
+- Espaces : `workspaces` (Agence Elite = `site_public`, Démo) + `workspace_members` (rôle). Site/boutique lisent `private.site_proprietaire()`. Inscriptions : `private.inscriptions_autorisees`.
+- Journal d'audit : `audit_log` (triggers `journal_audit`, lecture propriétaire seul), distinct du journal métier `actions`.
+- Démo demo@agence-elite.fr (reset `supabase/demo.sql`).

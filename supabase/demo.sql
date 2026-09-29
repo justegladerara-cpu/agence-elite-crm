@@ -22,7 +22,7 @@ begin
   delete from public.actions where user_id = u;
   delete from public.prospects where user_id = u;
   delete from public.settings where user_id = u;
-  insert into public.settings (user_id, data) select u, data from public.settings where user_id = '759b0b53-9fa9-4394-a2cd-beccce1a05d0';
+  insert into public.settings (user_id, data) select u, data from public.settings where user_id = (select owner_id from public.workspaces where site_public);
 
   for i in 1..n loop
     ago := greatest(0, 182 - (i * 182 / n) + floor(random() * 5)::int - 2);

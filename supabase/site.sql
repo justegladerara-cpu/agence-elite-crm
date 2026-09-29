@@ -50,7 +50,7 @@ security definer
 set search_path = public
 as $$
 declare
-  proprio uuid := '759b0b53-9fa9-4394-a2cd-beccce1a05d0';
+  proprio uuid := private.site_proprietaire();
   v_jour date := (now() at time zone 'Africa/Brazzaville')::date;
 begin
   if (select count(*) from site_visites where user_id = proprio and jour = v_jour) >= 30000 then return; end if;
@@ -70,7 +70,7 @@ security definer
 set search_path = public
 as $$
 declare
-  proprio uuid := '759b0b53-9fa9-4394-a2cd-beccce1a05d0';
+  proprio uuid := private.site_proprietaire();
   v_nom text := left(trim(coalesce(p->>'nom', '')), 120);
   v_tel text := left(trim(coalesce(p->>'tel', '')), 40);
   v_email text := nullif(left(trim(coalesce(p->>'email', '')), 160), '');

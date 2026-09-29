@@ -1,3 +1,4 @@
+-- Remplacé le 2026-09-29 par supabase/espaces.sql (liste private.inscriptions_autorisees au lieu d'e-mails en dur).
 -- Appliqué le 2026-09-27, élargi le 2026-09-28 : seuls justegladerara@gmail.com et le compte de démonstration
 -- demo@agence-elite.fr peuvent exister, chacun une seule fois, confirmés à la création (pas d'e-mail de validation).
 create or replace function public.crm_single_owner()

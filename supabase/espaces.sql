@@ -1,4 +1,4 @@
--- Préparé le 2026-09-29, NON APPLIQUÉ (attend l'accord de Juste) : espaces de travail, adhésions et rôles ;
+-- Appliqué le 2026-09-29 (migration espaces_de_travail) : espaces de travail, adhésions et rôles ;
 -- fin de l'identifiant propriétaire et des e-mails écrits en dur.
 -- Les données métier restent rattachées à user_id ; la bascule vers workspace_id se fera table par table.
 
