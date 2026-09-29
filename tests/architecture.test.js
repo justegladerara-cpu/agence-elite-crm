@@ -1,4 +1,4 @@
-// Frontières des modules : pas de cycle, le noyau et le domaine n'importent jamais l'interface,
+// Frontières des modules : pas de cycle, la logique du noyau et des domaines (.js) n'importe jamais l'interface,
 // et aucune nouvelle dépendance directe entre pages de modules différents (voir docs/MIGRATION.md).
 import { describe, it, expect } from 'vitest'
 import fs from 'node:fs'
@@ -41,8 +41,6 @@ const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.ma
 
 // Dépendances directes entre modules encore à découpler (la liste ne doit que diminuer)
 const DETTE = [
-  'pages/Factures.jsx -> pages/Saisie.jsx', // ProspectPicker : choix d'une fiche
-  'pages/Finances.jsx -> pages/Saisie.jsx', // ProspectPicker
   'pages/Fiche.jsx -> pages/Tresorerie.jsx', // SaisieArgent : paiement / dépense depuis la fiche
   'pages/Hub.jsx -> pages/Finances.jsx', // PaiementForm (chargé à la demande)
   'pages/Journee.jsx -> pages/Impayes.jsx', // RelanceFactureBtn
@@ -70,7 +68,7 @@ describe('architecture', () => {
 
   it('noyau, bibliothèques et domaines des modules ne dépendent pas de l’interface', () => {
     const interdits = Object.entries(graphe)
-      .filter(([f]) => /^(core|lib)\//.test(f) || (/^modules\//.test(f) && !f.endsWith('.jsx')))
+      .filter(([f]) => /^(core|lib|modules)\//.test(f) && f.endsWith('.js'))
       .flatMap(([f, deps]) => deps.filter((d) => /^pages\/|^ui\.jsx$|^App\.jsx$|^charts\.jsx$|\.jsx$/.test(d)).map((d) => `${f} -> ${d}`))
     expect(interdits).toEqual([])
   })

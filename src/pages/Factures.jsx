@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
-import { ProspectPicker } from './Saisie'
+import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'

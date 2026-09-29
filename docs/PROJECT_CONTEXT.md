@@ -11,7 +11,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 ## Structure
 - `src/App.jsx` → NAV, APPS (7 applis : entrees), routes, contexte `AppCtx` (`useApp()`), realtime, raccourcis.
 - `src/ui.jsx` composants communs · `src/charts.jsx` graphiques SVG · `src/icons.jsx` · `src/index.css` (unique feuille, jetons CSS, Inter).
-- `src/core/` noyau : `modules.js` (registre, activation `settings.modules`, dépendances), `permissions.js` (rôles → `module.view/edit`), `events.js` (événements dérivés d'actions/documents + bus `emettre/ecouter`). Voir `docs/ARCHITECTURE.md`.
+- `src/core/` noyau : `modules.js` (registre, activation `settings.modules`, dépendances), `permissions.js` (rôles → `module.view/edit`), `events.js` (événements dérivés d'actions/documents + bus `emettre/ecouter`), `relations.js` (recherche de fiche) ; `core/ui/` composants communs (`ProspectPicker`). Voir `docs/ARCHITECTURE.md`.
 - `src/modules/<id>/` domaine d'un module + contrat `index.js` (seul point d'entrée pour les autres). Existe : `facturation`. Journal : `docs/MIGRATION.md`.
 - `src/lib/` logique pure : `store.js` (accès données, file hors ligne), `logic.js` (`computeAll`, `computeStats`), `cockpit.js`, `drill.js`, `tresorerie.js`, `invoice.js`, `invoicePdf.js`, `excel.js`/`tableur.js`/`zoho.js`, `rappels.js`, `journee.js`, `insta.js`, `hub.js`, `theme.js`, `defaults.js`.
 - `src/pages/` un fichier par écran (Cockpit, Dashboard, Hub, Factures, Finances, Charges, Parametres, Boutique, SiteWeb…).

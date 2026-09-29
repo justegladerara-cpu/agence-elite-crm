@@ -25,8 +25,16 @@ Premier dossier de module : `src/modules/facturation/` (domaine pur + contrat `i
 Résultat : dépendances croisées 11 → 6 (liste `DETTE`), App.jsx ne dépend plus d'une page métier pour ses pastilles.
 Tests : 48 unitaires (dont 5 d'architecture), 22 parcours navigateur (dont toutes les routes), build OK, 0 cycle.
 
+## Lot 2 (2026-09-29) : choix d'une fiche = relation du noyau
+| Déplacé | De → vers | Pourquoi |
+|---|---|---|
+| `ProspectPicker` | `pages/Saisie.jsx` → `core/ui/ProspectPicker.jsx` | relier un devis, une facture, un paiement ou une dépense à une fiche est une capacité commune, pas propre au Commercial |
+| recherche de fiche | code du composant → `core/relations.js` (`chercherFiches`, `nomExiste`, purs, testés) | même règle partout, testable sans React |
+
+Règle d'architecture précisée : la logique `.js` de `core/`, `lib/`, `modules/` n'importe jamais l'interface ; les composants communs vivent dans `core/ui/`.
+Résultat : dépendances croisées 6 → 4. Tests : 50 unitaires, 22 parcours navigateur, build OK, 0 cycle.
+
 ## Prochains lots (du moins risqué au plus risqué)
-1. `ProspectPicker` → composant de relation du noyau (choisir une fiche liée).
 2. Formulaires d'argent (`SaisieArgent`, `PaiementForm`, `DepenseForm`) → services d'application facturation/charges ouverts par le noyau (`openAction`), plus d'import direct.
 3. `RelanceFactureBtn` → action exposée par le contrat facturation.
 4. Domaine par module : `lib/invoice.js` → `modules/facturation`, `lib/insta.js`/`journee.js`/`hub.js`/`appel.js` → `modules/commercial`, `lib/tresorerie.js` → `modules/charges`, `lib/cockpit.js`/`drill.js` → `modules/dashboard` (réexports temporaires pour ne rien casser).

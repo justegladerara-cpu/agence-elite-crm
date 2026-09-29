@@ -95,3 +95,24 @@ describe('événements métier', () => {
     expect(recus).toEqual(['payment.received'])
   })
 })
+
+import { chercherFiches, nomExiste } from '../src/core/relations'
+
+describe('relations : recherche de fiche', () => {
+  const liste = [
+    { id: 1, name: 'Boulangerie Mavoungou', fiche: { contact: 'Aline', telephone: '06 612 34 56' }, derniereAction: '2026-09-01' },
+    { id: 2, name: 'Garage Nkaya', fiche: { contact: 'Paul' }, derniereAction: '2026-09-20' },
+    { id: 3, name: 'Hôtel Olympic', fiche: {}, derniereAction: '' },
+  ]
+  it('cherche par nom, contact ou téléphone (espaces ignorés), les plus récents d’abord', () => {
+    expect(chercherFiches(liste, 'garage').map((p) => p.id)).toEqual([2])
+    expect(chercherFiches(liste, 'aline').map((p) => p.id)).toEqual([1])
+    expect(chercherFiches(liste, '0661234').map((p) => p.id)).toEqual([1])
+    expect(chercherFiches(liste, '').map((p) => p.id)).toEqual([2, 1, 3])
+    expect(chercherFiches(liste, '', 2)).toHaveLength(2)
+  })
+  it('reconnaît un nom déjà pris', () => {
+    expect(nomExiste(liste, ' garage nkaya ')).toBe(true)
+    expect(nomExiste(liste, 'Garage')).toBe(false)
+  })
+})
