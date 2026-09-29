@@ -2,7 +2,7 @@
 // dépenses par catégorie et meilleurs clients. Tout est cliquable et relié aux fiches.
 import { useMemo, useState } from 'react'
 import { eur, pct, go } from '../ui'
-import { useApp, useDonnees } from '../core/contexte'
+import { useDonnees, useNoyau } from '../core/contexte'
 import { Icon } from '../icons'
 import { HBars, COULEURS, useWidth } from '../charts'
 import { isProspection, isReponse, VENTES, montantRetenu } from '../lib/logic'
@@ -12,7 +12,8 @@ const COUL_ETAPE = { Nouveau: '#8a93a6', Contacté: '#2a78d6', Qualifié: '#6c46
 
 // Pipeline : combien de prospects à chaque étape et ce qu'ils pèsent
 export function PipelineEtapes({ canal = 'Tous' }) {
-  const { data, settings } = useApp()
+  const { data } = useDonnees()
+  const { settings } = useNoyau()
   const etapes = settings.etapes.map((e) => e.nom).filter((e) => e !== 'Perdu' && e !== 'Gagné')
   const lignes = etapes.map((e) => {
     const ps = data.list.filter((p) => p.etape === e && (canal === 'Tous' || p.canal === canal))
@@ -67,7 +68,8 @@ export function PipelineEtapes({ canal = 'Tous' }) {
 
 // CA signé et encaissé cumulés jour après jour, face à l'objectif du mois
 export function CumulMois({ canal = 'Tous' }) {
-  const { data, settings } = useApp()
+  const { data } = useDonnees()
+  const { settings } = useNoyau()
   const [ref, W] = useWidth(640)
   const [hover, setHover] = useState(null)
   const t = today()

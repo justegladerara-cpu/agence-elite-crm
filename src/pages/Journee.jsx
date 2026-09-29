@@ -5,7 +5,7 @@ import BilanSemaine from './Bilan'
 import { RelanceFactureBtn } from '../modules/facturation/ui'
 import { facturesImpayees } from '../modules/facturation'
 import { StageBadge, Empty, go, eur, Tabs, useTab, LienProspect, Bar } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Score, RelanceTag, ContactButtons } from '../modules/commercial/ui'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
@@ -17,7 +17,8 @@ import { mouvements, resumeArgent } from '../lib/tresorerie'
 
 // L'argent du jour en une ligne : ce qui est rentré, ce qui est sorti, ce qui reste ; mène au détail
 function ArgentDuJour() {
-  const { actions, openAction } = useApp()
+  const { actions } = useDonnees()
+  const { openAction } = useNoyau()
   const t = today()
   const r = resumeArgent(mouvements(actions, t, t))
   return (
@@ -75,7 +76,8 @@ function ProspectRow({ p, children, overdue, relance }) {
 }
 
 export default function Journee({ onglet: ongletDemande }) {
-  const { data, settings, prospects, api, toast, documents, actions } = useApp()
+  const { data, prospects, documents, actions } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
   const t = today()
   const { jour, update } = useJournee(t)

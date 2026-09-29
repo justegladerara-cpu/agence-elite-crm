@@ -1,7 +1,7 @@
 // Bilan du lundi : la semaine passée en chiffres (comparée à celle d'avant) et 3 conseils tirés des chiffres
 import { useMemo } from 'react'
 import { eur, nb, pct } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { computeStats, periodeFor } from '../modules/dashboard'
 import { fmtDate, today } from '../lib/dates'
@@ -38,7 +38,8 @@ export function conseilsSemaine(st, { settings, data, impayees }) {
 }
 
 export default function BilanSemaine() {
-  const { data, settings, documents, actions } = useApp()
+  const { data, documents, actions } = useDonnees()
+  const { settings } = useNoyau()
   const periode = periodeFor('Semaine dernière')
   const st = useMemo(() => computeStats(data, settings, periode, 'Tous'), [data, settings]) // eslint-disable-line react-hooks/exhaustive-deps
   const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])

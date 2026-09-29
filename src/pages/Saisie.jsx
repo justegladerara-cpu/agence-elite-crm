@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { Field, Select, eur, Empty, Modal, LienDoc, confirmer } from '../ui'
-import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
 import { montantRetenu } from '../lib/logic'
@@ -61,7 +61,8 @@ const blank = (prefill) => ({
 })
 
 export function ActionForm({ prefill = {}, onDone }) {
-  const { settings, data, api, toast, openAction } = useApp()
+  const { data } = useDonnees()
+  const { settings, api, toast, openAction } = useNoyau()
   const editing = prefill.edit
   const init = editing
     ? Object.fromEntries(Object.entries(blank(editing)).map(([k, v]) => [k, v === null || v === undefined ? '' : v]))
@@ -472,7 +473,8 @@ function clean(o) {
 }
 
 export function ActionLine({ a, showProspect = true, onEdit }) {
-  const { data, api } = useApp()
+  const { data } = useDonnees()
+  const { api } = useNoyau()
   const p = a.prospect_id ? data.byId[a.prospect_id] : null
   const amount = a.montant !== null && a.montant !== undefined ? Number(a.montant) : a.action === 'Proposition envoyée' || a.action === 'Signature' ? montantRetenu(a, p, data.L) : null
   return (

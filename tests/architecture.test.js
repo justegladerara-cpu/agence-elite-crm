@@ -98,9 +98,9 @@ describe('architecture', () => {
     )
     expect(internes).toEqual([])
   })
-  // Étape 3 : useApp (noyau + données fusionnés) ne gagne plus de nouveaux utilisateurs ; on migre vers useNoyau / useDonnees
+  // Étape 3 : useApp (noyau + données fusionnés) réservé à la sauvegarde complète (Securite) ; le reste passe par useNoyau / useDonnees
   it('pas de nouvel utilisateur du contexte fusionné useApp', () => {
     const users = fichiers.filter((f) => fs.readFileSync(f, 'utf8').includes('useApp()')).length
-    expect(users).toBeLessThanOrEqual(23)
+    expect(users).toBeLessThanOrEqual(1)
   })
 })

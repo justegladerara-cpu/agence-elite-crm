@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { go, eur, StageBadge } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../modules/facturation'
 import { fmtDate } from '../lib/dates'
@@ -16,7 +16,8 @@ const norm = (v) =>
     .replace(/[̀-ͯ]/g, '')
 
 export default function Recherche({ onClose, pages = [] }) {
-  const { data, documents, actions, openAction } = useApp()
+  const { data, documents, actions } = useDonnees()
+  const { openAction } = useNoyau()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const input = useRef(null)

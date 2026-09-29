@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { StageBadge, Empty, go, Select, Field } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Score, ContactButtons } from '../modules/commercial/ui'
 import { today, nowTime, fmtDate } from '../lib/dates'
 
@@ -14,7 +14,8 @@ const fmt = (ms) => {
 }
 
 export default function Session() {
-  const { data, settings, api, toast } = useApp()
+  const { data } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const [queue, setQueue] = useState(null)
   const [idx, setIdx] = useState(0)
   const [start, setStart] = useState(null)

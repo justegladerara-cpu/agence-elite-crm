@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
-import { useApp, useDonnees } from '../core/contexte'
+import { useDonnees, useNoyau } from '../core/contexte'
 import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, modalPour } from '../lib/tresorerie'
 import { fmtDate } from '../lib/dates'
 
@@ -66,7 +66,8 @@ function Ligne({ m, onOpen }) {
 // Bloc « Argent de la période » : encaissé, dépensé, net, et chaque mouvement cliquable
 // depensesTotal : dépenses du tableau de bord (charges fixes comprises), pour afficher leur part
 export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compact }) {
-  const { actions, settings, saisirArgent } = useApp()
+  const { actions } = useDonnees()
+  const { settings, saisirArgent } = useNoyau()
   const postesFixes = (settings.depensesFixes || []).filter((d) => mensuel(d) > 0)
   const fixesMois = chargesFixesMois(postesFixes)
   const [tout, setTout] = useState(false)

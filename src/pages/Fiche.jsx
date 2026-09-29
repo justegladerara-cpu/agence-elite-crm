@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { modalPour } from '../lib/tresorerie'
 import { Icon } from '../icons'
 import { lbl, StageBadge, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
-import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Score, ContactButtons } from '../modules/commercial/ui'
 import { ActionForm, ActionLine } from './Saisie'
 import FicheForm, { GROUPES_FICHE, TOUS_CHAMPS } from './FicheForm'
@@ -14,7 +14,8 @@ import { categorie } from '../modules/commercial'
 import { statutDe, totals, STATUT_TONE } from '../modules/facturation'
 
 export default function Fiche({ id }) {
-  const { data, api, openAction, toast, documents, saisirArgent } = useApp()
+  const { data, documents } = useDonnees()
+  const { api, openAction, toast, saisirArgent } = useNoyau()
   const p = data.byId[id]
   const [editing, setEditing] = useState(false)
   const [fiche, setFiche] = useState(null)

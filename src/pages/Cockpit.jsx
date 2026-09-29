@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { eur, pct, nb, court, go, sym } from '../ui'
-import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Gauge, useWidth } from '../charts'
 import { computeStats } from '../modules/dashboard/stats'
 import { detail } from '../modules/dashboard/drill'
@@ -562,7 +562,8 @@ function Activite({ actions, live, jour, ouvrirAction }) {
 
 // ---------- Le cockpit ----------
 export default function Cockpit({ periode, titre, canal, setCanal, voir, voirListe }) {
-  const { data, settings, actions, documents, live, saisirArgent } = useApp()
+  const { data, actions, documents } = useDonnees()
+  const { settings, live, saisirArgent } = useNoyau()
   const jour = today()
   const url0 = useMemo(() => paramsUrl(), [])
   const [sel, setSel] = useState(() => (url0.get('du') && url0.get('au') ? { du: url0.get('du'), au: url0.get('au') } : null))

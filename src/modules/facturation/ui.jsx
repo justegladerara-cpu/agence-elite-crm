@@ -2,13 +2,14 @@
 // (bouton de relance WhatsApp d'une facture impayée)
 import { Icon } from '../../icons'
 import { eur } from '../../ui'
-import { useApp } from '../../core/contexte'
+import { useNoyau, useDonnees } from '../../core/contexte'
 import { today, nowTime } from '../../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from './whatsapp'
 
 // Bouton « Relancer » d'une facture impayée (liste des factures, Ma journée)
 export function RelanceFactureBtn({ doc, label }) {
-  const { actions, data, settings, api, toast } = useApp()
+  const { actions, data } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const go_ = async (e) => {
     e.stopPropagation()
     const texte = remplirDoc(settings.messageImpaye, doc, { actions, byId: data.byId, eur })

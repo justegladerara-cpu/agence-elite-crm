@@ -1,7 +1,7 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
 import { useEffect, useRef, useState } from 'react'
 import { Modal, Field, go, Menu } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { RelanceTag } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { fmtDate, addDays, today } from '../lib/dates'
@@ -32,7 +32,8 @@ const ecrirePref = (k, v) => {
 }
 
 export function QuickInsta({ onClose, compte: compteInitial }) {
-  const { api, data, settings, toast } = useApp()
+  const { data } = useDonnees()
+  const { api, settings, toast } = useNoyau()
   const [compte, setCompte] = useState(compteInitial || '')
   const [nom, setNom] = useState('')
   const [secteur, setSecteur] = useState('')
@@ -165,7 +166,8 @@ const enCours = new Set()
 
 // Process Instagram : état des 7 étapes et actions (enregistrer, annuler, réaction à la Loom)
 function useProcess(p) {
-  const { api, settings, data, toast, openAction } = useApp()
+  const { data } = useDonnees()
+  const { api, settings, toast, openAction } = useNoyau()
   const [busy, setBusy] = useState(false)
   const etats = ETAPES.map((e) => ({ ...e, ok: e.fait(p, data.L) }))
   const courante = etats.findIndex((e) => !e.ok)

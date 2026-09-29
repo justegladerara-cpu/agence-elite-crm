@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { go, Modal, Menu, confirmer } from '../ui'
-import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import FicheForm from './FicheForm'
 import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
@@ -12,7 +12,8 @@ import { fichesHub, CATEGORIES } from '../modules/commercial/hub'
 import { ligne, ligneRelance } from '../modules/commercial/insta'
 
 export function NewProspect({ onClose }) {
-  const { api, data, toast } = useApp()
+  const { data } = useDonnees()
+  const { api, toast } = useNoyau()
   const [name, setName] = useState('')
   const [fiche, setFiche] = useState({})
   const [busy, setBusy] = useState(false)

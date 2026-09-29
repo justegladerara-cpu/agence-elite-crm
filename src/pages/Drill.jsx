@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { StageBadge, Empty, go, eur, nb } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Score } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
@@ -10,7 +10,8 @@ import { montantAction } from '../modules/dashboard/drill'
 import { modalPour } from '../lib/tresorerie'
 
 export default function Drill({ titre, sous, res, onClose }) {
-  const { data, documents, saisirArgent } = useApp()
+  const { data, documents } = useDonnees()
+  const { saisirArgent } = useNoyau()
   // Échap ferme le détail, sauf si une fenêtre (paiement, dépense) est ouverte par-dessus
   useEffect(() => {
     const k = (e) => e.key === 'Escape' && !document.querySelector('.modal-bg') && onClose()

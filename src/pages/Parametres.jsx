@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
@@ -297,7 +297,8 @@ function normalize(s) {
 
 // Import Zoho Invoice : factures ou devis exportés en CSV / Excel
 function ZohoCard() {
-  const { api, data, documents, settings, toast } = useApp()
+  const { data, documents } = useDonnees()
+  const { api, settings, toast } = useNoyau()
   const [imp, setImp] = useState(null)
   const [busy, setBusy] = useState(false)
   const [creer, setCreer] = useState(true)
@@ -501,7 +502,8 @@ function RappelsCard({ s, change, setS }) {
 }
 
 export default function Parametres({ section }) {
-  const { settings, prospects, actions, api, toast } = useApp()
+  const { prospects, actions } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)))
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState('')

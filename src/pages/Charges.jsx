@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 
 import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
 import { num } from '../modules/facturation'
@@ -13,7 +13,8 @@ const dansLeMois = (a, key) => (a.date || '').slice(0, 7) === key
 
 // ---------- Vue d'ensemble ----------
 export function ChargesVue() {
-  const { actions, settings } = useApp()
+  const { actions } = useDonnees()
+  const { settings } = useNoyau()
   const liste = settings.depensesFixes || []
   const jour = today()
   const cle = monthKey(jour)

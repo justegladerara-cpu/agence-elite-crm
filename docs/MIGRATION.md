@@ -85,7 +85,10 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - `src/core/contexte.js` : `NoyauCtx` (settings, api, toast, openAction, saisirArgent, live) et `DonneesCtx` (prospects, actions, documents, data). `useApp` = fusion, gardé pour compatibilité.
 - 46 composants passés à `useNoyau` / `useDonnees` ; 23 fichiers mixtes gardent `useApp` (plafond vérifié par `tests/architecture.test.js`). `ui.jsx` ne porte plus le contexte (lint 51 → 49).
 
+## Étape 3, lot 2 (2026-09-29) : plus de contexte fusionné dans les écrans
+- Les 22 fichiers mixtes lisent séparément `useDonnees()` et `useNoyau()`. `useApp` ne reste que dans Sécurité (sauvegarde complète) ; plafond abaissé à 1.
+
 ## Prochains lots
-1. Migrer les 23 utilisateurs de `useApp` (plafond à abaisser à chaque lot).
-2. Mémoïser le noyau pour que les écrans « noyau seul » ne se redessinent plus à chaque changement de données.
+1. Mémoïser le noyau (`api` lit l'état via une référence) pour que les écrans « noyau seul » ne se redessinent plus à chaque changement de données.
+2. Données par module (un fournisseur par module, chargé à la demande) : dépend de l'étape 5 (calculs côté serveur).
 3. Étape 4 (base, accord requis) : table `events`, `workspace_id` sur les tables métier.

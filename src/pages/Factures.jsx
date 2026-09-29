@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
-import { useApp, useDonnees } from '../core/contexte'
+import { useDonnees, useNoyau } from '../core/contexte'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../modules/facturation/invoice'
@@ -146,7 +146,8 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
 
 // ---------- Création / modification ----------
 export function DocEditor({ id, query }) {
-  const { documents, actions, data, settings, api, toast } = useApp()
+  const { documents, actions, data } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const fact = settings.facturation
   const existing = id && id !== 'new' ? documents.find((d) => d.id === id) : null
   const params = new URLSearchParams(query || '')

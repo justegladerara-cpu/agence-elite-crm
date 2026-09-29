@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
-import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { totals, paiementsDe, num } from '../modules/facturation/invoice'
@@ -144,7 +144,8 @@ function RecuField({ value, onChange }) {
 
 // ---------- Formulaire : paiement reçu ----------
 export function PaiementForm({ prefill = {}, edit, onDone }) {
-  const { documents, actions, settings, api, toast } = useApp()
+  const { documents, actions } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const [f, setF] = useState(() =>
     edit
       ? { ...edit, montant: edit.montant ?? '', mode: edit.mode || '', reference: edit.reference || '', facture: edit.facture || '', notes: edit.notes || '' }
@@ -282,7 +283,8 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
 
 // ---------- Formulaire : dépense ----------
 export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
-  const { settings, api, toast, actions } = useApp()
+  const { actions } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const cats = settings.categoriesDepenses || []
   const [f, setF] = useState(() =>
     edit
@@ -463,7 +465,8 @@ export function PaiementsTab() {
 
 // ---------- Onglet Dépenses ----------
 export function DepensesTab({ nouveau }) {
-  const { actions, data, settings } = useApp()
+  const { actions, data } = useDonnees()
+  const { settings } = useNoyau()
   const [periode, setPeriode] = useState('mois')
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(nouveau ? {} : null)

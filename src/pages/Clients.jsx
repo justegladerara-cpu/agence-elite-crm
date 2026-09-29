@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Modal, Field, Select, go } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { today, nowTime } from '../lib/dates'
 
 // Ajouter un client que tu avais déjà avant le CRM, sans refaire tout le process de prospection
 export function AncienClient({ onClose }) {
-  const { api, data, settings, toast } = useApp()
+  const { data } = useDonnees()
+  const { api, settings, toast } = useNoyau()
   const [f, setF] = useState({ name: '', contact: '', telephone: '', secteur: '', ville: '', date: today(), montant: '', paye: true, abonnement: '', notes: '' })
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value })

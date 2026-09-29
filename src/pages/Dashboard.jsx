@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Kpi, eur, pct, nb, court } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, COULEURS, useWidth } from '../charts'
 import Cockpit, { EtatDonnees, paramsUrl, ecrireUrl } from './Cockpit'
@@ -254,7 +254,8 @@ const NOMS = { vue: 'Tableau de bord', acquisition: 'Acquisition', conversion: '
 
 // onglet : section choisie dans le menu de gauche (Vue d'ensemble, Acquisition, Conversion, Finances)
 export default function Dashboard({ onglet = 'vue' }) {
-  const { data, settings, actions } = useApp()
+  const { data, actions } = useDonnees()
+  const { settings } = useNoyau()
   // Période et canal : repris de l'adresse (vue partagée) sinon du dernier choix
   const [mois, setMois] = useState(() => {
     const p = paramsUrl().get('p')

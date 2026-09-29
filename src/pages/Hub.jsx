@@ -1,7 +1,7 @@
 // Hub Clients : prospects, nouveaux clients, clients actifs, anciens clients et perdus sur une seule page
 import { useEffect, useMemo, useState } from 'react'
 import { StageBadge, go, eur, nb, Menu, useTab } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Score, RelanceTag, ContactButtons } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { NewProspect, ActionsGroupees, ACTION_ETAPE } from './Prospects'
@@ -80,7 +80,8 @@ export const ESPACES = {
 export const espaceDe = (cat) => (ESPACES.acquisition.cats.includes(cat) ? 'acquisition' : 'clients')
 
 export default function Hub({ espace: esp = 'clients', onglet: ongletDemande, etape: etapeDemandee, vue: vueDemandee, filtre: filtreDemande, nouveau, compte }) {
-  const { data, settings, openAction, toast, saisirArgent } = useApp()
+  const { data } = useDonnees()
+  const { settings, openAction, toast, saisirArgent } = useNoyau()
   const E = ESPACES[esp]
   const [ongletMemo, setOngletBrut] = useTab(E.memo, E.defaut, E.cats.includes(ongletDemande) ? ongletDemande : undefined)
   const onglet = E.cats.includes(ongletMemo) ? ongletMemo : E.defaut

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { StageBadge, sym } from '../ui'
-import { useApp } from '../core/contexte'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { today, nowTime, addDays, fmtDate, lundiProchain } from '../lib/dates'
 
 // Actions proposées selon l'étape de la fiche (les autres restent dans le formulaire complet)
@@ -34,7 +34,8 @@ const dateRelance = (v) => (v === '' ? '' : v === 'lundi' ? lundiProchain() : ad
 export const actionAppel = (p) => (p.tentatives > 0 || p.etape !== 'Nouveau' ? 'Relance' : 'Premier contact')
 
 export function QuickForm({ prospectId, canal: canalInit, action: actionInit, onDone, onComplet }) {
-  const { data, settings, api, toast } = useApp()
+  const { data } = useDonnees()
+  const { settings, api, toast } = useNoyau()
   const p = data.byId[prospectId]
   const sugg = (SUGGESTIONS[p?.etape] || SUGGESTIONS.Nouveau).filter((a) => data.L.act[a])
   const [canal, setCanal] = useState(canalInit || (p?.etape === 'Gagné' ? '' : p?.canal || 'Appel'))
@@ -162,7 +163,8 @@ const CHOIX_APPEL = [
 
 // Feuille après appel : 1 touche pour noter le résultat et programmer la suite
 export function AppelSheet({ prospectId, onDone, onDetails }) {
-  const { data, api, toast } = useApp()
+  const { data } = useDonnees()
+  const { api, toast } = useNoyau()
   const [busy, setBusy] = useState(false)
   const p = data.byId[prospectId]
   const choix = CHOIX_APPEL

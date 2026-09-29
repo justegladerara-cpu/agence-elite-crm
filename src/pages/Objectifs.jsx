@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { Bar, Modal, Field, go, nb } from '../ui'
-import { useApp, useDonnees } from '../core/contexte'
+import { useDonnees, useNoyau } from '../core/contexte'
 import { today, fmtDate } from '../lib/dates'
 import { QuickInsta } from './Insta'
 import { SOURCES, jourId, journeeVue, avancement, compterJour, historique, objectifsParDefaut } from '../modules/commercial/journee'
@@ -11,7 +11,8 @@ const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)
 
 // Journée du jour : modifications appliquées tout de suite, enregistrées une demi-seconde plus tard
 export function useJournee(date = today()) {
-  const { documents, settings, api } = useApp()
+  const { documents } = useDonnees()
+  const { settings, api } = useNoyau()
   const vue = journeeVue(documents, settings, date)
   const [local, setLocal] = useState(null)
   const [localDate, setLocalDate] = useState(date)
@@ -70,7 +71,8 @@ function ScoreRing({ score }) {
 
 // ---------- Bloc principal (dans le bandeau) ----------
 export function ObjectifsJour({ jour, update }) {
-  const { data, documents, settings } = useApp()
+  const { data, documents } = useDonnees()
+  const { settings } = useNoyau()
   const t = today()
   const [edit, setEdit] = useState(false)
   const [insta, setInsta] = useState(false)
@@ -284,7 +286,8 @@ export function TodoJour({ jour, update }) {
 
 // ---------- Historique 30 jours ----------
 export function HistoriqueJours() {
-  const { data, documents, settings } = useApp()
+  const { data, documents } = useDonnees()
+  const { settings } = useNoyau()
   const h = useMemo(() => historique(documents, settings, data, 30), [documents, settings, data])
   const ton = (j) => (j.off ? 'off' : j.score >= 100 ? 'win' : j.score >= 50 ? 'mid' : j.score > 0 ? 'low' : 'zero')
   return (
