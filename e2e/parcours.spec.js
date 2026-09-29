@@ -173,7 +173,7 @@ test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
     'acquisition', 'clients', 'session', 'scripts', 'saisie', 'apps',
     'devis', 'factures', 'facture/new?type=facture', 'paiements', 'charges', 'depenses', 'abonnements',
     'site', 'site-demandes', 'site-pages', 'boutique',
-    ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'securite', 'compte'].map((s) => `parametres/${s}`),
+    ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'membres', 'securite', 'compte'].map((s) => `parametres/${s}`),
   ]
   for (const r of routes) {
     await page.goto(`/#/${r}`)

@@ -11,6 +11,7 @@ import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desacti
 import { totals, nouveauDoc, chargerPdf, chargerZoho } from '../modules/facturation'
 import { mensuel, estActif } from '../lib/tresorerie'
 import Modules from './Modules'
+import Membres from './Membres'
 import { sectionAccessible } from '../core/modules'
 import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
@@ -32,6 +33,7 @@ const SECTIONS = [
   ['rappels', 'Rappels', 'Notifications sur ton téléphone à l’heure des relances.', 'bell'],
   ['excel', 'Import / Export', 'Excel, Zoho Invoice et données d’exemple.', 'folder'],
   ['modules', 'Modules', 'Activer ou désactiver les applications.', 'layers'],
+  ['membres', 'Membres', 'Qui a accès à ton espace de travail, avec quel rôle.', 'users'],
   ['securite', 'Sécurité', 'Sauvegarde, corbeille, double authentification.', 'check-circle'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
@@ -946,6 +948,7 @@ export default function Parametres({ section }) {
             </>
           )}
           {sec === 'modules' && <Modules />}
+          {sec === 'membres' && <Membres />}
           {sec === 'securite' && <Securite />}
           {sec === 'compte' && (
             <>

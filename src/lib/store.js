@@ -191,10 +191,41 @@ const check = ({ data, error }) => {
   if (error) throw new Error(error.message)
   return data
 }
+// Espace de travail actif : celui choisi par l'utilisateur s'il en est membre, sinon le sien.
+// Si les espaces ne peuvent pas être lus, aucun filtre (la sécurité de la base suffit, comme avant).
+const ESPACE = 'aecrm-espace'
+let espace
+export async function espaceActif() {
+  if (espace !== undefined) return espace
+  try {
+    const { data: s } = await supabase.auth.getSession()
+    const moi = s?.session?.user?.id
+    const { data, error } = moi ? await supabase.from('workspaces').select('id, owner_id').order('created_at') : { data: null }
+    if (error || !data?.length) return null
+    const choisi = localStorage.getItem(ESPACE)
+    espace = (data.find((w) => w.id === choisi) || data.find((w) => w.owner_id === moi) || data[0]).id
+    return espace
+  } catch {
+    return null
+  }
+}
+export const oublierEspace = () => (espace = undefined)
+// Changer d'espace : seulement quand tout est synchronisé (rien n'est perdu), puis la copie hors ligne repart de zéro
+export function choisirEspace(id) {
+  if (readJson(QUEUE, []).length) throw new Error('Des modifications attendent encore d’être envoyées : reconnecte-toi puis réessaie.')
+  localStorage.setItem(ESPACE, id)
+  localStorage.removeItem(CACHE)
+  location.reload()
+}
+// Ligne nouvelle : rattachée à l'espace actif (la base vérifie le droit d'y écrire)
+const dansEspace = (row) => (espace ? { ...row, workspace_id: espace } : row)
+const filtreEspace = (q) => (espace ? q.eq('workspace_id', espace) : q)
+
 async function fetchAll(table) {
+  await espaceActif()
   const out = []
   for (let from = 0; ; from += 1000) {
-    const rows = check(await supabase.from(table).select('*').range(from, from + 999))
+    const rows = check(await filtreEspace(supabase.from(table).select('*')).range(from, from + 999))
     out.push(...rows)
     if (rows.length < 1000) break
   }
@@ -207,12 +238,12 @@ const remote = {
       fetchAll('prospects'),
       fetchAll('actions'),
       fetchAll('documents'),
-      supabase.from('settings').select('*').maybeSingle().then(check),
+      filtreEspace(supabase.from('settings').select('*')).maybeSingle().then(check),
     ])
     return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
   },
   async addProspect(name, fiche) {
-    return check(await supabase.from('prospects').insert({ name, fiche: fiche || {} }).select().single())
+    return check(await supabase.from('prospects').insert(dansEspace({ name, fiche: fiche || {} })).select().single())
   },
   async updateProspect(id, patch) {
     return check(await supabase.from('prospects').update(patch).eq('id', id).select().single())
@@ -221,7 +252,7 @@ const remote = {
     check(await supabase.from('prospects').delete().eq('id', id))
   },
   async addActions(list) {
-    return check(await supabase.from('actions').insert(list.map(cleanAction)).select())
+    return check(await supabase.from('actions').insert(list.map((a) => dansEspace(cleanAction(a)))).select())
   },
   async updateAction(id, patch) {
     return check(await supabase.from('actions').update(cleanPatch(patch)).eq('id', id).select().single())
@@ -240,8 +271,9 @@ const remote = {
     for (let i = 0; i < rows.length; i += 500) check(await supabase.from('actions').insert(rows.slice(i, i + 500)))
   },
   async wipe() {
-    check(await supabase.from('actions').delete().not('id', 'is', null))
-    check(await supabase.from('prospects').delete().not('id', 'is', null))
+    await espaceActif()
+    check(await filtreEspace(supabase.from('actions').delete().not('id', 'is', null)))
+    check(await filtreEspace(supabase.from('prospects').delete().not('id', 'is', null)))
   },
 }
 
@@ -324,14 +356,14 @@ function applyLocal(c, op) {
 
 // Envoie une opération à Supabase (insertions idempotentes grâce aux identifiants générés ici)
 async function sendRemote(op) {
-  if (op.t === 'addProspect') check(await supabase.from('prospects').upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'addProspect') check(await supabase.from('prospects').upsert(dansEspace(op.row), { onConflict: 'id' }))
   if (op.t === 'updateProspect') check(await supabase.from('prospects').update(op.patch).eq('id', op.id))
   if (op.t === 'deleteProspect') check(await supabase.from('prospects').delete().eq('id', op.id))
-  if (op.t === 'addActions') check(await supabase.from('actions').upsert(op.rows, { onConflict: 'id' }))
+  if (op.t === 'addActions') check(await supabase.from('actions').upsert(op.rows.map(dansEspace), { onConflict: 'id' }))
   if (op.t === 'updateAction') check(await supabase.from('actions').update(op.patch).eq('id', op.id))
   if (op.t === 'deleteAction') check(await supabase.from('actions').delete().eq('id', op.id))
   if (op.t === 'saveSettings') await remote.saveSettings(op.settings)
-  if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(op.row, { onConflict: 'id' }))
+  if (op.t === 'saveDoc') check(await supabase.from('documents').upsert(dansEspace(op.row), { onConflict: 'id' }))
   if (op.t === 'deleteDoc') check(await supabase.from('documents').delete().eq('id', op.id))
   if (op.t === 'upload') {
     const m = readRecus()
@@ -414,7 +446,7 @@ const offline = {
             fetchAll('prospects'),
             fetchAll('actions'),
             fetchAll('documents'),
-            supabase.from('settings').select('*').maybeSingle().then(check),
+            filtreEspace(supabase.from('settings').select('*')).maybeSingle().then(check),
           ])
           // Une modification faite pendant le chargement : on garde la copie locale, plus récente
           if (gen === generation) {

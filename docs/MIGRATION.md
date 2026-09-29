@@ -94,7 +94,13 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Vérifié : 1439 + 184 événements = lignes source, sommes des paiements identiques (74 495 500), tests trigger en transaction annulée, visite anonyme du site OK, aucun nouvel avertissement de sécurité.
 - Retour arrière : supprimer les triggers `evenement` / `rattacher_espace`, la table `events` et les colonnes `workspace_id` (aucun code ne les lit encore).
 
+## Lot A (2026-09-29, accord « vas-y lot A base ») : accès des membres
+- Base (`supabase/acces_membres.sql`, ajout seulement) : règles par espace en plus des règles `user_id` ; prospects/actions/documents : lecture tout membre, écriture membre+, suppression admin+ (ou auteur) ; réglages/site/boutique : lecture membres. Barrière restrictive « espace obligatoire » : aucune ligne d'un espace dont on n'est pas membre (même écrite avant d'être retiré). `store_produits` exclu (catalogue public).
+- Adhésions via fonctions contrôlées : `inviter_membre`, `changer_role`, `retirer_membre`, `annuler_invitation`, `membres_espace` ; propriétaire inamovible, pas d'auto-promotion, admin nommé par le propriétaire seul. Invitation = e-mail autorisé + adhésion créée à l'inscription.
+- Application : lectures, écritures et remise à zéro filtrées sur l'espace actif (`espaceActif()` dans `store.js`, repli sans filtre si les espaces sont illisibles) ; Paramètres › Membres ; changement d'espace refusé tant que des modifications attendent l'envoi.
+- Tests en base (transaction annulée) : membre lit/écrit son espace, 0 accès à l'espace étranger, pas d'usurpation ni d'auto-promotion, lecteur n'écrit pas, membre retiré ne voit plus rien. Après application : Agence Elite 67/67 et Démo 3703/3703 lignes visibles = lignes en base, visite et catalogue anonymes OK. Avertissements attendus : 5 nouvelles fonctions appelables par un compte connecté (elles vérifient elles-mêmes le rôle).
+- Hors périmètre : reçus partagés (stockage par utilisateur), réglages modifiables par un admin.
+
 ## Prochains lots
-1. RLS double (`user_id` OU membre de l'espace) table par table, puis lecture par espace (accord requis).
-2. Lire `events` dans l'application (fil d'activité, relations) au lieu de le dériver.
-3. Étape 5 : statistiques côté serveur, chargement par module.
+1. Lot B (après validation du Lot A) : l'application lit `events` avec repli sur le calcul actuel.
+2. Étape 5 : statistiques côté serveur, chargement par module.

@@ -125,7 +125,7 @@ const PARAMETRES = {
   path: 'parametres',
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/modules', 'Modules'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/modules', 'Modules'], ['/membres', 'Membres'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
 }
 PAGES.saisie = 'Nouvelle action'
 PAGES.apps = 'Applications'
