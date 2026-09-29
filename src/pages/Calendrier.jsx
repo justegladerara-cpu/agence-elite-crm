@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { useApp, go, eur } from '../ui'
 import { Icon } from '../icons'
 import { today, addDays, weekday, fmtDate, parse } from '../lib/dates'
-import { facturesImpayees } from './Impayes'
+import { facturesImpayees } from '../modules/facturation'
 import { statutDe, totals, paiementsDe, num } from '../lib/invoice'
 
 const FAITS = ['RDV', 'Proposition envoyée', 'Signature', 'Intervention', 'Paiement reçu', 'Loom envoyé', 'Audit réalisé']

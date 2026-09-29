@@ -52,3 +52,5 @@ export const fmtMonth = (key) => {
 export const fmtMonthShort = (key) => MOIS[Number(key.slice(5, 7)) - 1]
 // Lundi = 1 … dimanche = 7
 export const weekday = (s) => ((parse(s).getDay() + 6) % 7) + 1
+// Lundi suivant (jamais le jour même)
+export const lundiProchain = (d = today()) => addDays(d, ((8 - weekday(d)) % 7) || 7)

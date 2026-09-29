@@ -1,7 +1,7 @@
 // Paiements reçus et dépenses (onglets du menu Factures)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
 import { ProspectPicker } from './Saisie'
 import { totals, paiementsDe, num } from '../lib/invoice'
@@ -382,26 +382,6 @@ export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
   )
 }
 
-// Répartition (par mode ou par catégorie)
-export function Repartition({ rows, empty }) {
-  const tot = rows.reduce((m, [, v]) => m + v, 0)
-  if (!rows.length) return <Empty>{empty}</Empty>
-  return (
-    <div className="stack" style={{ gap: 10 }}>
-      {rows.map(([k, v]) => (
-        <div key={k}>
-          <div className="row small repart-l">
-            <span title={k}>{k}</span>
-            <b>
-              {eur(v)} <span className="muted">· {Math.round((v / tot) * 100)} %</span>
-            </b>
-          </div>
-          <Bar value={v} max={tot} />
-        </div>
-      ))}
-    </div>
-  )
-}
 const grouper = (list, key, def) =>
   Object.entries(list.reduce((m, a) => ((m[a[key] || def] = (m[a[key] || def] || 0) + num(a.montant)), m), {})).sort((a, b) => b[1] - a[1])
 

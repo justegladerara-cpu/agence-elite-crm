@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useApp, Modal, Field, go, RelanceTag, Menu } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate, addDays, today } from '../lib/dates'
-import { lundiProchain } from './Rapide'
+import { lundiProchain } from '../lib/dates'
 import { instaLink, handleInsta, doublonInsta, actionRank, waLink } from '../lib/logic'
 import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../lib/insta'
 

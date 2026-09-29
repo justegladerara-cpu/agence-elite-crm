@@ -510,3 +510,24 @@ export function LienDoc({ numero, id, children }) {
     </a>
   )
 }
+
+// Répartition (par mode ou par catégorie)
+export function Repartition({ rows, empty }) {
+  const tot = rows.reduce((m, [, v]) => m + v, 0)
+  if (!rows.length) return <Empty>{empty}</Empty>
+  return (
+    <div className="stack" style={{ gap: 10 }}>
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <div className="row small repart-l">
+            <span title={k}>{k}</span>
+            <b>
+              {eur(v)} <span className="muted">· {Math.round((v / tot) * 100)} %</span>
+            </b>
+          </div>
+          <Bar value={v} max={tot} />
+        </div>
+      ))}
+    </div>
+  )
+}

@@ -163,3 +163,22 @@ test('modules : désactiver la facturation retire ses pages, la réactiver les r
   const axe = await new AxeBuilder({ page }).include('.main').analyze()
   expect(axe.violations.filter((v) => ['serious', 'critical'].includes(v.impact))).toEqual([])
 })
+
+test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
+  const erreurs = []
+  page.on('pageerror', (e) => erreurs.push(`${page.url()} : ${e.message}`))
+  await avecExemples(page)
+  const routes = [
+    'dashboard', 'dashboard/acquisition', 'dashboard/conversion', 'dashboard/finances', 'journee', 'calendrier',
+    'acquisition', 'clients', 'session', 'scripts', 'saisie', 'apps',
+    'devis', 'factures', 'facture/new?type=facture', 'paiements', 'charges', 'depenses', 'abonnements',
+    'site', 'site-demandes', 'site-pages', 'boutique',
+    ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'securite', 'compte'].map((s) => `parametres/${s}`),
+  ]
+  for (const r of routes) {
+    await page.goto(`/#/${r}`)
+    await expect(page.locator('.main .chargement'), r).toHaveCount(0)
+    await expect(page.locator('.main h1, .main h2, .main .empty').first(), r).toBeVisible()
+  }
+  expect(erreurs).toEqual([])
+})

@@ -1,8 +1,8 @@
 // Hub Charges : ce que coûte le fonctionnement de l'agence (abonnements, charges fixes, dépenses notées)
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Chips, eur, nb, pct, lbl, go, confirmer } from '../ui'
-import { Repartition } from './Finances'
+import { useApp, Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
+
 import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
 import { num } from '../lib/invoice'
 import { today, fmtDate, fmtMonth, monthKey, prevMonth, addDays, diffDays } from '../lib/dates'

@@ -12,11 +12,12 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - `src/App.jsx` → NAV, APPS (7 applis : entrees), routes, contexte `AppCtx` (`useApp()`), realtime, raccourcis.
 - `src/ui.jsx` composants communs · `src/charts.jsx` graphiques SVG · `src/icons.jsx` · `src/index.css` (unique feuille, jetons CSS, Inter).
 - `src/core/` noyau : `modules.js` (registre, activation `settings.modules`, dépendances), `permissions.js` (rôles → `module.view/edit`), `events.js` (événements dérivés d'actions/documents + bus `emettre/ecouter`). Voir `docs/ARCHITECTURE.md`.
+- `src/modules/<id>/` domaine d'un module + contrat `index.js` (seul point d'entrée pour les autres). Existe : `facturation`. Journal : `docs/MIGRATION.md`.
 - `src/lib/` logique pure : `store.js` (accès données, file hors ligne), `logic.js` (`computeAll`, `computeStats`), `cockpit.js`, `drill.js`, `tresorerie.js`, `invoice.js`, `invoicePdf.js`, `excel.js`/`tableur.js`/`zoho.js`, `rappels.js`, `journee.js`, `insta.js`, `hub.js`, `theme.js`, `defaults.js`.
 - `src/pages/` un fichier par écran (Cockpit, Dashboard, Hub, Factures, Finances, Charges, Parametres, Boutique, SiteWeb…).
 - `site/` site vitrine statique (`build.mjs` → `dist/site`, données `data.mjs`, `assets/store.js`).
 - `supabase/*.sql` copie lisible des migrations · `supabase/functions/rappels`.
-- `tests/lib.test.js`, `tests/core.test.js` (vitest) · `e2e/parcours.spec.js` (Playwright + axe) · `.github/workflows/ci.yml`.
+- `tests/lib.test.js`, `tests/core.test.js`, `tests/architecture.test.js` (frontières, cycles, liste DETTE) (vitest) · `e2e/parcours.spec.js` (Playwright + axe) · `.github/workflows/ci.yml`.
 
 ## Modules (applis du menu)
 - Tableau de bord → cockpit, acquisition, conversion, finances, drill-down

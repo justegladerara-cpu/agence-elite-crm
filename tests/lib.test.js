@@ -9,7 +9,8 @@ import { categorie } from '../src/lib/hub'
 import { addDays, weekday, diffDays } from '../src/lib/dates'
 import { lireCsv, serieVersDate, colLettres, colNum, decoder } from '../src/lib/tableur'
 import { avancement } from '../src/lib/journee'
-import { lundiProchain, actionAppel } from '../src/pages/Rapide'
+import { actionAppel } from '../src/pages/Rapide'
+import { lundiProchain } from '../src/lib/dates'
 import { messageErreur } from '../src/lib/erreurs'
 
 const AUJ = '2026-09-28' // un lundi

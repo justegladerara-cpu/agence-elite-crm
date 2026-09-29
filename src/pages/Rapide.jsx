@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { useApp, StageBadge, sym } from '../ui'
-import { today, nowTime, addDays, fmtDate, weekday } from '../lib/dates'
+import { today, nowTime, addDays, fmtDate, lundiProchain } from '../lib/dates'
 
 // Actions proposées selon l'étape de la fiche (les autres restent dans le formulaire complet)
 const SUGGESTIONS = {
@@ -20,7 +20,6 @@ const MONEY = ['Proposition envoyée', 'Signature', 'Paiement reçu', 'Vente add
 const RESULTATS = ['Pas de réponse', 'Rappeler', 'Intéressé', 'RDV pris', 'Pas intéressé']
 
 // Lundi prochain (ou dans 7 jours si on est lundi)
-export const lundiProchain = (d = today()) => addDays(d, ((8 - weekday(d)) % 7) || 7)
 const RELANCES = [
   ['Auto', ''],
   ['Demain', 1],

@@ -65,7 +65,7 @@ Contrat (déclaré dans `src/core/modules.js`) :
 | parametres | réglages, sécurité, modules | settings | parametres/* | — | — | core (non désactivable) |
 
 Règle d'import : un module n'importe que `core/*`, `lib/*` pur et ses propres fichiers. Les liens entre modules passent par les relations (prospect_id, facture = numéro) ou les événements.
-Couplages directs restants à supprimer : `App.jsx` → `Impayes` (badge factures), `Fiche.jsx` → facturation/charges (onglets de la fiche), `Dashboard` → toutes les pages.
+Couplages directs restants : liste `DETTE` de `tests/architecture.test.js`, suivi dans `docs/MIGRATION.md`.
 
 ## 4. Connexions (relations métier)
 
@@ -156,7 +156,7 @@ Aujourd'hui tout est chargé (`fetchAll`, pages de 1000). Cible : noyau minimal 
 | 0 | Audit, cartographie, ce document | fait |
 | 1a | Registre des modules (activation, dépendances, permissions), événements dérivés + bus, section Paramètres › Modules | fait (2026-09-29) |
 | 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | fait (2026-09-29), vérifié : 0 identifiant en dur, catalogue et visites OK en anonyme, audit testé |
-| 2 | Code rangé par module (`src/modules/<id>`) avec réexports, sans casser les imports ; règle d'import vérifiée par un test | à faire |
+| 2 | Découplage par lots (`src/modules/<id>` + contrat `index.js`), règle d'import vérifiée par `tests/architecture.test.js` | en cours (lot 1 fait) |
 | 3 | Contexte découpé : core (session, espace, réglages) + données par module | à faire |
 | 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | à faire |
 | 5 | Calculs lourds côté serveur, chargement à la demande | à faire |

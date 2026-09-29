@@ -17,7 +17,7 @@ const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Parametres = lazy(() => import('./pages/Parametres'))
 const Session = lazy(() => import('./pages/Session'))
-import { facturesImpayees } from './pages/Impayes'
+import { facturesImpayees } from './modules/facturation'
 const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
 const Paiements = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Paiements })))
