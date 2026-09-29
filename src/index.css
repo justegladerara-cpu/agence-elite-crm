@@ -1728,3 +1728,6 @@ button.at:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .seo-d { color: var(--muted); font-size: var(--fs-xs); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .banner.err { background: var(--red-soft); color: var(--red); border-color: rgba(192, 50, 46, 0.3); }
 @media (max-width: 640px) { .sb-zone { height: 120px; gap: 2px; } }
+.argent-fixes { display: flex; align-items: flex-start; gap: var(--sp-2); flex-wrap: wrap; padding: var(--sp-2) var(--sp-3); border-radius: 10px; background: var(--blue-soft); color: var(--text); }
+.argent-fixes span { flex: 1 1 240px; min-width: 0; }
+.argent-fixes svg { color: var(--blue); margin-top: 2px; }
