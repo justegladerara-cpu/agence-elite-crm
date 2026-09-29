@@ -197,7 +197,7 @@ export function Funnel({ steps, onPick }) {
 }
 
 // Jauge d'objectif : anneau rempli selon l'avancement, projection de fin de mois
-export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick }) {
+export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick, reste }) {
   const r = 34
   const c = 2 * Math.PI * r
   const p = cible ? Math.min(1, value / cible) : 0
@@ -220,6 +220,7 @@ export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick }) {
       <div className={`g-p ${done ? 'green' : ok ? '' : 'red'}`}>
         <Icon n={done || ok ? 'check' : 'x'} size={12} style={{ display: 'inline', verticalAlign: '-2px' }} /> {done ? 'Atteint' : `Projection : ${fmt(Math.round(proj))}`}
       </div>
+      {reste && !done && <div className="g-r">Reste {fmt(Math.max(0, cible - value))}</div>}
     </div>
   )
 }

@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useApp, Kpi, eur, pct, nb, court } from '../ui'
 import { Icon, withIcon } from '../icons'
-import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
+import { Donut, HBars, COULEURS, useWidth } from '../charts'
+import Cockpit, { EtatDonnees, paramsUrl, ecrireUrl } from './Cockpit'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { detail } from '../lib/drill'
 import Drill from './Drill'
 import { ArgentPeriode, RentabiliteClients } from './Tresorerie'
 import { PipelineEtapes, CumulMois, Heatmap, MeilleursClients, depensesParCategorie } from './DashPlus'
-import { go } from '../ui'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
 
 const C_SIGNE = '#3b5aa8'
@@ -246,86 +246,48 @@ function ActivityChart({ buckets, parSemaine, onPick }) {
   )
 }
 
-// Chiffre clé en grand, avec l'évolution par rapport à la période précédente
-function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
-  // Rien à comparer quand la période précédente est vide et l'actuelle aussi
-  const comp = prev !== null && prev !== undefined && !(prev === 0 && cur === 0)
-  const diff = comp ? cur - prev : 0
-  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'
-  const p = comp && prev ? Math.round((diff / prev) * 100) : null
-  const pill = !comp ? null : diff === 0 ? '= stable' : `${diff > 0 ? '↑' : '↓'} ${p === null ? `+${fmt(diff)}` : `${Math.abs(p)} %`}`
-  return (
-    <div className={`bigkpi ${onClick ? 'pick' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}>
-      <div className="bk-head">
-        <span className="bk-ic"><Icon n={ico} size={16} /></span>
-        {label}
-      </div>
-      <div className={`bk-value ${String(value).length > 13 ? 'long' : ''}`} title={String(value)}>
-        {value}
-      </div>
-      <div className="bk-comp">
-        {pill && <span className={`bk-delta ${cls}`}>{pill}</span>}
-        {comp && <span className="bk-prev">{vs.charAt(0).toUpperCase() + vs.slice(1)} : {fmt(prev)}</span>}
-      </div>
-      {sub && <div className="bk-sub">{sub}</div>}
-      {onClick && <span className="bk-more">Voir <Icon n="chevron" size={12} /></span>}
-    </div>
-  )
-}
-
-
 let dernierePeriode = '7 derniers jours'
+const PERIODES = ['7 derniers jours', '30 derniers jours', 'Cette semaine', 'Semaine dernière', 'Mois en cours', 'Tous']
 
 const NOMS = { vue: 'Tableau de bord', acquisition: 'Acquisition', conversion: 'Conversion', finances: 'Finances' }
 
 // onglet : section choisie dans le menu de gauche (Vue d'ensemble, Acquisition, Conversion, Finances)
 export default function Dashboard({ onglet = 'vue' }) {
   const { data, settings, actions } = useApp()
-  const [mois, setMois] = useState(dernierePeriode)
-  const [canal, setCanal] = useState('Tous')
+  // Période et canal : repris de l'adresse (vue partagée) sinon du dernier choix
+  const [mois, setMois] = useState(() => {
+    const p = paramsUrl().get('p')
+    return p && (PERIODES.includes(p) || /^\d{4}-\d{2}$/.test(p)) ? p : dernierePeriode
+  })
+  const [canal, setCanal] = useState(() => paramsUrl().get('canal') || 'Tous')
   const [drill, setDrill] = useState(null)
   const periode = periodeFor(mois)
   const st = useMemo(() => computeStats(data, settings, periode, canal), [data, settings, mois, canal]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     dernierePeriode = mois
-  }, [mois])
+    ecrireUrl({ p: mois === '7 derniers jours' ? null : mois, canal: canal === 'Tous' ? null : canal })
+  }, [mois, canal])
   const year = /^\d{4}-\d{2}$/.test(mois) ? Number(mois.slice(0, 4)) : Number(today().slice(0, 4))
   const series = useMemo(() => monthlySeries(data, settings, year, canal), [data, settings, year, canal])
   const months = useMemo(() => {
-    const set = new Set(actions.map((a) => (a.date || '').slice(0, 7)).filter(Boolean))
+    const set = new Set(actions.map((a) => (a.date || '').slice(0, 7)).filter((m) => /^\d{4}-\d{2}$/.test(m)))
     set.add(today().slice(0, 7))
     return [...set].sort().reverse()
   }, [actions])
 
-  // Objectifs du mois en cours
-  const cm = useMemo(() => computeStats(data, settings, periodeFor('Mois en cours'), 'Tous').cur, [data, settings])
   const t = parse(today())
-  const dayN = t.getDate()
-  const daysIn = new Date(t.getFullYear(), t.getMonth() + 1, 0).getDate()
   const om = settings.objectifsMois
-  const GAUGE_KIND = { Appels: 'appels', DM: 'dm', RDV: 'rdv', 'Clients signés': 'signes', 'CA signé': 'ventes' }
-  const goals = [
-    ['Appels', cm.appels, om.appels, nb],
-    ['DM', cm.dm, om.dm, nb],
-    ['RDV', cm.rdv, om.rdv, nb],
-    ['Clients signés', cm.signes, om.clients, nb],
-    ['CA signé', cm.caSigne, om.ca, eur],
-  ]
-
   const c = st.cur
-  const pv = st.prev
-  const d = (k) => (pv ? Math.round((c[k] - pv[k]) * 100) / 100 : null)
+  const d = (k) => (st.prev ? Math.round((c[k] - st.prev[k]) * 100) / 100 : null)
   const best = series.reduce((b, m) => (m.caSigne > (b?.caSigne ?? -1) ? m : b), null)
   const titre = mois === 'Tous' ? "Tout l'historique" : periode.semaine ? `${mois} (${fmtDate(periode.debut)} → ${fmtDate(periode.fin)})` : fmtMonth(periode.key)
   const vs = periode.prevLabel
   const act = activitySeries(data, periode, canal)
-  const pvv = (k) => (pv ? pv[k] : null)
-  const contacts = c.dm + c.appels
-  // Clic sur un chiffre : ouvre la liste de ce qui le compose
+  // Clic sur un chiffre : ouvre la liste de ce qui le compose (spec calculée, ou liste déjà prête)
   const voir = (titre, spec, opts = {}) => setDrill({ titre, spec, ...opts })
-  const moisCourant = periodeFor('Mois en cours')
+  const voirListe = useCallback((titre, res, sous) => setDrill({ titre, res, sous }), [])
   const drillRes = drill
-    ? detail(data, settings, periode, drill.canal ?? canal, drill.spec, drill.debut ?? periode.debut, drill.fin ?? periode.fin)
+    ? drill.res || detail(data, settings, periode, drill.canal ?? canal, drill.spec, drill.debut ?? periode.debut, drill.fin ?? periode.fin)
     : null
   const choisirMois = (key) => {
     setMois(key)
@@ -337,7 +299,6 @@ export default function Dashboard({ onglet = 'vue' }) {
       <Icon n={n} size={16} />
     </span>
   )
-  const tauxRep = contacts ? c.reponses / contacts : null
 
   return (
     <div className="stack dash">
@@ -350,6 +311,7 @@ export default function Dashboard({ onglet = 'vue' }) {
           </div>
         </div>
         <div className="row dash-filters">
+          <EtatDonnees />
           <label className="sr-only" htmlFor="dash-periode">
             Période
           </label>
@@ -380,64 +342,7 @@ export default function Dashboard({ onglet = 'vue' }) {
 
       {drill && <Drill titre={drill.titre} sous={drill.sous || titre} res={drillRes} onClose={() => setDrill(null)} />}
 
-      {onglet === 'vue' && (
-        <>
-          <div className="bigkpis four">
-            <BigKpi ico="coins" onClick={() => voir('Paiements reçus', { kind: 'encaisse' })} label="Encaissé" value={eur(c.encaisse)} cur={c.encaisse} prev={pvv('encaisse')} vs={vs} fmt={eur} sub={`Net après dépenses : ${eur(c.benefice)} · CA signé : ${eur(c.caSigne)}`} />
-            <BigKpi ico="handshake" onClick={() => voir('Clients signés', { kind: 'signes' })} label="Clients signés" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} />
-            <BigKpi ico="calendar" onClick={() => voir('RDV obtenus', { kind: 'rdv' })} label="RDV obtenus" value={nb(c.rdv)} cur={c.rdv} prev={pvv('rdv')} vs={vs} />
-            <BigKpi ico="target" onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} label="Taux de closing" value={c.propositions ? pct(c.closing) : '—'} cur={Math.round(c.closing * 100)} prev={pv ? Math.round(pv.closing * 100) : null} vs={vs} fmt={(v) => `${v} pts`} sub={`${nb(c.signes)} signé${c.signes > 1 ? 's' : ''} sur ${nb(c.propositions)} proposition${c.propositions > 1 ? 's' : ''}`} />
-          </div>
-          <ArgentPeriode periode={periode} titre={titre} depensesTotal={c.depenses} onVoir={voir} compact />
-
-          <div className="mini-stats" role="list">
-            <Mini label="Prospects ajoutés" v={c.prospects} d={d('prospects')} onClick={() => voir('Prospects ajoutés', { kind: 'prospects' })} />
-            <Mini label="Appels" v={c.appels} d={d('appels')} onClick={() => voir('Appels', { kind: 'appels' })} />
-            <Mini label="DM" v={c.dm} d={d('dm')} onClick={() => voir('DM envoyés', { kind: 'dm' })} />
-            <Mini label="Réponses" v={c.reponses} d={d('reponses')} sub={tauxRep !== null ? `${pct(tauxRep)} de réponse` : null} onClick={() => voir('Réponses', { kind: 'reponses' })} />
-            <Mini label="Propositions" v={c.propositions} d={d('propositions')} onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} />
-          </div>
-
-          <button type="button" className="lien-journee" onClick={() => go('/journee')}>
-            <Icon n="sun" size={15} /> Ce qu'il y a à faire aujourd'hui est dans Ma journée ({data.aRelancer.length} relance{data.aRelancer.length > 1 ? 's' : ''})
-            <Icon n="arrow-right" size={14} />
-          </button>
-
-          <div className="grid grid-2" style={{ alignItems: 'start' }}>
-            <div className="card">
-              <h2 className="section">{secIc('target')} Objectifs du mois en cours</h2>
-              <div className="gauges">
-                {goals.map(([l, v, cible, fmt]) => (
-                  <Gauge
-                    key={l}
-                    label={l}
-                    value={v}
-                    cible={cible}
-                    proj={dayN ? (v / dayN) * daysIn : 0}
-                    fmt={fmt}
-                    onClick={() => voir(`${l} du mois`, { kind: GAUGE_KIND[l] }, { debut: moisCourant.debut, fin: moisCourant.fin, canal: 'Tous', sous: fmtMonth(moisCourant.key) })}
-                  />
-                ))}
-              </div>
-              <div className="tiny muted" style={{ marginTop: 10 }}>
-                {fmtMonth(moisCourant.key)}, tous canaux. Projection : ton rythme actuel prolongé jusqu'à la fin du mois. Objectifs modifiables dans Paramètres.
-              </div>
-            </div>
-            <div className="card">
-              <h2 className="section">{secIc('funnel')} Entonnoir du pipeline</h2>
-              <div className="tiny muted" style={{ marginBottom: 10 }}>Prospects ajoutés sur la période et jusqu'où ils sont allés</div>
-              <Funnel steps={st.process} onPick={(i) => voir(`Entonnoir : ${st.process[i].label}`, { kind: 'etapeProcess', key: i })} />
-              {st.perdus > 0 && (
-                <button className="toggle-link tiny" style={{ marginTop: 4 }} onClick={() => voir('Prospects perdus', { kind: 'perdus' })}>
-                  {st.perdus} perdu{st.perdus > 1 ? 's' : ''} sur la période
-                </button>
-              )}
-            </div>
-          </div>
-
-          <CaMois series={series} year={year} om={om} best={best} choisirMois={choisirMois} canal={canal} />
-        </>
-      )}
+      {onglet === 'vue' && <Cockpit periode={periode} titre={titre} canal={canal} setCanal={setCanal} voir={voir} voirListe={voirListe} />}
 
       {onglet === 'acquisition' && (
         <>
@@ -572,6 +477,7 @@ export default function Dashboard({ onglet = 'vue' }) {
             <h2 className="section">{secIc('target')} Ce mois-ci : CA cumulé face à l'objectif</h2>
             <CumulMois canal={canal} />
           </div>
+          <CaMois series={series} year={year} om={om} best={best} choisirMois={choisirMois} canal={canal} />
           <div className="grid grid-2" style={{ alignItems: 'start' }}>
             <div className="card">
               <h2 className="section">{secIc('wallet')} Pipeline et trésorerie</h2>
@@ -650,25 +556,6 @@ export default function Dashboard({ onglet = 'vue' }) {
         </>
       )}
     </div>
-  )
-}
-
-// Chiffre secondaire de la ligne compacte, avec son évolution
-function Mini({ label, v, d, sub, onClick }) {
-  const cls = d > 0 ? 'up' : d < 0 ? 'down' : 'flat'
-  return (
-    <button type="button" role="listitem" className="mini" onClick={onClick}>
-      <span className="mini-l">{label}</span>
-      <span className="mini-v">{nb(v)}</span>
-      {d !== null && d !== undefined && (
-        <span className={`mini-d ${cls}`}>
-          <span className="sr-only">Évolution : </span>
-          {d > 0 ? '↑ +' : d < 0 ? '↓ ' : '= '}
-          {d === 0 ? 'stable' : nb(d)}
-        </span>
-      )}
-      {sub && <span className="mini-s">{sub}</span>}
-    </button>
   )
 }
 

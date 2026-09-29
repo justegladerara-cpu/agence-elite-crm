@@ -317,6 +317,9 @@ function Crm() {
   // { id: true | false } : choix fait à la main ; sans choix, seule la rubrique de la page affichée est ouverte
   const [ouverts, setOuverts] = useState({})
   const [sync, setSync] = useState(syncStatus.get())
+  // Tableau de bord en direct : heure du dernier chargement et abonnement aux changements Supabase
+  const [majLe, setMajLe] = useState(null)
+  const [direct, setDirect] = useState(false)
   useEffect(() => syncStatus.subscribe(setSync), [])
 
   const reload = useCallback(async function charger(essai = 0) {
@@ -330,6 +333,7 @@ function Crm() {
         st = await db.load()
       }
       setState({ ...st, documents: st.documents || [] })
+      setMajLe(Date.now())
       setError(null)
     } catch (e) {
       // Horloge de l'appareil légèrement en retard sur Supabase juste après la connexion : on réessaie seul
@@ -351,6 +355,24 @@ function Crm() {
     return () => {
       document.removeEventListener('visibilitychange', f)
       window.removeEventListener('online', on)
+    }
+  }, [reload])
+
+  // Changements poussés par Supabase (autre appareil, formulaire du site) : rechargement groupé
+  useEffect(() => {
+    if (!supabase || isLocal) return
+    let minuteur
+    const plusTard = () => {
+      clearTimeout(minuteur)
+      // Modifications locales encore en cours d'envoi : on attend qu'elles partent pour ne rien écraser
+      minuteur = setTimeout(() => !syncStatus.get().pending && reload(), 1200)
+    }
+    const canal = ['actions', 'prospects', 'documents'].reduce((c, table) => c.on('postgres_changes', { event: '*', schema: 'public', table }, plusTard), supabase.channel('crm-direct'))
+    canal.subscribe((etat) => setDirect(etat === 'SUBSCRIBED'))
+    return () => {
+      clearTimeout(minuteur)
+      setDirect(false)
+      supabase.removeChannel(canal)
     }
   }, [reload])
 
@@ -508,6 +530,7 @@ function Crm() {
     api,
     toast,
     openAction: (prefill) => setActionModal(prefill || {}),
+    live: { direct, majLe, sync, reload },
   }
 
   const [chemin, query = ''] = route.split('?')

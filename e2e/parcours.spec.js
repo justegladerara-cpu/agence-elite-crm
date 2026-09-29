@@ -107,7 +107,7 @@ test('pas de défilement horizontal', async ({ page }) => {
 
 test('tableau de bord : un paiement et ses frais (taxi) donnent le net', async ({ page }) => {
   await avecExemples(page)
-  await page.goto('/#/dashboard?onglet=vue')
+  await page.goto('/#/dashboard/finances')
   const argent = page.locator('section.argent')
   await argent.getByRole('button', { name: 'Paiement', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Paiement reçu' })
@@ -123,4 +123,21 @@ test('tableau de bord : un paiement et ses frais (taxi) donnent le net', async (
   const ligne = argent.locator('.mvt.in', { hasText: 'Dépannage de 22 h' })
   await expect(ligne).toContainText('net 32')
   await expect(ligne.getByRole('button', { name: /Relier à un client/ })).toBeVisible()
+})
+
+test('cockpit : les filtres croisés se posent, se partagent par le lien et s’effacent', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/dashboard')
+  await expect(page.getByRole('heading', { name: "Centre d'attention" })).toBeVisible()
+  await page.locator('.ck-canal-t tbody tr', { hasText: 'DM' }).first().click()
+  await expect(page.locator('#dash-canal')).toHaveValue('DM')
+  await expect(page).toHaveURL(/canal=DM/)
+  await page.locator('.ck-step-main').nth(1).click()
+  await expect(page.locator('.ck-chip', { hasText: 'Étape' })).toBeVisible()
+  await expect(page).toHaveURL(/etape=1/)
+  await page.getByRole('button', { name: 'Effacer les filtres' }).click()
+  await expect(page.locator('.ck-chip')).toHaveCount(0)
+  await expect(page.locator('#dash-canal')).toHaveValue('Tous')
+  await page.locator('.ck-kpi').first().click()
+  await expect(page.getByRole('dialog', { name: 'Paiements reçus' })).toBeVisible()
 })

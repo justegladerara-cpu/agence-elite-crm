@@ -1,7 +1,8 @@
 // Tests des calculs du CRM : étapes, relances, périodes, factures, lecture des fichiers
 import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../src/lib/tresorerie'
 import { describe, test, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { computeAll, periodeFor, waLink, handleInsta, montantRetenu } from '../src/lib/logic'
+import { computeAll, computeStats, periodeFor, waLink, handleInsta, montantRetenu } from '../src/lib/logic'
+import { agreger, somme, objectifPeriode, parcours, qualite, sante } from '../src/lib/cockpit'
 import { mergeSettings } from '../src/lib/store'
 import { totals, statutDe, nextNumero, num, enLettres } from '../src/lib/invoice'
 import { categorie } from '../src/lib/hub'
@@ -189,5 +190,52 @@ describe('abonnements et charges fixes', () => {
     expect(prochaineEcheance({ montant: 1, echeance: '2026-01-31' }, '2026-03-05')).toBe('2026-03-31')
     expect(prochaineEcheance({ montant: 1, echeance: '2026-02-10', periodicite: 'trimestre' }, '2026-06-01')).toBe('2026-08-10')
     expect(echeancesEntre([{ nom: 'A', montant: 5, echeance: '2026-01-15' }], '2026-03-01', '2026-04-30').map((e) => e.date)).toEqual(['2026-03-15', '2026-04-15'])
+  })
+})
+
+describe('cockpit du tableau de bord', () => {
+  const donnees = () =>
+    computeAll(
+      [p('1', 'Pizzeria', { telephone: '+242 06 111 22 33' }), p('2', 'pizzeria', { telephone: '06 111 22 33' }), p('3', 'Garage')],
+      [
+        a('1', '2026-09-20', 'Premier contact'),
+        a('1', '2026-09-22', 'Signature', { montant: 100000 }),
+        a('1', '2026-09-23', 'Paiement reçu', { montant: 60000 }),
+        a('2', '2026-09-21', 'Premier contact', { canal: 'DM' }),
+        a('3', '2026-08-01', 'Premier contact'),
+      ],
+      S,
+    )
+  it('les totaux par case correspondent aux chiffres du tableau de bord', () => {
+    const d = donnees()
+    const periode = periodeFor('Mois en cours')
+    const cur = computeStats(d, S, periode, 'Tous').cur
+    const cases = agreger(d, periode.debut, periode.fin, 'Tous')
+    expect(cases).toHaveLength(30)
+    expect(somme(cases, 'encaisse')).toBe(cur.encaisse)
+    expect(somme(cases, 'caSigne')).toBe(cur.caSigne)
+    expect(somme(cases, 'signes')).toBe(cur.signes)
+    expect(somme(cases, 'contacts')).toBe(cur.dm + cur.appels)
+    expect(somme(agreger(d, periode.debut, periode.fin, 'DM'), 'contacts')).toBe(1)
+  })
+  it('ramène l’objectif mensuel à la durée de la période', () => {
+    const s = { ...S, objectifsMois: { ...S.objectifsMois, ca: 3044 } }
+    expect(objectifPeriode(s, 'caSigne', '2026-09-01', '2026-09-30', true)).toBe(3044)
+    expect(objectifPeriode(s, 'caSigne', '2026-09-23', '2026-09-29', false)).toBeCloseTo(700, 0)
+    expect(objectifPeriode(s, 'encaisse', '2026-09-01', '2026-09-30', true)).toBeNull()
+  })
+  it('suit le parcours jusqu’au paiement et repère les doublons', () => {
+    const d = donnees()
+    const pc = parcours(d, S, '2026-09-01', '2026-09-30', 'Tous', AUJ)
+    expect(pc.etapes.map((e) => e.n)).toEqual([2, 2, 1, 1, 1, 1, 1, 1])
+    expect(pc.etapes[7].nom).toBe('Payé')
+    const q = qualite(d, AUJ)
+    expect(q.find((x) => x.k === 'doublons').res.items.map((x) => x.id).sort()).toEqual(['1', '2'])
+  })
+  it('score de santé : moyenne des seules dimensions disponibles', () => {
+    const r = sante({ mois: { dm: 5, appels: 5, caSigne: 0 }, objectifs: { dm: 10, appels: 10, ca: 0 }, jourDuMois: 15, joursDuMois: 30, prospects: [], jour: AUJ, impayes: 0, enRetard: 0 })
+    expect(r.dims.map((x) => x.k)).toEqual(['prospection'])
+    expect(r.score).toBe(100)
+    expect(sante({ mois: { dm: 0, appels: 0, caSigne: 0 }, objectifs: {}, jourDuMois: 1, joursDuMois: 30, prospects: [], jour: AUJ, impayes: 0, enRetard: 0 })).toBeNull()
   })
 })
