@@ -12,6 +12,7 @@ import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
 import { categorie } from '../modules/commercial'
 import { statutDe, totals, STATUT_TONE } from '../modules/facturation'
+import Chronologie from '../core/ui/Chronologie'
 
 export default function Fiche({ id }) {
   const { data, documents } = useDonnees()
@@ -134,6 +135,7 @@ export default function Fiche({ id }) {
     ? [
         ['apercu', 'Aperçu'],
         ['historique', 'Historique', p.acts.length],
+        ['chronologie', 'Chronologie'],
         ['docs', 'Factures', docs.length],
         ['fiche', 'Informations'],
       ]
@@ -142,6 +144,7 @@ export default function Fiche({ id }) {
         ['messages', 'Messages'],
         ['qualif', 'Qualification'],
         ['historique', 'Historique', p.acts.length],
+        ['chronologie', 'Chronologie'],
         ['docs', 'Factures', docs.length],
         ['fiche', 'Informations'],
       ]
@@ -304,6 +307,8 @@ export default function Fiche({ id }) {
           </div>
         </div>
       )}
+
+      {tab === 'chronologie' && <Chronologie prospectId={p.id} />}
 
       {tab === 'messages' && <ScriptsCard p={p} />}
 

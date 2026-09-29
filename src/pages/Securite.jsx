@@ -1,7 +1,8 @@
 // Paramètres › Sécurité : sauvegarde des données, corbeille, double authentification et erreurs signalées
 import { useEffect, useState } from 'react'
 import { Field, confirmer } from '../ui'
-import { useApp, useNoyau } from '../core/contexte'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
+import { lireJournal, comparerJournal, LIBELLE } from '../core/journal'
 import { Icon } from '../icons'
 import { supabase, isLocal } from '../lib/store'
 import { corbeille } from '../lib/corbeille'
@@ -242,6 +243,49 @@ function Erreurs() {
   )
 }
 
+// Vérifie que le journal d'événements de la base correspond aux données chargées
+function VerifJournal() {
+  const { actions, documents } = useDonnees()
+  const [r, setR] = useState(null)
+  const verifier = async () => {
+    setR('…')
+    const j = await lireJournal({ actions, documents })
+    setR(j.source === 'journal' ? comparerJournal(j.serveur, j.derives) : 'indisponible')
+  }
+  const ok = r && typeof r === 'object' && !r.manquants.length && !r.enTrop.length && !r.typeDifferent.length && r.paiements[0] === r.paiements[1] && r.depenses[0] === r.depenses[1]
+  return (
+    <div className="card">
+      <h2 className="section">
+        <span className="sec-ic">
+          <Icon n="check-circle" size={16} />
+        </span>
+        Journal d'événements
+      </h2>
+      <p className="small muted" style={{ marginTop: 0 }}>Compare le journal tenu par la base (étapes, paiements, dépenses, devis, factures) avec tes données.</p>
+      <button className="btn sm" id="verifier-journal" onClick={verifier}>
+        Vérifier
+      </button>
+      {r === '…' && <div className="small muted">Vérification…</div>}
+      {r === 'indisponible' && <div className="small">Journal indisponible (hors ligne) : l'application utilise le calcul local.</div>}
+      {r && typeof r === 'object' && (
+        <div className="small" style={{ marginTop: 8 }} data-ok={ok ? '1' : '0'}>
+          <b>{ok ? 'Le journal correspond à tes données ✓' : 'Écarts trouvés'}</b>
+          <div className="tiny muted">
+            {Object.entries(r.parType)
+              .map(([t, [l, s]]) => `${LIBELLE[t] || t} : ${s}${l !== s ? ` (attendu ${l})` : ''}`)
+              .join(' · ')}
+          </div>
+          {!ok && (
+            <div className="tiny">
+              Manquants {r.manquants.length} · en trop {r.enTrop.length} · type différent {r.typeDifferent.length} · paiements {r.paiements.join(' / ')} · dépenses {r.depenses.join(' / ')}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Securite() {
   return (
     <>
@@ -249,6 +293,7 @@ export default function Securite() {
       <Corbeille />
       {!isLocal && <DoubleAuth />}
       {!isLocal && <Erreurs />}
+      {!isLocal && <VerifJournal />}
     </>
   )
 }

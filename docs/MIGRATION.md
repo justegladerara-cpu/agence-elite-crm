@@ -101,6 +101,13 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Tests en base (transaction annulée) : membre lit/écrit son espace, 0 accès à l'espace étranger, pas d'usurpation ni d'auto-promotion, lecteur n'écrit pas, membre retiré ne voit plus rien. Après application : Agence Elite 67/67 et Démo 3703/3703 lignes visibles = lignes en base, visite et catalogue anonymes OK. Avertissements attendus : 5 nouvelles fonctions appelables par un compte connecté (elles vérifient elles-mêmes le rôle).
 - Hors périmètre : reçus partagés (stockage par utilisateur), réglages modifiables par un admin.
 
+## Lot B (2026-09-29) : l'application lit le journal d'événements
+- Aucune modification de base (table `events`, index et règle de lecture déjà en place depuis l'étape 4 et le Lot A).
+- `src/core/journal.js` : `lireJournal()` lit `events` (espace actif, non annulés) et le fusionne avec le calcul local (`core/events.js`) : les modifs pas encore envoyées apparaissent, les suppressions locales disparaissent. Hors ligne, mode local ou erreur → repli sur le calcul. `comparerJournal()` mesure les écarts.
+- Affichage ajouté, rien de remplacé : onglet « Chronologie » de la fiche (`core/ui/Chronologie.jsx`) ; « Vérifier » dans Paramètres › Sécurité. L'onglet Historique (actions modifiables) et l'activité du tableau de bord restent calculés comme avant.
+- Vérifié sur la base : Démo 1616/1616 et Agence Elite 7/7 événements, 0 orphelin, paiements et dépenses identiques ; étape, devis, facture, paiement, dépense testés dans une transaction annulée (suppression → retiré de la chronologie) ; lecture d'une fiche 0,75 ms, 1000 événements 5 ms. Le journal n'est lu qu'à l'ouverture de la Chronologie : démarrage inchangé.
+- Retour arrière : retirer l'onglet et la carte (aucune donnée concernée).
+
 ## Prochains lots
-1. Lot B (après validation du Lot A) : l'application lit `events` avec repli sur le calcul actuel.
-2. Étape 5 : statistiques côté serveur, chargement par module.
+1. Étape 5 : statistiques côté serveur, chargement par module.
+2. Brancher d'autres vues sur le journal (activité du tableau de bord) une fois la Chronologie éprouvée.

@@ -197,3 +197,31 @@ test('saisie d’argent ouverte par le noyau : depuis les clients et depuis le t
   await argent.getByRole('button', { name: 'Dépense', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Nouvelle dépense' })).toBeVisible()
 })
+
+test('chronologie du client : étapes, paiements, dépenses et factures lus dans le journal (repli calcul en local)', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/clients?onglet=tous')
+  await page.locator('.main a[href*="#/prospect/"]').first().click()
+  await page.locator('.main').getByText('Chronologie', { exact: true }).click()
+  const liste = page.locator('.main .list[data-source]')
+  await expect(liste).toHaveAttribute('data-source', 'calcul')
+  await expect(liste.locator('[data-type="client.won"]').first()).toBeVisible()
+  const avantPaiements = await liste.locator('[data-type="payment.received"]').count()
+  const avantDepenses = await liste.locator('[data-type="expense.created"]').count()
+  // Nouveau paiement et nouvelle dépense : la chronologie suit
+  await page.locator('.main').getByText('Aperçu', { exact: true }).click()
+  await page.getByRole('button', { name: '+ Paiement' }).click()
+  const pay = page.getByRole('dialog', { name: 'Paiement reçu' })
+  await pay.getByLabel(/Montant reçu/).fill('12345')
+  await pay.getByRole('button', { name: 'Enregistrer le paiement' }).click()
+  // Après un paiement, l'application propose de noter les frais liés
+  await pay.getByRole('button', { name: 'Ajouter des frais' }).click()
+  const dep = pay
+  await dep.getByLabel(/^Montant/).fill('500')
+  await dep.getByRole('button', { name: 'Enregistrer la dépense' }).click()
+  await expect(dep).toBeHidden()
+  await page.locator('.main').getByText('Chronologie', { exact: true }).click()
+  await expect(liste.locator('[data-type="payment.received"]')).toHaveCount(avantPaiements + 1)
+  await expect(liste.locator('[data-type="expense.created"]')).toHaveCount(avantDepenses + 1)
+  await expect(liste.locator('[data-type="payment.received"]').first()).toContainText('12')
+})

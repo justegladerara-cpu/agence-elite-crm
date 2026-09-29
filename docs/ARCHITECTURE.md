@@ -39,7 +39,7 @@ Hypothèses « un seul » trouvées :
 | Permissions | `src/core/permissions.js` (rôle → permissions par module) | vérifiées aussi en base (RLS par rôle) |
 | Modules | `src/core/modules.js` : registre, activation, dépendances | idem + réglages par module |
 | Navigation | dérivée du registre (App.jsx) | idem |
-| Événements | table `events` écrite par triggers sur `actions`/`documents` (étape 4) ; `src/core/events.js` dérive les mêmes côté client + bus local | lecture de `events` par les modules |
+| Événements | table `events` écrite par triggers sur `actions`/`documents` (étape 4) ; `src/core/events.js` dérive les mêmes côté client + bus local | lu par l'application via `core/journal.js` (Chronologie, vérification), repli sur le calcul local |
 | Relations | fiche client (Fiche.jsx), drill.js | `src/core/relations.js` « tout ce qui est lié » |
 | Audit / sécurité | `audit_log` (triggers en base), étape 1b | + connexions, exports |
 | Réglages | `settings.data` (un JSON) | core / module / utilisateur / espace |

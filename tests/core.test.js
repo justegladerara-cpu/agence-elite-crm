@@ -3,6 +3,7 @@ import { MODULES, estActif, pageAccessible, basculer, moduleDePage, dependantsDe
 import { permissionsDe, peut, TOUTES } from '../src/core/permissions'
 import { evenements, evenementDAction, evenementDeDocument, emettre, ecouter, typeAction } from '../src/core/events'
 import { DEFAULT_SETTINGS } from '../src/lib/defaults'
+import { depuisLigne, comparerJournal, fusionner, lireJournal } from '../src/core/journal'
 
 describe('registre des modules', () => {
   it('chaque page appartient à un seul module et les dépendances existent', () => {
@@ -157,5 +158,43 @@ describe('sections de Paramètres par module', () => {
     expect(sectionAccessible('scripts', { modules: { commercial: false } })).toBe(false)
     expect(sectionAccessible('rappels', { modules: { agenda: false } })).toBe(false)
     expect(sectionAccessible('identite', { modules: { commercial: false, agenda: false } })).toBe(true)
+  })
+})
+
+describe('journal d’événements (Lot B)', () => {
+  const actions = [
+    { id: 'a1', action: 'Paiement reçu', date: '2026-09-01', montant: 1000, facture: 'F1', prospect_id: 'p1' },
+    { id: 'a2', action: 'Signature', date: '2026-08-30', prospect_id: 'p1' },
+    { id: 'a3', action: 'Dépense', date: '2026-09-02', montant: 200, prospect_id: 'p1' },
+    { id: 'a4', action: 'Note', date: '2026-09-02', prospect_id: 'p1' },
+  ]
+  const documents = [{ id: 'd1', type: 'facture', numero: 'F1', prospect_id: 'p1', data: { date: '2026-08-31' } }, { id: 'd2', type: 'devis', numero: 'D1', prospect_id: 'p2', data: {} }]
+  const ligne = (e) => ({ source: e.id, type: e.type, date: e.date, acteur: null, module: e.module, entite: e.entite, entite_id: e.entiteId, meta: e.meta, correlation_id: e.correlationId })
+  it('une ligne de la table redonne l’événement calculé', () => {
+    const derives = evenements(actions, documents)
+    expect(derives.map((e) => depuisLigne(ligne(e)))).toEqual(derives)
+  })
+  it('comparer : identique = aucun écart ; manquant, en trop et montant détectés', () => {
+    const derives = evenements(actions, documents)
+    const serveur = derives.map(ligne).map((l) => ({ ...l, id: l.source }))
+    const ok = comparerJournal(serveur, derives)
+    expect([ok.manquants, ok.enTrop, ok.typeDifferent]).toEqual([[], [], []])
+    expect(ok.paiements).toEqual([1000, 1000])
+    expect(ok.depenses).toEqual([200, 200])
+    const ko = comparerJournal([...serveur.slice(1), { id: 'action:x', type: 'payment.received', meta: { montant: 5 } }], derives)
+    expect(ko.manquants).toHaveLength(1)
+    expect(ko.enTrop).toEqual(['action:x'])
+  })
+  it('fusion : garde les modifs locales non envoyées, retire les suppressions locales', () => {
+    const derives = evenements(actions, documents)
+    const serveur = [{ ...derives[0], meta: { ...derives[0].meta, serveur: true } }, { id: 'action:supprimee', type: 'prospect.contacted', date: '2026-01-01', meta: {} }]
+    const f = fusionner(serveur, derives)
+    expect(f.map((e) => e.id)).toEqual(derives.map((e) => e.id))
+    expect(f.find((e) => e.id === derives[0].id).meta.serveur).toBe(true)
+  })
+  it('lireJournal sans base : repli sur le calcul, filtré par client', async () => {
+    const r = await lireJournal({ prospectId: 'p1', actions, documents })
+    expect(r.source).toBe('calcul')
+    expect(r.liste.map((e) => e.type)).toEqual(['client.won', 'invoice.created', 'payment.received', 'expense.created'])
   })
 })
