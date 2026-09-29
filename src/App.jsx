@@ -12,7 +12,7 @@ import { MiniListe } from './pages/Prospects'
 import Hub, { ESPACES } from './pages/Hub'
 import { lienHub } from './lib/hub'
 const Fiche = lazy(() => import('./pages/Fiche'))
-const SaisieArgent = lazy(() => import('./pages/Tresorerie').then((m) => ({ default: m.SaisieArgent })))
+const SaisieArgent = lazy(() => import('./pages/Finances').then((m) => ({ default: m.SaisieArgent })))
 const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Parametres = lazy(() => import('./pages/Parametres'))
@@ -264,6 +264,8 @@ function Crm() {
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
   const [actionModal, setActionModal] = useState(null)
+  // Saisie ou modification d'un paiement / d'une dépense, demandée par n'importe quel module
+  const [argent, setArgent] = useState(null)
   const [recherche, setRecherche] = useState(false)
   const [aide, setAide] = useState(false)
   const [appel, setAppel] = useState(null)
@@ -555,6 +557,7 @@ function Crm() {
     api,
     toast,
     openAction: (prefill) => setActionModal(prefill || {}),
+    saisirArgent: (modal) => setArgent(modal),
     live: { direct, majLe, sync, reload },
   }
 
@@ -756,6 +759,11 @@ function Crm() {
             setActionModal({ ...x, complet: true })
           }} />
         </Modal>
+      )}
+      {argent && (
+        <Suspense fallback={null}>
+          <SaisieArgent modal={argent} onClose={() => setArgent(null)} />
+        </Suspense>
       )}
       {aide && <Raccourcis onClose={() => setAide(false)} />}
       <ConfirmHost />

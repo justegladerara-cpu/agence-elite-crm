@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SaisieArgent, modalPour } from './Tresorerie'
+import { modalPour } from '../lib/tresorerie'
 import { Icon } from '../icons'
 import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
 import { ActionForm, ActionLine } from './Saisie'
@@ -12,12 +12,14 @@ import { categorie } from '../lib/hub'
 import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
 
 export default function Fiche({ id }) {
-  const { data, api, openAction, toast, documents } = useApp()
+  const { data, api, openAction, toast, documents, saisirArgent } = useApp()
   const p = data.byId[id]
   const [editing, setEditing] = useState(false)
   const [fiche, setFiche] = useState(null)
   const [name, setName] = useState('')
   const [editAction, setEditAction] = useState(null)
+  // Paiement ou dépense : fenêtre dédiée ouverte par le noyau ; autre action : formulaire de la fiche
+  const editer = (a) => (a.action === 'Paiement reçu' || a.action === 'Dépense' ? saisirArgent(modalPour(a)) : setEditAction(a))
   const [tousChamps, setTousChamps] = useState(false)
   const [onglet, setOnglet] = useTab('fiche', 'apercu')
   // Historique visible directement dans l'aperçu : c'est ce qu'on relit avant d'appeler
@@ -252,7 +254,7 @@ export default function Fiche({ id }) {
               <div className="list">
                 {history.length === 0 && <Empty>Aucune action.</Empty>}
                 {history.slice(0, nHisto).map((a) => (
-                  <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
+                  <ActionLine key={a.id} a={a} showProspect={false} onEdit={editer} />
                 ))}
               </div>
               {history.length > nHisto && (
@@ -294,7 +296,7 @@ export default function Fiche({ id }) {
           <div className="list">
             {history.length === 0 && <Empty>Aucune action.</Empty>}
             {history.map((a) => (
-              <ActionLine key={a.id} a={a} showProspect={false} onEdit={setEditAction} />
+              <ActionLine key={a.id} a={a} showProspect={false} onEdit={editer} />
             ))}
           </div>
         </div>
@@ -363,9 +365,7 @@ export default function Fiche({ id }) {
           </div>
         </Modal>
       )}
-      {editAction && (editAction.action === 'Paiement reçu' || editAction.action === 'Dépense') ? (
-        <SaisieArgent modal={modalPour(editAction)} onClose={() => setEditAction(null)} />
-      ) : editAction && (
+      {editAction && (
         <Modal title="Modifier l'action" onClose={() => setEditAction(null)} large>
           <ActionForm prefill={{ edit: editAction }} onDone={() => setEditAction(null)} />
         </Modal>

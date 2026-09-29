@@ -41,10 +41,7 @@ const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.ma
 
 // Dépendances directes entre modules encore à découpler (la liste ne doit que diminuer)
 const DETTE = [
-  'pages/Fiche.jsx -> pages/Tresorerie.jsx', // SaisieArgent : paiement / dépense depuis la fiche
-  'pages/Hub.jsx -> pages/Finances.jsx', // PaiementForm (chargé à la demande)
   'pages/Journee.jsx -> pages/Impayes.jsx', // RelanceFactureBtn
-  'pages/Tresorerie.jsx -> pages/Finances.jsx', // PaiementForm, DepenseForm
 ]
 
 describe('architecture', () => {

@@ -34,8 +34,18 @@ Tests : 48 unitaires (dont 5 d'architecture), 22 parcours navigateur (dont toute
 Règle d'architecture précisée : la logique `.js` de `core/`, `lib/`, `modules/` n'importe jamais l'interface ; les composants communs vivent dans `core/ui/`.
 Résultat : dépendances croisées 6 → 4. Tests : 50 unitaires, 22 parcours navigateur, build OK, 0 cycle.
 
+## Lot 3 (2026-09-29) : la saisie d'argent devient un service du noyau
+| Changé | Avant → après | Pourquoi |
+|---|---|---|
+| `SaisieArgent` | défini dans `pages/Tresorerie.jsx` (tableau de bord), importé par Fiche, Cockpit, Drill → défini avec ses formulaires dans `pages/Finances.jsx`, affiché une seule fois par `App.jsx` | un seul propriétaire (les formulaires d'argent) et un seul point d'ouverture |
+| ouverture | chaque page gardait son état et importait le composant → `ctx.saisirArgent({ type, edit?, prefill? })` | les modules demandent une saisie au noyau sans connaître le module qui la réalise |
+| `modalPour` | `pages/Tresorerie.jsx` → `lib/tresorerie.js` (pur) | règle « quelle fenêtre pour cette action » |
+| Hub (clients) | `PaiementForm` chargé depuis Finances → `ctx.saisirArgent` | Commercial ne dépend plus de Facturation |
+| Drill | Échap ignoré si l'état local `modal` était ouvert → ignoré si une fenêtre `.modal-bg` est ouverte | même comportement, sans état local |
+
+Résultat : dépendances croisées 4 → 1 (reste `Journee → Impayes`, bouton de relance). Tests : 50 unitaires, 23 parcours navigateur (nouveau : saisie depuis les clients et le tableau de bord), build OK, 0 cycle. Avertissements lint 54 → 51.
+
 ## Prochains lots (du moins risqué au plus risqué)
-2. Formulaires d'argent (`SaisieArgent`, `PaiementForm`, `DepenseForm`) → services d'application facturation/charges ouverts par le noyau (`openAction`), plus d'import direct.
 3. `RelanceFactureBtn` → action exposée par le contrat facturation.
 4. Domaine par module : `lib/invoice.js` → `modules/facturation`, `lib/insta.js`/`journee.js`/`hub.js`/`appel.js` → `modules/commercial`, `lib/tresorerie.js` → `modules/charges`, `lib/cockpit.js`/`drill.js` → `modules/dashboard` (réexports temporaires pour ne rien casser).
 5. Contexte : séparer le noyau (session, réglages, modules) des données par module.

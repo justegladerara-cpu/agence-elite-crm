@@ -10,7 +10,7 @@ import { detail } from '../lib/drill'
 import { METRIQUES, agreger, somme, pasPour, objectifPeriode, anomalies, parcours, sante, qualite } from '../lib/cockpit'
 import { echeancesEntre } from '../lib/tresorerie'
 import { facturesImpayees } from '../modules/facturation'
-import { SaisieArgent, modalPour } from './Tresorerie'
+import { modalPour } from '../lib/tresorerie'
 import { supabase, isLocal } from '../lib/store'
 import { today, addDays, diffDays, fmtDate, fmtMonth, parse, monthKey } from '../lib/dates'
 
@@ -561,7 +561,7 @@ function Activite({ actions, live, jour, ouvrirAction }) {
 
 // ---------- Le cockpit ----------
 export default function Cockpit({ periode, titre, canal, setCanal, voir, voirListe }) {
-  const { data, settings, actions, documents, live } = useApp()
+  const { data, settings, actions, documents, live, saisirArgent } = useApp()
   const jour = today()
   const url0 = useMemo(() => paramsUrl(), [])
   const [sel, setSel] = useState(() => (url0.get('du') && url0.get('au') ? { du: url0.get('du'), au: url0.get('au') } : null))
@@ -571,7 +571,6 @@ export default function Cockpit({ periode, titre, canal, setCanal, voir, voirLis
   const [vues, setVues] = useState(lireVues)
   const mode = VUES[url0.get('vue')] && !vues.mode ? url0.get('vue') : VUES[vues.mode] ? vues.mode : 'complete'
   const [perso, setPerso] = useState(false)
-  const [argent, setArgent] = useState(null)
   const [copie, setCopie] = useState(false)
   useEffect(() => {
     ecrireUrl({ du: sel?.du, au: sel?.au, etape: etape === null ? null : etape, m: metrique === 'encaisse' ? null : metrique, cumul: cumul ? '1' : null })
@@ -714,7 +713,7 @@ export default function Cockpit({ periode, titre, canal, setCanal, voir, voirLis
   }, [data, bornes, canal, pasT, casesT])
 
   const sousTitre = [sel ? (sel.du === sel.au ? fmtDate(sel.du) : `${fmtDate(sel.du)} → ${fmtDate(sel.au)}`) : titre, canal !== 'Tous' && `canal ${canal}`, etape !== null && `étape ${pc.etapes[etape]?.nom}`].filter(Boolean).join(' · ')
-  const ouvrirAction = (a) => (a.action === 'Paiement reçu' || a.action === 'Dépense' ? setArgent(modalPour(a)) : voirListe(a.action, { type: 'actions', items: [a] }))
+  const ouvrirAction = (a) => (a.action === 'Paiement reçu' || a.action === 'Dépense' ? saisirArgent(modalPour(a)) : voirListe(a.action, { type: 'actions', items: [a] }))
 
   // Vues personnalisées
   const ids = (vues.ordre?.[mode] || VUES[mode].ids).filter((id) => WIDGETS[id])
@@ -1122,7 +1121,6 @@ export default function Cockpit({ periode, titre, canal, setCanal, voir, voirLis
           </div>
         ))}
       </div>
-      {argent && <SaisieArgent modal={argent} onClose={() => setArgent(null)} />}
     </div>
   )
 }

@@ -1,24 +1,10 @@
 // Tableau de bord : l'argent de la période, mouvement par mouvement, avec liens vers le client, la facture et la saisie
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Modal, Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
-import { PaiementForm, DepenseForm } from './Finances'
-import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois } from '../lib/tresorerie'
+import { useApp, Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
+import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, modalPour } from '../lib/tresorerie'
 import { fmtDate } from '../lib/dates'
 
-// Fenêtre de saisie ou de modification d'un paiement / d'une dépense, partagée par le tableau de bord et le détail
-export function SaisieArgent({ modal, onClose }) {
-  if (!modal) return null
-  const paiement = modal.type === 'paiement'
-  const titre = modal.edit ? (paiement ? 'Modifier le paiement' : 'Modifier la dépense') : paiement ? 'Paiement reçu' : modal.prefill?.reference ? 'Frais liés au paiement' : 'Nouvelle dépense'
-  return (
-    <Modal title={titre} onClose={onClose}>
-      {paiement ? <PaiementForm edit={modal.edit} prefill={modal.prefill} onDone={onClose} /> : <DepenseForm edit={modal.edit} prefill={modal.prefill} onDone={onClose} />}
-    </Modal>
-  )
-}
-
-export const modalPour = (a) => ({ type: a.action === 'Paiement reçu' ? 'paiement' : 'depense', edit: a })
 
 function Ligne({ m, onOpen }) {
   const { data } = useApp()
@@ -79,18 +65,17 @@ function Ligne({ m, onOpen }) {
 // Bloc « Argent de la période » : encaissé, dépensé, net, et chaque mouvement cliquable
 // depensesTotal : dépenses du tableau de bord (charges fixes comprises), pour afficher leur part
 export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compact }) {
-  const { actions, settings } = useApp()
+  const { actions, settings, saisirArgent } = useApp()
   const postesFixes = (settings.depensesFixes || []).filter((d) => mensuel(d) > 0)
   const fixesMois = chargesFixesMois(postesFixes)
-  const [modal, setModal] = useState(null)
   const [tout, setTout] = useState(false)
   const mvts = useMemo(() => mouvements(actions, periode.debut, periode.fin), [actions, periode.debut, periode.fin])
   const saisies = mvts.filter((m) => !m.entree).reduce((t, m) => t + m.montant, 0)
   const r = resumeArgent(mvts, Math.max(0, Math.round(depensesTotal - saisies)))
   const max = compact ? 5 : 8
   const visibles = tout ? mvts : mvts.slice(0, max)
-  const ouvrir = (a) => setModal(modalPour(a))
-  const nouveau = (type, prefill) => setModal({ type, prefill })
+  const ouvrir = (a) => saisirArgent(modalPour(a))
+  const nouveau = (type, prefill) => saisirArgent({ type, prefill })
   const aClient = mvts.filter((m) => m.entree && m.a.prospect_id).length
 
   return (
@@ -166,7 +151,6 @@ export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compa
           )}
         </>
       )}
-      <SaisieArgent modal={modal} onClose={() => setModal(null)} />
     </section>
   )
 }

@@ -182,3 +182,18 @@ test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
   }
   expect(erreurs).toEqual([])
 })
+
+test('saisie d’argent ouverte par le noyau : depuis les clients et depuis le tableau de bord', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/clients?onglet=tous')
+  await page.locator('.main').getByRole('button', { name: 'Paiement', exact: true }).first().click()
+  const pay = page.getByRole('dialog', { name: 'Paiement reçu' })
+  await expect(pay).toBeVisible()
+  await expect(pay.locator('.selected-prospect')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(pay).toBeHidden()
+  await page.goto('/#/dashboard/finances')
+  const argent = page.locator('section.argent')
+  await argent.getByRole('button', { name: 'Dépense', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Nouvelle dépense' })).toBeVisible()
+})

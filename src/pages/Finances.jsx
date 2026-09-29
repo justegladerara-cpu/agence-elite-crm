@@ -559,3 +559,15 @@ export function Depenses({ nouveau }) {
     </div>
   )
 }
+
+// Fenêtre de saisie ou de modification d'un paiement / d'une dépense, ouverte par le noyau (ctx.saisirArgent) depuis n'importe quel module
+export function SaisieArgent({ modal, onClose }) {
+  if (!modal) return null
+  const paiement = modal.type === 'paiement'
+  const titre = modal.edit ? (paiement ? 'Modifier le paiement' : 'Modifier la dépense') : paiement ? 'Paiement reçu' : modal.prefill?.reference ? 'Frais liés au paiement' : 'Nouvelle dépense'
+  return (
+    <Modal title={titre} onClose={onClose}>
+      {paiement ? <PaiementForm edit={modal.edit} prefill={modal.prefill} onDone={onClose} /> : <DepenseForm edit={modal.edit} prefill={modal.prefill} onDone={onClose} />}
+    </Modal>
+  )
+}

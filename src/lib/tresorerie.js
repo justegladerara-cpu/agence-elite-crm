@@ -106,3 +106,6 @@ export function echeancesEntre(liste, debut, fin) {
   })
   return out.sort((a, b) => a.date.localeCompare(b.date))
 }
+
+// Fenêtre de saisie qui correspond à une action d'argent (paiement ou dépense) à modifier
+export const modalPour = (a) => ({ type: a.action === 'Paiement reçu' ? 'paiement' : 'depense', edit: a })

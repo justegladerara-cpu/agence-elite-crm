@@ -1,20 +1,20 @@
 // Panneau latéral « détail d'un chiffre » : la liste des prospects ou actions derrière un chiffre, avec liens
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp, StageBadge, Score, Empty, go, eur, nb } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
 import { montantAction } from '../lib/drill'
-import { SaisieArgent, modalPour } from './Tresorerie'
+import { modalPour } from '../lib/tresorerie'
 
 export default function Drill({ titre, sous, res, onClose }) {
-  const { data, documents } = useApp()
-  const [modal, setModal] = useState(null)
+  const { data, documents, saisirArgent } = useApp()
+  // Échap ferme le détail, sauf si une fenêtre (paiement, dépense) est ouverte par-dessus
   useEffect(() => {
-    const k = (e) => e.key === 'Escape' && !modal && onClose()
+    const k = (e) => e.key === 'Escape' && !document.querySelector('.modal-bg') && onClose()
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [onClose, modal])
+  }, [onClose])
   const ouvrir = (path) => {
     onClose()
     go(path)
@@ -66,7 +66,7 @@ export default function Drill({ titre, sous, res, onClose }) {
               const doc = docDe(a.facture)
               // Paiement ou dépense : ouvre la saisie pour voir ou corriger ; sinon la fiche du prospect
               const argent = a.action === 'Paiement reçu' || a.action === 'Dépense'
-              const clic = () => (argent ? setModal(modalPour(a)) : p && ouvrir(`/prospect/${p.id}`))
+              const clic = () => (argent ? saisirArgent(modalPour(a)) : p && ouvrir(`/prospect/${p.id}`))
               const titreLigne = p ? p.name : a.action === 'Dépense' ? a.notes || a.fournisseur || a.categorie || 'Dépense' : a.notes || a.fournisseur || a.categorie || a.action
               return (
                 <div key={a.id} className="drill-row" role="button" tabIndex={0} onClick={clic} onKeyDown={(e) => e.key === 'Enter' && clic()}>
@@ -104,7 +104,6 @@ export default function Drill({ titre, sous, res, onClose }) {
             })}
         </div>
       </aside>
-      <SaisieArgent modal={modal} onClose={() => setModal(null)} />
     </div>,
     document.body,
   )
