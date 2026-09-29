@@ -1,7 +1,7 @@
 // Ma journée « Rule of 100 » : objectifs du jour, compteurs, to-do et historique.
 // Chaque journée est un document { type: 'journee', numero: 'AAAA-MM-JJ', data }.
-import { today, addDays, weekday } from './dates'
-import { isProspection } from './logic'
+import { today, addDays, weekday } from '../../lib/dates'
+import { isProspection } from '../../lib/logic'
 
 // Ce que chaque objectif compte automatiquement à partir des saisies
 export const SOURCES = [

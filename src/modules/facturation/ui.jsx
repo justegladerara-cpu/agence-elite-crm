@@ -1,8 +1,9 @@
-// Factures impayées : liste et bouton de relance WhatsApp (utilisés hors de la page Factures)
-import { Icon } from '../icons'
-import { useApp, eur } from '../ui'
-import { today, nowTime } from '../lib/dates'
-import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
+// Contrat d'interface du module Facturation : composants que les autres modules peuvent afficher
+// (bouton de relance WhatsApp d'une facture impayée)
+import { Icon } from '../../icons'
+import { useApp, eur } from '../../ui'
+import { today, nowTime } from '../../lib/dates'
+import { remplirDoc, ouvrirWhatsApp, telClient } from './whatsapp'
 
 // Bouton « Relancer » d'une facture impayée (liste des factures, Ma journée)
 export function RelanceFactureBtn({ doc, label }) {

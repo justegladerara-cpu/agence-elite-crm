@@ -1,6 +1,6 @@
 // Process de prospection Instagram : étapes en 1 clic, réactions après la Loom, scripts à copier.
-import { today, nowTime, addDays } from './dates'
-import { isReponse } from './logic'
+import { today, nowTime, addDays } from '../../lib/dates'
+import { isReponse } from '../../lib/logic'
 
 // Chaque bouton enregistre une action de la Saisie, avec la prochaine action et la date de relance
 export const ETAPES = [
@@ -71,21 +71,7 @@ export function remplir(texte, p) {
     .replace(/\{lien\}/g, f.loom || '[lien de la vidéo]')
 }
 
-export async function copier(texte) {
-  try {
-    await navigator.clipboard.writeText(texte)
-    return true
-  } catch {
-    // Navigateur sans presse-papiers : sélection manuelle
-    const t = document.createElement('textarea')
-    t.value = texte
-    document.body.appendChild(t)
-    t.select()
-    const ok = document.execCommand('copy')
-    t.remove()
-    return ok
-  }
-}
+export { copier } from '../../lib/copier'
 
 // Questions de qualification (réponses gardées dans la fiche)
 export const QUALIF = [

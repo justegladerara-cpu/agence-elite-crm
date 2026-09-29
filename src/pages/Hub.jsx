@@ -5,7 +5,7 @@ import { Icon } from '../icons'
 import { NewProspect, ActionsGroupees, ACTION_ETAPE } from './Prospects'
 import { QuickInsta } from './Insta'
 import { AncienClient, nextOnboarding } from './Clients'
-import { CATEGORIES, fichesHub } from '../lib/hub'
+import { CATEGORIES, fichesHub } from '../modules/commercial/hub'
 import { waLink } from '../lib/logic'
 import { fmtDate } from '../lib/dates'
 

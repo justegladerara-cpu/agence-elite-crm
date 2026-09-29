@@ -4,7 +4,7 @@ import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
 
 import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
-import { num } from '../lib/invoice'
+import { num } from '../modules/facturation'
 import { today, fmtDate, fmtMonth, monthKey, prevMonth, addDays, diffDays } from '../lib/dates'
 
 const PERIODE_NOM = Object.fromEntries(PERIODICITES.map(([k, l]) => [k, l.replace('Par ', '/ ')]))

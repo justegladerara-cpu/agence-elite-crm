@@ -1,7 +1,7 @@
 // Détail d'un chiffre du tableau de bord : la liste des prospects ou des actions qui le composent.
 // Mêmes règles que computeStats (logic.js), pour que la liste corresponde toujours au chiffre affiché.
-import { isProspection, isReponse, VENTES, montantRetenu } from './logic'
-import { weekday } from './dates'
+import { isProspection, isReponse, VENTES, montantRetenu } from '../../lib/logic'
+import { weekday } from '../../lib/dates'
 
 export function detail(data, settings, periode, canal, spec, debut = periode.debut, fin = periode.fin) {
   const { list, byId, sorted, L, clients } = data

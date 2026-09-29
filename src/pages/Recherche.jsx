@@ -3,10 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp, go, eur, StageBadge } from '../ui'
 import { Icon } from '../icons'
-import { totals, statutDe, STATUT_TONE } from '../lib/invoice'
+import { totals, statutDe, STATUT_TONE } from '../modules/facturation'
 import { fmtDate } from '../lib/dates'
 import { handleInsta } from '../lib/logic'
-import { fichesHub } from '../lib/hub'
+import { fichesHub } from '../modules/commercial'
 
 const norm = (v) =>
   String(v || '')

@@ -4,7 +4,7 @@ import { Icon } from '../icons'
 import { useApp, Bar, Modal, Field, go, nb } from '../ui'
 import { today, fmtDate } from '../lib/dates'
 import { QuickInsta } from './Insta'
-import { SOURCES, jourId, journeeVue, avancement, compterJour, historique, objectifsParDefaut } from '../lib/journee'
+import { SOURCES, jourId, journeeVue, avancement, compterJour, historique, objectifsParDefaut } from '../modules/commercial/journee'
 
 const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? 0 : Number(v))
 

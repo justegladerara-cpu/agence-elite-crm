@@ -1,5 +1,5 @@
 // Facturation › domaine : factures à relancer (fonction pure, sans React ni Supabase)
-import { num, totals, statutDe, paiementsDe } from '../../lib/invoice'
+import { num, totals, statutDe, paiementsDe } from './invoice'
 
 // Factures à relancer : en retard ou partiellement payées
 export function facturesImpayees(documents, actions) {

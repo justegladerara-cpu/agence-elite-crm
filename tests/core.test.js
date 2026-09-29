@@ -116,3 +116,19 @@ describe('relations : recherche de fiche', () => {
     expect(nomExiste(liste, 'Garage')).toBe(false)
   })
 })
+
+import { listeRappels } from '../src/lib/rappels'
+import { addDays, today } from '../src/lib/dates'
+
+describe('rappels : l’état des factures vient du module Facturation', () => {
+  const demain = addDays(today(), 1)
+  const docs = [{ id: 'f1', type: 'facture', numero: 'FAC-1', data: { echeance: demain, client: { nom: 'X' } } }]
+  const data = { list: [] }
+  it('sans module Facturation branché : aucun rappel de facture', () => {
+    expect(listeRappels(data, {}, docs, [])).toEqual([])
+  })
+  it('facture non payée : rappel ; payée : aucun', () => {
+    expect(listeRappels(data, {}, docs, [], () => 'Envoyée').map((r) => r.cle)).toEqual([`facture-f1-${demain}`])
+    expect(listeRappels(data, {}, docs, [], () => 'Payée')).toEqual([])
+  })
+})

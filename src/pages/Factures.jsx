@@ -3,12 +3,12 @@ import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { PaiementForm } from './Finances'
-import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../lib/invoice'
+import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../modules/facturation/invoice'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
-import { remplirDoc, ouvrirWhatsApp, telClient } from '../lib/whatsapp'
+import { remplirDoc, ouvrirWhatsApp, telClient } from '../modules/facturation/whatsapp'
 
 
-import { RelanceFactureBtn } from './Impayes'
+import { RelanceFactureBtn } from '../modules/facturation/ui'
 
 // ---------- Liste ----------
 export default function Factures({ type = 'facture', filtre: filtreDemande }) {
@@ -267,7 +267,7 @@ export function DocEditor({ id, query }) {
     if (dirty) return toast("Enregistre d'abord le document", true)
     setBusy('pdf')
     try {
-      const { pdfBlob, pdfNom } = await import('../lib/invoicePdf')
+      const { pdfBlob, pdfNom } = await import('../modules/facturation/invoicePdf')
       const blob = await pdfBlob(existing, pdfOpts())
       await fn(blob, pdfNom(existing, fact))
     } catch (e) {

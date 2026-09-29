@@ -10,14 +10,14 @@ import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
 import { MiniListe } from './pages/Prospects'
 import Hub, { ESPACES } from './pages/Hub'
-import { lienHub } from './lib/hub'
+import { lienHub } from './modules/commercial'
 const Fiche = lazy(() => import('./pages/Fiche'))
 const SaisieArgent = lazy(() => import('./pages/Finances').then((m) => ({ default: m.SaisieArgent })))
 const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Parametres = lazy(() => import('./pages/Parametres'))
 const Session = lazy(() => import('./pages/Session'))
-import { facturesImpayees } from './modules/facturation'
+import { facturesImpayees, statutDe } from './modules/facturation'
 const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
 const Paiements = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Paiements })))
@@ -407,7 +407,7 @@ function Crm() {
   // Rappels sur le téléphone : la liste à venir est envoyée au service quelques secondes après chaque changement
   useEffect(() => {
     if (!data || !state.settings.rappels?.actif) return
-    const t = setTimeout(() => syncRappels(data, state.settings, state.documents || [], state.actions).catch(() => {}), 3000)
+    const t = setTimeout(() => syncRappels(data, state.settings, state.documents || [], state.actions, statutDe).catch(() => {}), 3000)
     return () => clearTimeout(t)
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 

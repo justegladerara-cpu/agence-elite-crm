@@ -1,5 +1,5 @@
 // Hub Clients : range chaque fiche dans une catégorie du parcours (prospect → nouveau client → client actif → ancien)
-import { diffDays, today } from './dates'
+import { diffDays, today } from '../../lib/dates'
 
 export const JOURS_NOUVEAU = 90
 

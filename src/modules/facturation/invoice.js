@@ -1,5 +1,5 @@
 // Factures et devis : numérotation, totaux, statut, montant en lettres.
-import { today, addDays } from './dates'
+import { today, addDays } from '../../lib/dates'
 
 // Nombre saisi : accepte « 150 000 », « 12,5 »… (espaces et virgule)
 export const num = (v) => {

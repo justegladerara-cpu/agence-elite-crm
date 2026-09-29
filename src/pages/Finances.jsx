@@ -4,7 +4,7 @@ import { Icon } from '../icons'
 import { useApp, Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
-import { totals, paiementsDe, num } from '../lib/invoice'
+import { totals, paiementsDe, num } from '../modules/facturation/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
 
 

@@ -1,8 +1,8 @@
 // Messages WhatsApp des factures et devis : relance d'impayé et envoi du document
 import { totals, paiementsDe, num, TYPES } from './invoice'
-import { waLink } from './logic'
-import { copier } from './insta'
-import { fmtDate } from './dates'
+import { waLink } from '../../lib/logic'
+import { copier } from '../../lib/copier'
+import { fmtDate } from '../../lib/dates'
 
 // Téléphone du client : celui de sa fiche (WhatsApp d'abord)
 export const telClient = (doc, byId) => {

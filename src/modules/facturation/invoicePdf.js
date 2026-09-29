@@ -1,7 +1,7 @@
 // PDF des factures et devis (modèle « Pro » d'Agence Elite), généré dans le navigateur.
 import { jsPDF } from 'jspdf'
 import { totals, montantEnLettres, TYPES, num } from './invoice'
-import { getBrand, hexToRgb } from './theme'
+import { getBrand, hexToRgb } from '../../lib/theme'
 
 const fmtDate = (iso) => {
   if (!iso) return '—'

@@ -5,7 +5,7 @@ import { Icon } from '../icons'
 import { fmtDate, addDays, today } from '../lib/dates'
 import { lundiProchain } from '../lib/dates'
 import { instaLink, handleInsta, doublonInsta, actionRank, waLink } from '../lib/logic'
-import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../lib/insta'
+import { ETAPES, REACTIONS, ligne, remplir, copier, QUALIF, OBJECTIFS_PROSPECT, actionEtape, messageRelance, ligneRelance, numeroRelance } from '../modules/commercial/insta'
 
 const nomDepuisCompte = (v) =>
   handleInsta(v)

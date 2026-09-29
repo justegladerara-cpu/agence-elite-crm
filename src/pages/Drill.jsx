@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useApp, StageBadge, Score, Empty, go, eur, nb } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
-import { montantAction } from '../lib/drill'
+import { montantAction } from '../modules/dashboard/drill'
 import { modalPour } from '../lib/tresorerie'
 
 export default function Drill({ titre, sous, res, onClose }) {

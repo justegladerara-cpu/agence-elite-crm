@@ -5,11 +5,11 @@ import { lbl, useApp, StageBadge, Score, ContactButtons, Empty, go, eur, Modal, 
 import { ActionForm, ActionLine } from './Saisie'
 import FicheForm, { GROUPES_FICHE, TOUS_CHAMPS } from './FicheForm'
 import { ProcessBar, ProchaineEtape, ScriptsCard, QualifCard } from './Insta'
-import { ligne } from '../lib/insta'
+import { ligne } from '../modules/commercial'
 import { fmtDate } from '../lib/dates'
 import { siteLink, instaLink, doublonInsta } from '../lib/logic'
-import { categorie } from '../lib/hub'
-import { statutDe, totals, STATUT_TONE } from '../lib/invoice'
+import { categorie } from '../modules/commercial'
+import { statutDe, totals, STATUT_TONE } from '../modules/facturation'
 
 export default function Fiche({ id }) {
   const { data, api, openAction, toast, documents, saisirArgent } = useApp()

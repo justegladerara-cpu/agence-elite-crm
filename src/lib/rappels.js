@@ -1,7 +1,6 @@
 // Rappels sur le téléphone : abonnement de l'appareil et liste des rappels envoyés par le service (Supabase)
 import { supabase, isLocal } from './store'
 import { today, addDays, parse } from './dates'
-import { statutDe } from './invoice'
 
 export const rappelsDispo = () => !isLocal && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 // iPhone : les notifications ne marchent que dans l'appli installée sur l'écran d'accueil
@@ -51,7 +50,8 @@ export async function desactiverRappels() {
 export const testerRappels = () => fn('test')
 
 // Rappels des 14 prochains jours : relances (à l'heure de rappel, sinon à l'heure par défaut) et échéances de factures
-export function listeRappels(data, settings, documents, actions) {
+// statutFacture(document, actions) est fourni par le module Facturation : sans lui, pas de rappel de facture
+export function listeRappels(data, settings, documents, actions, statutFacture) {
   const t = today()
   const fin = addDays(t, 14)
   const heureDef = settings.rappels?.heureDefaut || '09:00'
@@ -72,7 +72,8 @@ export function listeRappels(data, settings, documents, actions) {
   documents.forEach((d) => {
     const e = d.data?.echeance
     if (d.type !== 'facture' || !e || e < t || e > fin) return
-    const st = statutDe(d, actions)
+    if (!statutFacture) return
+    const st = statutFacture(d, actions)
     if (st === 'Payée' || st === 'Annulée') return
     out.push({ cle: `facture-${d.id}-${e}`, quand: quand(e), titre: `Échéance de la facture ${d.numero}`, corps: `${d.data?.client?.nom || ''} : pense à vérifier le paiement.`, url: `/#/facture/${d.id}` })
   })
@@ -81,9 +82,9 @@ export function listeRappels(data, settings, documents, actions) {
 
 // Met à jour les rappels à venir côté serveur (remplace ceux pas encore envoyés)
 let dernier = ''
-export async function syncRappels(data, settings, documents, actions) {
+export async function syncRappels(data, settings, documents, actions, statutFacture) {
   if (!settings.rappels?.actif || isLocal || !navigator.onLine) return
-  const rows = listeRappels(data, settings, documents, actions).map((r) => ({ ...r, quand: r.quand.toISOString() }))
+  const rows = listeRappels(data, settings, documents, actions, statutFacture).map((r) => ({ ...r, quand: r.quand.toISOString() }))
   const sig = JSON.stringify(rows)
   if (sig === dernier) return
   const { error: e1 } = await supabase.from('rappels').delete().eq('envoye', false).gt('quand', new Date().toISOString())

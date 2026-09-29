@@ -1,5 +1,5 @@
 // Import des factures et devis exportés de Zoho Invoice (CSV ou Excel), sans connexion ni mot de passe.
-import { lireXlsx, feuilleVersLignes, lireCsv, serieVersDate } from './tableur'
+import { lireXlsx, feuilleVersLignes, lireCsv, serieVersDate } from '../../lib/tableur'
 import { num } from './invoice'
 
 const norm = (s) =>

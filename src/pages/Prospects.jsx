@@ -7,8 +7,8 @@ import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
 import { fmtDate, today, nowTime, addDays } from '../lib/dates'
 import { doublonInsta } from '../lib/logic'
-import { fichesHub, CATEGORIES } from '../lib/hub'
-import { ligne, ligneRelance } from '../lib/insta'
+import { fichesHub, CATEGORIES } from '../modules/commercial/hub'
+import { ligne, ligneRelance } from '../modules/commercial/insta'
 
 export function NewProspect({ onClose }) {
   const { api, data, toast } = useApp()

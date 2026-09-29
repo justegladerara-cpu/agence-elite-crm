@@ -29,7 +29,7 @@ const graphe = Object.fromEntries(
 // Module de chaque page (les pages du noyau sont communes)
 const PAGES = {
   commercial: ['Journee', 'Objectifs', 'Bilan', 'Hub', 'Prospects', 'Clients', 'Fiche', 'FicheForm', 'Insta', 'Session', 'Scripts', 'Saisie', 'Rapide'],
-  facturation: ['Factures', 'Finances', 'Impayes'],
+  facturation: ['Factures', 'Finances'],
   charges: ['Charges'],
   dashboard: ['Dashboard', 'Cockpit', 'DashPlus', 'Drill', 'Tresorerie'],
   agenda: ['Calendrier'],
@@ -39,9 +39,11 @@ const PAGES = {
 }
 const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.map((p) => [`pages/${p}.jsx`, m])))
 
+// Module propriétaire d'un fichier : dossier modules/<id>, ou module de la page
+const proprietaire = (f) => (f.startsWith('modules/') ? f.split('/')[1] : MODULE[f] || null)
+
 // Dépendances directes entre modules encore à découpler (la liste ne doit que diminuer)
 const DETTE = [
-  'pages/Journee.jsx -> pages/Impayes.jsx', // RelanceFactureBtn
 ]
 
 describe('architecture', () => {
@@ -70,6 +72,13 @@ describe('architecture', () => {
     expect(interdits).toEqual([])
   })
 
+  it('le noyau et les bibliothèques communes ne dépendent d’aucun module', () => {
+    const versModules = Object.entries(graphe)
+      .filter(([f]) => /^(core|lib)\//.test(f))
+      .flatMap(([f, deps]) => deps.filter((d) => d.startsWith('modules/')).map((d) => `${f} -> ${d}`))
+    expect(versModules).toEqual([])
+  })
+
   it('chaque page est rattachée à un module', () => {
     const pages = Object.keys(graphe).filter((f) => f.startsWith('pages/'))
     expect(pages.filter((p) => !MODULE[p])).toEqual([])
@@ -83,9 +92,9 @@ describe('architecture', () => {
     expect(croisees).toEqual([...DETTE].sort())
   })
 
-  it('un module n’est utilisé par les autres que via son contrat (modules/<id>/index.js)', () => {
+  it('un module n’est utilisé par les autres que via son contrat (modules/<id>/index.js ou ui.jsx)', () => {
     const internes = Object.entries(graphe).flatMap(([f, deps]) =>
-      deps.filter((d) => /^modules\/[^/]+\/(?!index\.js$)/.test(d) && d.split('/')[1] !== f.split('/')[1]).map((d) => `${f} -> ${d}`),
+      deps.filter((d) => /^modules\/[^/]+\/(?!(index\.js|ui\.jsx)$)/.test(d) && d.split('/')[1] !== proprietaire(f)).map((d) => `${f} -> ${d}`),
     )
     expect(internes).toEqual([])
   })

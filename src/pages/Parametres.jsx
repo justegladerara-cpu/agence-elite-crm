@@ -3,11 +3,11 @@ import { useApp, Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
-import { SOURCES } from '../lib/journee'
+import { SOURCES } from '../modules/commercial'
 import { today } from '../lib/dates'
 import { isExample } from '../lib/seed'
 import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desactiverRappels, testerRappels } from '../lib/rappels'
-import { totals, nouveauDoc } from '../lib/invoice'
+import { totals, nouveauDoc, chargerPdf, chargerZoho } from '../modules/facturation'
 import { mensuel, estActif } from '../lib/tresorerie'
 import Modules from './Modules'
 import Securite from './Securite'
@@ -306,7 +306,7 @@ function ZohoCard() {
     e.target.value = ''
     if (!file) return
     try {
-      const { lireZoho } = await import('../lib/zoho')
+      const { lireZoho } = await chargerZoho()
       const r = await lireZoho(new Uint8Array(await file.arrayBuffer()))
       const existants = new Set(documents.filter((d) => d.type === r.type).map((d) => d.numero))
       const nouveaux = r.docs.filter((d) => !existants.has(d.numero))
@@ -320,7 +320,7 @@ function ZohoCard() {
     setBusy(true)
     let n = 0
     try {
-      const { zohoPaye, zohoAnnulee, zohoDevisStatut } = await import('../lib/zoho')
+      const { zohoPaye, zohoAnnulee, zohoDevisStatut } = await chargerZoho()
       const ids = new Map(nomsConnus)
       for (const z of imp.nouveaux) {
         let pid = z.client ? ids.get(z.client.toLowerCase()) : null
@@ -524,7 +524,7 @@ export default function Parametres({ section }) {
     setBusy('apercu')
     const w = window.open('', '_blank')
     try {
-      const { pdfBlob } = await import('../lib/invoicePdf')
+      const { pdfBlob } = await chargerPdf()
       const fact = normalize(s).facturation
       const exemple = {
         type: 'facture',

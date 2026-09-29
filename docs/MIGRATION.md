@@ -45,7 +45,30 @@ Résultat : dépendances croisées 6 → 4. Tests : 50 unitaires, 22 parcours na
 
 Résultat : dépendances croisées 4 → 1 (reste `Journee → Impayes`, bouton de relance). Tests : 50 unitaires, 23 parcours navigateur (nouveau : saisie depuis les clients et le tableau de bord), build OK, 0 cycle. Avertissements lint 54 → 51.
 
+## Checkpoint (2026-09-29 08:20)
+Analyse sans modification envoyée à Juste : noyau encore petit (`core/` ≈ 350 lignes) mais noyau de fait = `App.jsx`, `ui.jsx`, `lib/logic.js`, `store.js`. Risques notés : `logic.js` mélange pipeline commercial et statistiques ; composants métier dans `ui.jsx` ; pastilles métier dans `App.jsx` ; Paramètres règle tous les modules ; contexte = toutes les données pour tous ; bus d'événements sans abonné.
+
+## Lot 4 (2026-09-29) : contrat d'interface de la Facturation
+| Changé | Avant → après | Pourquoi |
+|---|---|---|
+| `pages/Impayes.jsx` | page → `modules/facturation/ui.jsx` (bouton `RelanceFactureBtn`) | Ma journée affiche un composant de la Facturation par son contrat d'interface |
+Règle : un module s'utilise de l'extérieur par `index.js` (domaine) ou `ui.jsx` (composants). Dépendances croisées entre pages : 1 → 0.
+
+## Lot 5 (2026-09-29) : chaque module possède son domaine
+| Déplacé | Vers | Pourquoi |
+|---|---|---|
+| `lib/invoice.js`, `invoicePdf.js`, `whatsapp.js`, `zoho.js` | `modules/facturation/` | calculs, PDF, messages et import des factures appartiennent à la Facturation |
+| `lib/insta.js`, `journee.js`, `hub.js` | `modules/commercial/` | prospection, journée, catégories de clients |
+| `lib/cockpit.js`, `drill.js` | `modules/dashboard/` | agrégations propres au tableau de bord (aucun autre module ne les utilise) |
+| `copier` (presse-papiers) | `lib/insta.js` → `lib/copier.js` | utilitaire commun : la Facturation n'importe plus le Commercial |
+| rappels | `lib/rappels.js` importait `statutDe` → reçoit `statutFacture` en paramètre (fourni par App) | le noyau ne dépend d'aucun module ; sans Facturation, pas de rappel de facture |
+Contrats : `modules/facturation/index.js` (impayés, statut, totaux, `chargerPdf`, `chargerZoho` à la demande), `modules/commercial/index.js` (`lienHub`, `categorie`, `fichesHub`, `ligne`, `SOURCES`). Tableau de bord : pas de contrat (personne ne l'importe).
+Nouvelle règle testée : `core/` et `lib/` n'importent aucun module.
+Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cycle. Bundle principal 398 → 372 Ko. Tests : 53 unitaires, 23 parcours navigateur, build OK.
+
 ## Prochains lots (du moins risqué au plus risqué)
-3. `RelanceFactureBtn` → action exposée par le contrat facturation.
-4. Domaine par module : `lib/invoice.js` → `modules/facturation`, `lib/insta.js`/`journee.js`/`hub.js`/`appel.js` → `modules/commercial`, `lib/tresorerie.js` → `modules/charges`, `lib/cockpit.js`/`drill.js` → `modules/dashboard` (réexports temporaires pour ne rien casser).
-5. Contexte : séparer le noyau (session, réglages, modules) des données par module.
+1. `logic.js` : sortir le pipeline commercial (`computeAll` : étapes, relances, scores, clients) vers `modules/commercial`, les statistiques (`computeStats`, séries) vers `modules/dashboard` ; garder dans `lib` le vocabulaire commun (types d'actions, montants).
+2. Composants métier de `ui.jsx` (`StageBadge`, `Score`, `RelanceTag`, `ContactButtons`, `LienDoc`) → `modules/<id>/ui.jsx`.
+3. Pastilles du menu déclarées par chaque module (registre) au lieu d'être codées dans `App.jsx`.
+4. Paramètres : chaque module fournit sa section.
+5. Contexte : noyau (session, réglages, modules, services) séparé des données par module (étape 3).

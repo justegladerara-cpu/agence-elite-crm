@@ -1,7 +1,7 @@
 // Cockpit du tableau de bord : calculs purs sur les données réelles du CRM (aucune donnée inventée).
 // Mêmes règles que computeStats (logic.js) pour que chaque chiffre corresponde à sa liste de détail.
-import { isProspection, isReponse, VENTES, montantRetenu } from './logic'
-import { addDays, diffDays, weekday, pad } from './dates'
+import { isProspection, isReponse, VENTES, montantRetenu } from '../../lib/logic'
+import { addDays, diffDays, weekday, pad } from '../../lib/dates'
 
 const num = (v) => Number(String(v ?? '').replace(/\s/g, '').replace(',', '.')) || 0
 
