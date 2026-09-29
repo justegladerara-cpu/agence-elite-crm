@@ -1,18 +1,20 @@
 // Panneau latéral « détail d'un chiffre » : la liste des prospects ou actions derrière un chiffre, avec liens
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useApp, StageBadge, Score, Empty, go, eur, nb } from '../ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'
 import { montantAction } from '../lib/drill'
+import { SaisieArgent, modalPour } from './Tresorerie'
 
 export default function Drill({ titre, sous, res, onClose }) {
   const { data, documents } = useApp()
+  const [modal, setModal] = useState(null)
   useEffect(() => {
-    const k = (e) => e.key === 'Escape' && onClose()
+    const k = (e) => e.key === 'Escape' && !modal && onClose()
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [onClose])
+  }, [onClose, modal])
   const ouvrir = (path) => {
     onClose()
     go(path)
@@ -62,16 +64,24 @@ export default function Drill({ titre, sous, res, onClose }) {
               const p = data.byId[a.prospect_id]
               const m = montantAction(a, data) || Number(a.montant) || 0
               const doc = docDe(a.facture)
+              // Paiement ou dépense : ouvre la saisie pour voir ou corriger ; sinon la fiche du prospect
+              const argent = a.action === 'Paiement reçu' || a.action === 'Dépense'
+              const clic = () => (argent ? setModal(modalPour(a)) : p && ouvrir(`/prospect/${p.id}`))
+              const titreLigne = p ? p.name : a.action === 'Dépense' ? a.notes || a.fournisseur || a.categorie || 'Dépense' : a.notes || a.fournisseur || a.categorie || a.action
               return (
-                <div key={a.id} className="drill-row" role="button" tabIndex={0} onClick={() => p && ouvrir(`/prospect/${p.id}`)} onKeyDown={(e) => e.key === 'Enter' && p && ouvrir(`/prospect/${p.id}`)}>
+                <div key={a.id} className="drill-row" role="button" tabIndex={0} onClick={clic} onKeyDown={(e) => e.key === 'Enter' && clic()}>
                   <div className="li-main">
-                    <div className="li-title">{p ? p.name : a.fournisseur || a.categorie || a.action}</div>
+                    <div className="li-title" title={titreLigne}>{titreLigne}</div>
                     <div className="li-sub">
                       {fmtDate(a.date)}
                       {a.time ? ` ${a.time}` : ''} · {a.action}
                       {a.resultat ? ` → ${a.resultat}` : ''}
-                      {a.canal ? ` · ${a.canal}` : ''}
+                      {!argent && a.canal ? ` · ${a.canal}` : ''}
                       {a.modele ? ` · ${a.modele}` : ''}
+                      {a.categorie ? ` · ${a.categorie}` : ''}
+                      {a.mode ? ` · ${a.mode}` : ''}
+                      {p && a.notes ? ` · ${a.notes}` : ''}
+                      {argent && !p && a.action === 'Paiement reçu' ? ' · sans client' : ''}
                     </div>
                   </div>
                   <div className="drill-side">
@@ -94,6 +104,7 @@ export default function Drill({ titre, sous, res, onClose }) {
             })}
         </div>
       </aside>
+      <SaisieArgent modal={modal} onClose={() => setModal(null)} />
     </div>,
     document.body,
   )

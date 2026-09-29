@@ -437,7 +437,9 @@ function LigneProspect({ p, coche, cocher, montrerCat }) {
           {p.name}
         </a>
         <div className="hr-sub">
-          {[p.fiche?.contact, p.fiche?.secteur, p.fiche?.ville].filter(Boolean).join(' · ') || 'Fiche à compléter'}
+          <span className="hr-sub-t" title={[p.fiche?.contact, p.fiche?.secteur, p.fiche?.ville].filter(Boolean).join(' · ') || undefined}>
+            {[p.fiche?.contact, p.fiche?.secteur, p.fiche?.ville].filter(Boolean).join(' · ') || 'Fiche à compléter'}
+          </span>
           {alerte && (
             <span className="hr-alert">
               <Icon n="alert-circle" size={12} /> {alerte}
@@ -484,7 +486,7 @@ function LigneClient({ x, onPay }) {
           {p.name}
         </a>
         <div className="hr-sub">
-          {[p.fiche?.contact, p.fiche?.offre, p.dateSignature && `client depuis le ${fmtDate(p.dateSignature)}`].filter(Boolean).join(' · ')}
+          <span className="hr-sub-t">{[p.fiche?.contact, p.fiche?.offre, p.dateSignature && `client depuis le ${fmtDate(p.dateSignature)}`].filter(Boolean).join(' · ')}</span>
           {c.alerte && (
             <span className="hr-alert">
               <Icon n="alert-circle" size={12} /> {c.alerte}

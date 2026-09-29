@@ -1,5 +1,6 @@
 // Tests des calculs du CRM : étapes, relances, périodes, factures, lecture des fichiers
-import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest'
+import { mouvements, resumeArgent, rentabiliteClients } from '../src/lib/tresorerie'
+import { describe, test, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { computeAll, periodeFor, waLink, handleInsta, montantRetenu } from '../src/lib/logic'
 import { mergeSettings } from '../src/lib/store'
 import { totals, statutDe, nextNumero, num, enLettres } from '../src/lib/invoice'
@@ -143,5 +144,37 @@ describe('lecture de fichiers', () => {
     expect(colLettres(27)).toBe('AB')
     expect(colNum('AB')).toBe(27)
     expect(decoder('Caf&#233; &amp; th&eacute;')).toBe('Café & th&eacute;')
+  })
+})
+
+describe('trésorerie : paiements, frais liés et net', () => {
+  const actions = [
+    { id: 'p1', action: 'Paiement reçu', date: '2026-09-28', montant: 34000, prospect_id: null },
+    { id: 'd1', action: 'Dépense', date: '2026-09-28', montant: 2000, reference: 'paiement:p1', categorie: 'Transport' },
+    { id: 'p2', action: 'Paiement reçu', date: '2026-09-27', montant: 150000, prospect_id: 'c1' },
+    { id: 'd2', action: 'Dépense', date: '2026-09-27', montant: 5000, prospect_id: 'c1' },
+    { id: 'x', action: 'Paiement reçu', date: '2026-08-01', montant: 999 },
+  ]
+  const m = mouvements(actions, '2026-09-22', '2026-09-28')
+  it('garde la période, du plus récent au plus ancien', () => {
+    expect(m.map((x) => x.a.id)).toEqual(['p1', 'd1', 'p2', 'd2'])
+  })
+  it('rattache le taxi au paiement et calcule ce qui reste', () => {
+    const p1 = m.find((x) => x.a.id === 'p1')
+    expect(p1.coutLie).toBe(2000)
+    expect(p1.net).toBe(32000)
+    expect(p1.sansClient).toBe(true)
+  })
+  it('résume encaissé, dépenses, charges fixes et net', () => {
+    const r = resumeArgent(m, 1000)
+    expect(r).toMatchObject({ encaisse: 184000, depenses: 7000, net: 176000, nbEntrees: 2, nbSorties: 2 })
+    expect(r.sansClient).toHaveLength(1)
+  })
+  it('donne la rentabilité par client, sans compter deux fois un frais', () => {
+    const rows = rentabiliteClients(m, { c1: { name: 'Client 1' } })
+    expect(rows).toEqual([
+      expect.objectContaining({ id: 'c1', encaisse: 150000, frais: 5000, net: 145000 }),
+      expect.objectContaining({ id: '', nom: 'Sans client', encaisse: 34000, frais: 2000, net: 32000 }),
+    ])
   })
 })

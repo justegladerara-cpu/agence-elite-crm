@@ -102,3 +102,23 @@ test('pas de défilement horizontal', async ({ page }) => {
     expect(deborde, route).toBeLessThanOrEqual(1)
   }
 })
+
+test('tableau de bord : un paiement et ses frais (taxi) donnent le net', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/dashboard?onglet=vue')
+  const argent = page.locator('section.argent')
+  await argent.getByRole('button', { name: 'Paiement', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Paiement reçu' })
+  await dialog.getByLabel(/Montant reçu/).fill('34000')
+  await dialog.getByLabel('Notes').fill('Dépannage de 22 h')
+  await dialog.getByRole('button', { name: 'Enregistrer le paiement' }).click()
+  await dialog.getByRole('button', { name: 'Ajouter des frais' }).click()
+  const frais = page.getByRole('dialog', { name: 'Paiement reçu' })
+  await frais.getByLabel(/^Montant/).fill('2000')
+  await expect(frais.getByText(/il te reste/)).toContainText('32')
+  await frais.getByRole('button', { name: 'Enregistrer la dépense' }).click()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  const ligne = argent.locator('.mvt.in', { hasText: 'Dépannage de 22 h' })
+  await expect(ligne).toContainText('net 32')
+  await expect(ligne.getByRole('button', { name: /Relier à un client/ })).toBeVisible()
+})

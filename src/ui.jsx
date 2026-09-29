@@ -35,6 +35,15 @@ export const pct = (v) => (v === null || v === undefined || isNaN(v) ? '—' : `
 export const nb = (v, dec = 0) =>
   v === null || v === undefined || isNaN(v) ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: dec })
 
+// Nombre abrégé pour les axes et les petits espaces : 1 250 000 000 → « 1,25 Md », 987 654 → « 988 k »
+export const court = (v) => {
+  const a = Math.abs(v)
+  if (a >= 1e9) return `${nb(v / 1e9, 2)} Md`
+  if (a >= 1e6) return `${nb(v / 1e6, a >= 1e8 ? 0 : 1)} M`
+  if (a >= 1e3) return `${nb(v / 1e3, a >= 1e5 ? 0 : 1)} k`
+  return nb(v)
+}
+
 export function go(path) {
   window.location.hash = path
 }

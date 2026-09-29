@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useApp, Kpi, eur, pct, nb, Tabs, useTab } from '../ui'
+import { useApp, Kpi, eur, pct, nb, court, Tabs, useTab } from '../ui'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, Funnel, Gauge, COULEURS, useWidth } from '../charts'
 import { computeStats, periodeFor, monthlySeries, activitySeries } from '../lib/logic'
 import { detail } from '../lib/drill'
 import Drill from './Drill'
+import { ArgentPeriode, RentabiliteClients } from './Tresorerie'
 import { PipelineEtapes, CumulMois, Heatmap, MeilleursClients, depensesParCategorie } from './DashPlus'
 import { go } from '../ui'
 import { today, fmtMonth, fmtMonthShort, fmtDate, parse } from '../lib/dates'
@@ -46,7 +47,7 @@ function MonthChart({ series, objectif = 0, onPick }) {
           <g key={v}>
             <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="#e9ecf2" />
             <text x={pad.l - 6} y={y(v) + 4} fontSize="10.5" textAnchor="end" fill="#667085">
-              {v >= 1000 ? `${nb(v / 1000, 1)} k` : v}
+              {court(v)}
             </text>
           </g>
         ))}
@@ -58,7 +59,7 @@ function MonthChart({ series, objectif = 0, onPick }) {
               {bar(x0, m.caSigne, C_SIGNE)}
               {bar(x0 + bw + 2, m.encaisse, C_ENC)}
               <text x={pad.l + i * gw + gw / 2} y={H - 8} fontSize="10.5" textAnchor="middle" fill="#667085">
-                {fmtMonthShort(m.key)}
+                {gw < 34 ? fmtMonthShort(m.key).charAt(0).toUpperCase() : fmtMonthShort(m.key)}
               </text>
             </g>
           )
@@ -259,7 +260,9 @@ function BigKpi({ ico, label, value, cur, prev, sub, vs, fmt = nb, onClick }) {
         <span className="bk-ic"><Icon n={ico} size={16} /></span>
         {label}
       </div>
-      <div className="bk-value">{value}</div>
+      <div className={`bk-value ${String(value).length > 13 ? 'long' : ''}`} title={String(value)}>
+        {value}
+      </div>
       <div className="bk-comp">
         {pill && <span className={`bk-delta ${cls}`}>{pill}</span>}
         {comp && <span className="bk-prev">{vs.charAt(0).toUpperCase() + vs.slice(1)} : {fmt(prev)}</span>}
@@ -392,11 +395,12 @@ export default function Dashboard({ onglet: ongletDemande }) {
       {onglet === 'vue' && (
         <>
           <div className="bigkpis four">
-            <BigKpi ico="coins" onClick={() => voir('Ventes (CA signé)', { kind: 'ventes' })} label="CA signé" value={eur(c.caSigne)} cur={c.caSigne} prev={pvv('caSigne')} vs={vs} fmt={eur} sub={`Encaissé : ${eur(c.encaisse)}`} />
+            <BigKpi ico="coins" onClick={() => voir('Paiements reçus', { kind: 'encaisse' })} label="Encaissé" value={eur(c.encaisse)} cur={c.encaisse} prev={pvv('encaisse')} vs={vs} fmt={eur} sub={`Net après dépenses : ${eur(c.benefice)} · CA signé : ${eur(c.caSigne)}`} />
             <BigKpi ico="handshake" onClick={() => voir('Clients signés', { kind: 'signes' })} label="Clients signés" value={nb(c.signes)} cur={c.signes} prev={pvv('signes')} vs={vs} />
             <BigKpi ico="calendar" onClick={() => voir('RDV obtenus', { kind: 'rdv' })} label="RDV obtenus" value={nb(c.rdv)} cur={c.rdv} prev={pvv('rdv')} vs={vs} />
             <BigKpi ico="target" onClick={() => voir('Propositions envoyées', { kind: 'propositions' })} label="Taux de closing" value={c.propositions ? pct(c.closing) : '—'} cur={Math.round(c.closing * 100)} prev={pv ? Math.round(pv.closing * 100) : null} vs={vs} fmt={(v) => `${v} pts`} sub={`${nb(c.signes)} signé${c.signes > 1 ? 's' : ''} sur ${nb(c.propositions)} proposition${c.propositions > 1 ? 's' : ''}`} />
           </div>
+          <ArgentPeriode periode={periode} titre={titre} depensesTotal={c.depenses} onVoir={voir} compact />
 
           <div className="mini-stats" role="list">
             <Mini label="Prospects ajoutés" v={c.prospects} d={d('prospects')} onClick={() => voir('Prospects ajoutés', { kind: 'prospects' })} />
@@ -572,6 +576,10 @@ export default function Dashboard({ onglet: ongletDemande }) {
             <Kpi onClick={() => voir('Dépenses de la période', { kind: 'depenses' })} label="Bénéfice net" value={eur(c.benefice)} delta={d('benefice')} vs={vs} />
             <Kpi onClick={() => voir('Clients abonnés', { kind: 'abonnes' })} label="Revenu récurrent (MRR)" value={`${eur(st.mrr)}/mois`} />
           </div>
+          <div className="grid grid-2 argent-grid" style={{ alignItems: 'start' }}>
+            <ArgentPeriode periode={periode} titre={titre} depensesTotal={c.depenses} onVoir={voir} />
+            <RentabiliteClients periode={periode} />
+          </div>
           <div className="card">
             <h2 className="section">{secIc('target')} Ce mois-ci : CA cumulé face à l'objectif</h2>
             <CumulMois canal={canal} />
@@ -647,7 +655,10 @@ export default function Dashboard({ onglet: ongletDemande }) {
               </div>
             </div>
           </div>
-          <MeilleursClients canal={canal} />
+          <div className="card">
+            <h2 className="section">{secIc('trophy')} Meilleurs clients (CA signé)</h2>
+            <MeilleursClients canal={canal} />
+          </div>
         </>
       )}
     </div>

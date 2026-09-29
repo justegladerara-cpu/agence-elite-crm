@@ -1,6 +1,7 @@
 // Graphiques du tableau de bord (SVG, sans bibliothèque) : anneau, barres, entonnoir, jauge.
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from './icons'
+import { court } from './ui'
 
 // Couleurs des séries, toujours dans le même ordre (lisibles aussi pour les daltoniens)
 export const COULEURS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948']
@@ -20,8 +21,15 @@ export function useWidth(def = 600) {
   return [ref, w]
 }
 
+// Texte du centre du donut : abrégé quand le montant est trop long pour le cercle
+const centreDe = (fmt) => (v) => {
+  const t = String(fmt(v))
+  return t.length > 10 ? court(v) : t
+}
+
 // Anneau de répartition : 5 parts au plus, le reste regroupé dans « Autres »
 export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max = 5, onPick }) {
+  const centre = centreDe(fmt)
   const [hover, setHover] = useState(null)
   const sorted = items.filter((x) => x.value > 0).sort((a, b) => b.value - a.value)
   const parts = sorted.slice(0, max).map((x, i) => ({ ...x, color: COULEURS[i] }))
@@ -65,7 +73,7 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
           />
         ))}
         <text x="70" y="66" textAnchor="middle" fontSize="17" fontWeight="700" fill="#16203a">
-          {h ? fmt(h.value) : fmt(total)}
+          {centre(h ? h.value : total)}
         </text>
         <text x="70" y="82" textAnchor="middle" fontSize="9.5" fill="#6b7489">
           {h ? `${Math.round((h.value / total) * 100)} %` : totalLabel}

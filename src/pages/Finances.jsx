@@ -1,7 +1,8 @@
 // Paiements reçus et dépenses (onglets du menu Factures)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, LienProspect, LienDoc } from '../ui'
+import { useApp, Field, Kpi, Empty, Modal, Bar, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
+import { REF_PAIEMENT } from '../lib/tresorerie'
 import { ProspectPicker } from './Saisie'
 import { totals, paiementsDe, num } from '../lib/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
@@ -174,14 +175,49 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
     setBusy(true)
     try {
       const row = { prospect_id: f.prospect_id || null, date: f.date || today(), canal: 'Autre', action: 'Paiement reçu', montant: f.montant, mode: f.mode, reference: f.reference, facture: f.facture, notes: f.notes }
-      if (edit) await api.updateAction(edit.id, { ...edit, ...row })
-      else await api.addActions([row])
+      if (edit) {
+        await api.updateAction(edit.id, { ...edit, ...row })
+        toast('Paiement enregistré ✓')
+        return onDone()
+      }
+      const rows = await api.addActions([row])
       toast('Paiement enregistré ✓')
-      onDone()
+      // Étape suivante : noter tout de suite les frais de ce travail (taxi, pièces…) pour connaître le vrai gain
+      if (rows?.[0]?.id) setFait(rows[0])
+      else onDone()
     } catch {
       setBusy(false)
     }
   }
+  const [fait, setFait] = useState(null)
+  const [frais, setFrais] = useState(false)
+  if (fait && frais)
+    return (
+      <DepenseForm
+        prefill={{ prospect_id: fait.prospect_id, date: fait.date, reference: `${REF_PAIEMENT}${fait.id}`, categorie: (settings.categoriesDepenses || []).includes('Transport') ? 'Transport' : '', notes: fait.notes ? `Frais : ${fait.notes}`.slice(0, 120) : '' }}
+        lie={fait}
+        onDone={onDone}
+      />
+    )
+  if (fait)
+    return (
+      <div className="stack frais-etape" style={{ gap: 12 }}>
+        <div className="frais-ok">
+          <Icon n="check" size={16} /> <b>+ {eur(fait.montant)}</b> encaissés le {fmtDate(fait.date)}
+        </div>
+        <p className="small" style={{ margin: 0 }}>
+          As-tu eu des frais pour ce travail (taxi, carburant, pièces) ? Note-les maintenant : le tableau de bord affichera ce qu'il te reste vraiment.
+        </p>
+        <div className="row">
+          <button type="button" className="btn gold" onClick={() => setFrais(true)}>
+            <Icon n="plus" size={14} /> Ajouter des frais
+          </button>
+          <button type="button" className="btn" onClick={onDone}>
+            Non, terminé
+          </button>
+        </div>
+      </div>
+    )
   const remove = async () => {
     await api.deleteAction(edit.id)
     onDone()
@@ -206,7 +242,7 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
         <Field label="Date">
           <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
         </Field>
-        <Field label="Montant reçu (€)">
+        <Field label={lbl('Montant reçu (€)')}>
           <input inputMode="decimal" value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
         </Field>
         <Field label="Mode de paiement">
@@ -240,13 +276,13 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
 }
 
 // ---------- Formulaire : dépense ----------
-export function DepenseForm({ prefill = {}, edit, onDone }) {
-  const { settings, api, toast } = useApp()
+export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
+  const { settings, api, toast, actions } = useApp()
   const cats = settings.categoriesDepenses || []
   const [f, setF] = useState(() =>
     edit
-      ? { ...edit, montant: edit.montant ?? '', categorie: edit.categorie || '', fournisseur: edit.fournisseur || '', mode: edit.mode || '', notes: edit.notes || '', recu: edit.recu || '' }
-      : { prospect_id: null, date: today(), montant: '', categorie: '', fournisseur: '', mode: settings.modesPaiement?.[0] || '', notes: '', recu: '', ...prefill },
+      ? { ...edit, montant: edit.montant ?? '', categorie: edit.categorie || '', fournisseur: edit.fournisseur || '', mode: edit.mode || '', notes: edit.notes || '', recu: edit.recu || '', reference: edit.reference || '' }
+      : { prospect_id: null, date: today(), montant: '', categorie: '', fournisseur: '', mode: settings.modesPaiement?.[0] || '', notes: '', recu: '', reference: '', ...prefill },
   )
   const [busy, setBusy] = useState(false)
   const set = (patch) => setF((x) => ({ ...x, ...patch }))
@@ -254,7 +290,7 @@ export function DepenseForm({ prefill = {}, edit, onDone }) {
     if (!num(f.montant)) return toast('Indique le montant', true)
     setBusy(true)
     try {
-      const row = { prospect_id: f.prospect_id || null, date: f.date || today(), canal: 'Autre', action: 'Dépense', montant: f.montant, categorie: f.categorie, fournisseur: f.fournisseur, mode: f.mode, notes: f.notes, recu: f.recu }
+      const row = { prospect_id: f.prospect_id || null, date: f.date || today(), canal: 'Autre', action: 'Dépense', montant: f.montant, categorie: f.categorie, fournisseur: f.fournisseur, mode: f.mode, notes: f.notes, recu: f.recu, reference: f.reference || '' }
       if (edit) await api.updateAction(edit.id, { ...edit, ...row })
       else await api.addActions([row])
       toast('Dépense enregistrée ✓')
@@ -267,13 +303,34 @@ export function DepenseForm({ prefill = {}, edit, onDone }) {
     await api.deleteAction(edit.id)
     onDone()
   }
+  // Paiement auquel ces frais sont rattachés (ex. le taxi d'un dépannage)
+  const idLie = String(f.reference || '').startsWith(REF_PAIEMENT) ? f.reference.slice(REF_PAIEMENT.length) : null
+  const paiement = lie || (idLie && actions.find((a) => a.id === idLie))
   return (
     <div className="stack" style={{ gap: 14 }}>
+      {paiement && (
+        <div className="lien-paiement small">
+          <Icon n="coins" size={14} />
+          <span>
+            Frais du paiement de <b>{eur(paiement.montant)}</b> du {fmtDate(paiement.date)}
+            {num(f.montant) > 0 && (
+              <>
+                {' '}· il te reste <b className="green">{eur(num(paiement.montant) - num(f.montant))}</b>
+              </>
+            )}
+          </span>
+          {!lie && (
+            <button type="button" className="toggle-link tiny" onClick={() => set({ reference: '' })}>
+              Détacher
+            </button>
+          )}
+        </div>
+      )}
       <div className="form-grid tight">
         <Field label="Date">
           <input type="date" value={f.date} onChange={(e) => set({ date: e.target.value })} />
         </Field>
-        <Field label="Montant (€)">
+        <Field label={lbl('Montant (€)')}>
           <input inputMode="decimal" value={f.montant} onChange={(e) => set({ montant: e.target.value })} />
         </Field>
         <Field label="Catégorie">
@@ -329,8 +386,8 @@ function Repartition({ rows, empty }) {
     <div className="stack" style={{ gap: 10 }}>
       {rows.map(([k, v]) => (
         <div key={k}>
-          <div className="row small" style={{ justifyContent: 'space-between' }}>
-            <span>{k}</span>
+          <div className="row small repart-l">
+            <span title={k}>{k}</span>
             <b>
               {eur(v)} <span className="muted">· {Math.round((v / tot) * 100)} %</span>
             </b>
