@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
-import { computeAll, appelEnCours, oublierAppel } from './modules/commercial'
+import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './modules/commercial'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
@@ -17,7 +17,7 @@ const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Parametres = lazy(() => import('./pages/Parametres'))
 const Session = lazy(() => import('./pages/Session'))
-import { facturesImpayees, statutDe } from './modules/facturation'
+import { statutDe, pastillesFacturation } from './modules/facturation'
 const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
 const Paiements = lazy(() => import('./pages/Finances').then((m) => ({ default: m.Paiements })))
@@ -37,7 +37,7 @@ import { QuickForm, AppelSheet } from './pages/Rapide'
 import { corbeille } from './lib/corbeille'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
-import { pageAccessible, moduleDePage } from './core/modules'
+import { pageAccessible, moduleDePage, estActif } from './core/modules'
 import { emettre, evenementDAction, evenementDeDocument } from './core/events'
 
 installerSuiviErreurs()
@@ -156,6 +156,8 @@ const APPS = [
 // Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
 const ONGLET_DASH = { vue: 'vue', acquisition: 'acquisition', conversion: 'conversion', finances: 'finances', prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
 const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])))
+// Pastilles fournies par les modules (App est le seul endroit qui les assemble)
+const PASTILLES = { commercial: pastillesCommercial, facturation: pastillesFacturation }
 // Sections du tableau de bord qui lisent les données d'un module : masquées si ce module est désactivé
 const MODULE_ENTREE = { 'dashboard/acquisition': 'commercial', 'dashboard/conversion': 'commercial', 'dashboard/finances': 'facturation' }
 const entreeActive = (route, settings) => pageAccessible(route.split('/')[0], settings) && (!MODULE_ENTREE[route] || settings?.modules?.[MODULE_ENTREE[route]] !== false)
@@ -572,15 +574,9 @@ function Crm() {
   // Entrée du menu à surligner : section du tableau de bord ou des paramètres, sinon la page
   const ongletDash = ONGLET_DASH[arg || q.get('onglet')] || ''
   const cle = page === 'dashboard' ? (ongletDash && ongletDash !== 'vue' ? `dashboard/${ongletDash}` : 'dashboard') : page === 'parametres' ? `parametres/${arg || 'identite'}` : current
-  // Pastilles du menu : ce qui attend une action dans chaque rubrique
-  const retards = facturesImpayees(state.documents || [], state.actions).filter((d) => d.statut === 'En retard').length
-  const devisAttente = (state.documents || []).filter((d) => d.type === 'devis' && !d.data?.factureNumero && !['Accepté', 'Refusé'].includes(d.data?.statut) && !(d.data?.validite && d.data.validite < new Date().toISOString().slice(0, 10))).length
-  const badges = {
-    journee: [data.aRelancer.length, 'hot', 'relances à faire'],
-    clients: [data.clientsAlertes.length, '', 'clients à surveiller'],
-    factures: [retards, 'hot', 'factures en retard'],
-    devis: [devisAttente, '', 'devis en attente'],
-  }
+  // Pastilles du menu : chaque module actif déclare ce qui attend une action dans ses pages
+  const etatPastilles = { data, documents: state.documents || [], actions: state.actions }
+  const badges = Object.assign({}, ...Object.entries(PASTILLES).filter(([m]) => estActif(m, state.settings)).map(([, f]) => f(etatPastilles)))
   // Application ouverte : son menu, sa couleur ; sans application (accueil, saisie) le menu liste les applications
   const basculerRubrique = (id, ouvert) => setOuverts((m) => ({ ...m, [id]: !ouvert }))
   // Modules désactivés (Paramètres › Modules) : leurs pages sortent du menu et de la navigation

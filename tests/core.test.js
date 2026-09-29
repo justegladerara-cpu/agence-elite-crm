@@ -132,3 +132,21 @@ describe('rappels : l’état des factures vient du module Facturation', () => {
     expect(listeRappels(data, {}, docs, [], () => 'Payée')).toEqual([])
   })
 })
+
+import { pastillesFacturation } from '../src/modules/facturation'
+import { pastillesCommercial } from '../src/modules/commercial'
+
+describe('pastilles déclarées par les modules', () => {
+  it('Facturation : devis en attente (ni facturé, ni tranché, ni expiré)', () => {
+    const docs = [
+      { type: 'devis', data: {} },
+      { type: 'devis', data: { statut: 'Accepté' } },
+      { type: 'devis', data: { factureNumero: 'FAC-1' } },
+      { type: 'devis', data: { validite: '2026-01-01' } },
+    ]
+    expect(pastillesFacturation({ documents: docs, actions: [] }, '2026-09-29')).toEqual({ factures: [0, 'hot', 'factures en retard'], devis: [1, '', 'devis en attente'] })
+  })
+  it('Commercial : relances et clients à surveiller', () => {
+    expect(pastillesCommercial({ data: { aRelancer: [1, 2], clientsAlertes: [] } })).toEqual({ journee: [2, 'hot', 'relances à faire'], clients: [0, '', 'clients à surveiller'] })
+  })
+})
