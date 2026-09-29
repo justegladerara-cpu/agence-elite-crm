@@ -28,6 +28,7 @@ export const MODULES = [
     },
     dependances: { requis: [], optionnels: ['agenda', 'facturation'] },
     reglages: ['etapes', 'actions', 'objectifs', 'objectifsQuotidiens', 'alertes', 'scripts'],
+    sections: ['scripts'],
   },
   {
     id: 'facturation',
@@ -64,6 +65,7 @@ export const MODULES = [
     evenements: { produits: [], consommes: ['appointment.created', 'invoice.created'] },
     dependances: { requis: [], optionnels: ['commercial', 'facturation'] },
     reglages: ['rappels'],
+    sections: ['rappels'],
   },
   {
     id: 'site',
@@ -120,6 +122,13 @@ export const modulesActifs = (settings) => MODULES.filter((m) => estActif(m.id, 
 // Page inconnue du registre (ancien lien, page commune) : accessible
 export function pageAccessible(page, settings) {
   const m = PAR_PAGE[page]
+  return !m || estActif(m.id, settings)
+}
+
+// Section de Paramètres propre à un module (sections : [...]) : visible seulement si ce module est actif
+const PAR_SECTION = Object.fromEntries(MODULES.flatMap((m) => (m.sections || []).map((x) => [x, m])))
+export function sectionAccessible(section, settings) {
+  const m = PAR_SECTION[section]
   return !m || estActif(m.id, settings)
 }
 

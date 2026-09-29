@@ -156,7 +156,7 @@ Aujourd'hui tout est chargé (`fetchAll`, pages de 1000). Cible : noyau minimal 
 | 0 | Audit, cartographie, ce document | fait |
 | 1a | Registre des modules (activation, dépendances, permissions), événements dérivés + bus, section Paramètres › Modules | fait (2026-09-29) |
 | 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | fait (2026-09-29), vérifié : 0 identifiant en dur, catalogue et visites OK en anonyme, audit testé |
-| 2 | Découplage par lots (`src/modules/<id>` + contrat `index.js`), règle d'import vérifiée par `tests/architecture.test.js` | en cours (lots 1 à 8 faits) |
+| 2 | Découplage par lots (`src/modules/<id>` + contrat `index.js`), règle d'import vérifiée par `tests/architecture.test.js` | en cours (lots 1 à 9 faits) |
 | 3 | Contexte découpé : core (session, espace, réglages) + données par module | à faire |
 | 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | à faire |
 | 5 | Calculs lourds côté serveur, chargement à la demande | à faire |

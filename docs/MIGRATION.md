@@ -77,6 +77,9 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - `modules/commercial/pastilles.js` (relances, clients à surveiller), `modules/facturation/pastilles.js` (factures en retard, devis en attente), exportées par `index.js`.
 - `App.jsx` n'agrège que les pastilles des modules actifs. Vérifié : 55 tests unitaires, 23 e2e, build OK, 0 cycle.
 
-## Prochains lots (du moins risqué au plus risqué)
-1. Paramètres : chaque module fournit sa section (masquée si le module est désactivé).
-2. Contexte : noyau (session, réglages, modules, services) séparé des données par module (étape 3).
+## Lot 9 (2026-09-29) : sections de Paramètres rattachées à leur module
+- Registre : `sections` par module (Commercial → Scripts, Agenda → Rappels) ; `sectionAccessible()` dans le noyau.
+- Section d'un module désactivé : retirée du menu, l'URL retombe sur Identité. Sections mixtes (Facturation/devise, Listes, Objectifs) restent communes : la devise sert partout.
+
+## Prochains lots
+1. Contexte : noyau (session, réglages, modules, services) séparé des données par module (étape 3).

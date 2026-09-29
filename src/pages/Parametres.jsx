@@ -10,6 +10,7 @@ import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desacti
 import { totals, nouveauDoc, chargerPdf, chargerZoho } from '../modules/facturation'
 import { mensuel, estActif } from '../lib/tresorerie'
 import Modules from './Modules'
+import { sectionAccessible } from '../core/modules'
 import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
@@ -630,7 +631,7 @@ export default function Parametres({ section }) {
     setBusy('')
   }
 
-  const sec = SECTIONS.some((x) => x[0] === section) ? section : 'identite'
+  const sec = SECTIONS.some((x) => x[0] === section) && sectionAccessible(section, settings) ? section : 'identite'
   const numCard = (g) =>
     NUM_GROUPS.filter((x) => x[1] === g).map(([title, g, fields]) => (
       <div className="card" key={g}>

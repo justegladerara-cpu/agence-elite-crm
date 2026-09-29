@@ -37,7 +37,7 @@ import { QuickForm, AppelSheet } from './pages/Rapide'
 import { corbeille } from './lib/corbeille'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
-import { pageAccessible, moduleDePage, estActif } from './core/modules'
+import { pageAccessible, moduleDePage, estActif, sectionAccessible } from './core/modules'
 import { emettre, evenementDAction, evenementDeDocument } from './core/events'
 
 installerSuiviErreurs()
@@ -160,7 +160,8 @@ const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])
 const PASTILLES = { commercial: pastillesCommercial, facturation: pastillesFacturation }
 // Sections du tableau de bord qui lisent les données d'un module : masquées si ce module est désactivé
 const MODULE_ENTREE = { 'dashboard/acquisition': 'commercial', 'dashboard/conversion': 'commercial', 'dashboard/finances': 'facturation' }
-const entreeActive = (route, settings) => pageAccessible(route.split('/')[0], settings) && (!MODULE_ENTREE[route] || settings?.modules?.[MODULE_ENTREE[route]] !== false)
+const entreeActive = (route, settings) =>
+  pageAccessible(route.split('/')[0], settings) && (!MODULE_ENTREE[route] || settings?.modules?.[MODULE_ENTREE[route]] !== false) && (!route.startsWith('parametres/') || sectionAccessible(route.slice(11), settings))
 function appsActives(settings) {
   return APPS.map((a) => ({ ...a, pages: a.pages.filter((p) => pageAccessible(p, settings)), entrees: a.entrees.filter((e) => entreeActive(e.route, settings)) }))
     .filter((a) => a.pages.length)

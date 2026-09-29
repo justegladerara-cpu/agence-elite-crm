@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MODULES, estActif, pageAccessible, basculer, moduleDePage, dependantsDe } from '../src/core/modules'
+import { MODULES, estActif, pageAccessible, basculer, moduleDePage, dependantsDe, sectionAccessible } from '../src/core/modules'
 import { permissionsDe, peut, TOUTES } from '../src/core/permissions'
 import { evenements, evenementDAction, evenementDeDocument, emettre, ecouter, typeAction } from '../src/core/events'
 import { DEFAULT_SETTINGS } from '../src/lib/defaults'
@@ -148,5 +148,14 @@ describe('pastilles déclarées par les modules', () => {
   })
   it('Commercial : relances et clients à surveiller', () => {
     expect(pastillesCommercial({ data: { aRelancer: [1, 2], clientsAlertes: [] } })).toEqual({ journee: [2, 'hot', 'relances à faire'], clients: [0, '', 'clients à surveiller'] })
+  })
+})
+
+describe('sections de Paramètres par module', () => {
+  it('masque la section d’un module désactivé, garde les sections communes', () => {
+    expect(sectionAccessible('scripts', {})).toBe(true)
+    expect(sectionAccessible('scripts', { modules: { commercial: false } })).toBe(false)
+    expect(sectionAccessible('rappels', { modules: { agenda: false } })).toBe(false)
+    expect(sectionAccessible('identite', { modules: { commercial: false, agenda: false } })).toBe(true)
   })
 })
