@@ -1,6 +1,7 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Modal, Field, go, RelanceTag, Menu } from '../ui'
+import { useApp, Modal, Field, go, Menu } from '../ui'
+import { RelanceTag } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { fmtDate, addDays, today } from '../lib/dates'
 import { lundiProchain } from '../lib/dates'

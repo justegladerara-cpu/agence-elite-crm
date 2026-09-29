@@ -1,6 +1,7 @@
 // Hub Clients : prospects, nouveaux clients, clients actifs, anciens clients et perdus sur une seule page
 import { useEffect, useMemo, useState } from 'react'
-import { useApp, Score, RelanceTag, ContactButtons, StageBadge, go, eur, nb, Menu, useTab } from '../ui'
+import { useApp, StageBadge, go, eur, nb, Menu, useTab } from '../ui'
+import { Score, RelanceTag, ContactButtons } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { NewProspect, ActionsGroupees, ACTION_ETAPE } from './Prospects'
 import { QuickInsta } from './Insta'

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, StageBadge, Score, ContactButtons, Empty, go, Select, Field } from '../ui'
+import { useApp, StageBadge, Empty, go, Select, Field } from '../ui'
+import { Score, ContactButtons } from '../modules/commercial/ui'
 import { today, nowTime, fmtDate } from '../lib/dates'
 
 // Session d'appels chronométrée : enchaîne les relances du jour puis les prospects les plus chauds.
