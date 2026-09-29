@@ -89,6 +89,6 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Les 22 fichiers mixtes lisent séparément `useDonnees()` et `useNoyau()`. `useApp` ne reste que dans Sécurité (sauvegarde complète) ; plafond abaissé à 1.
 
 ## Prochains lots
-1. Mémoïser le noyau (`api` lit l'état via une référence) pour que les écrans « noyau seul » ne se redessinent plus à chaque changement de données.
+1. Mémoïser le noyau : gain nul tant que les pages sont rendues par App (elles se redessinent avec lui) ; à faire avec le chargement par module.
 2. Données par module (un fournisseur par module, chargé à la demande) : dépend de l'étape 5 (calculs côté serveur).
 3. Étape 4 (base, accord requis) : table `events`, `workspace_id` sur les tables métier.
