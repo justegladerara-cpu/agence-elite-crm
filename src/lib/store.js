@@ -195,21 +195,31 @@ const check = ({ data, error }) => {
 // Si les espaces ne peuvent pas être lus, aucun filtre (la sécurité de la base suffit, comme avant).
 const ESPACE = 'aecrm-espace'
 let espace
+let role
+let moi
+// Rôle dans l'espace actif (propriétaire par défaut : mode local, hors ligne ou espaces illisibles, comme avant)
+export const roleActif = () => role || 'proprietaire'
+export const moiActif = () => moi
 export async function espaceActif() {
   if (espace !== undefined) return espace
   try {
     const { data: s } = await supabase.auth.getSession()
-    const moi = s?.session?.user?.id
+    moi = s?.session?.user?.id
     const { data, error } = moi ? await supabase.from('workspaces').select('id, owner_id').order('created_at') : { data: null }
     if (error || !data?.length) return null
     const choisi = localStorage.getItem(ESPACE)
     espace = (data.find((w) => w.id === choisi) || data.find((w) => w.owner_id === moi) || data[0]).id
+    const { data: m } = await supabase.from('workspace_members').select('role').eq('workspace_id', espace).eq('user_id', moi).maybeSingle()
+    role = m?.role
     return espace
   } catch {
     return null
   }
 }
-export const oublierEspace = () => (espace = undefined)
+export const oublierEspace = () => {
+  espace = undefined
+  role = undefined
+}
 // Changer d'espace : seulement quand tout est synchronisé (rien n'est perdu), puis la copie hors ligne repart de zéro
 export function choisirEspace(id) {
   if (readJson(QUEUE, []).length) throw new Error('Des modifications attendent encore d’être envoyées : reconnecte-toi puis réessaie.')
@@ -260,14 +270,16 @@ const remote = {
   async deleteAction(id) {
     check(await supabase.from('actions').delete().eq('id', id))
   },
+  // Réglages de l'espace actif (propriétaire / admin), la base vérifie le rôle
   async saveSettings(settings) {
-    const { data: u, error } = await supabase.auth.getUser()
-    if (error || !u?.user) throw new Error(`auth : ${error?.message || 'session expirée'}`)
-    check(await supabase.from('settings').upsert({ user_id: u.user.id, data: settings, updated_at: nowIso() }))
+    const w = await espaceActif()
+    if (!w) throw new Error('auth : espace de travail introuvable, reconnecte-toi')
+    check(await supabase.rpc('enregistrer_reglages', { w, p_data: settings }))
   },
   async bulkImport(prospects, actions) {
-    for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500)))
-    const rows = actions.map(cleanAction)
+    await espaceActif()
+    for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500).map(dansEspace)))
+    const rows = actions.map((a) => dansEspace(cleanAction(a)))
     for (let i = 0; i < rows.length; i += 500) check(await supabase.from('actions').insert(rows.slice(i, i + 500)))
   },
   async wipe() {

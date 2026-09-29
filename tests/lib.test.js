@@ -130,7 +130,8 @@ describe('outils', () => {
   })
   test('messages d’erreur compréhensibles', () => {
     expect(messageErreur(new Error('duplicate key value violates unique constraint (23505)'))).toMatch(/existe déjà/)
-    expect(messageErreur(new Error('new row violates row-level security policy'))).toMatch(/n'appartient pas/)
+    expect(messageErreur(new Error('new row violates row-level security policy'))).toMatch(/Ton rôle dans cet espace/)
+    expect(messageErreur(new Error('Lecture seule : pas le droit d’ajouter dans cet espace'))).toMatch(/^Lecture seule/)
   })
 })
 

@@ -4,11 +4,12 @@ import { supabase } from './store'
 // Traduit une erreur technique en phrase utile
 export function messageErreur(e) {
   const m = String(e?.message || e || '')
+  if (e?.droits || /^(Lecture seule|Seuls le propriétaire)/.test(m)) return m
   if (navigator.onLine === false || /failed to fetch|network|load failed|timed? ?out/i.test(m))
     return 'Pas de connexion. Ta saisie est gardée sur le téléphone et partira toute seule.'
   if (/jwt|token|session expir|401|auth/i.test(m)) return 'Ta session a expiré. Reconnecte-toi : tes saisies en attente sont conservées.'
   if (/23505|duplicate key|unique/i.test(m)) return 'Cet élément existe déjà.'
-  if (/42501|row-level security|permission denied/i.test(m)) return "Cette donnée n'appartient pas à ton compte."
+  if (/42501|row-level security|permission denied/i.test(m)) return "Ton rôle dans cet espace ne permet pas cette action."
   if (/mémoire de l'appareil|quota/i.test(m)) return m
   return `Une erreur est survenue : ${m || 'inconnue'}. Réessaie ; si ça continue, elle est déjà signalée.`
 }

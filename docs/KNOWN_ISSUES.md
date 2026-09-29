@@ -5,7 +5,7 @@
 [MED] Pas d'unicité de `documents.numero` en base
 [MED] Corbeille et date de sauvegarde stockées sur l'appareil seulement
 [MED] Protection mots de passe compromis désactivée (offre payante Supabase requise)
-[MED] Données métier encore liées à user_id (pas workspace_id) ; inscriptions limitées par private.inscriptions_autorisees
+[LOW] Inscriptions limitées par private.inscriptions_autorisees (accès par espace/rôle réglé au Step 6B)
 [LOW] README et netlify.toml obsolètes
 [LOW] 54 avertissements oxlint (aucune erreur)
 [LOW] Index manquants : site_demandes.prospect_id, store_cles.user_id

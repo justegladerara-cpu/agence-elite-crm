@@ -1,7 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
 import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
-import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
+import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, roleActif, moiActif } from './lib/store'
+import { refusDe, ROLES } from './core/permissions'
 import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './modules/commercial'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
@@ -414,6 +415,11 @@ function Crm() {
     return () => clearTimeout(t)
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Droits du rôle dans l'espace actif, vérifiés avant l'envoi (la base refuse aussi, mais parfois sans erreur visible)
+  const garde = (op, auteur) => {
+    const m = refusDe(roleActif(), op, auteur, moiActif())
+    if (m) throw Object.assign(new Error(m), { droits: true })
+  }
   const wrap = (fn) => async (...args) => {
     try {
       return await fn(...args)
@@ -424,17 +430,20 @@ function Crm() {
   }
   const api = {
     addProspect: wrap(async (name, fiche) => {
+      garde('ecrire')
       const p = await db.addProspect(name, fiche)
       setState((s) => ({ ...s, prospects: [...s.prospects, p] }))
       return p
     }),
     updateProspect: wrap(async (id, patch) => {
+      garde('ecrire')
       const p = await db.updateProspect(id, patch)
       setState((s) => ({ ...s, prospects: s.prospects.map((x) => (x.id === id ? { ...x, ...p } : x)) }))
       return p
     }),
     deleteProspect: wrap(async (id, opts = {}) => {
       const avant = state.prospects.find((x) => x.id === id)
+      garde('supprimer', avant?.user_id)
       const contenu = {
         prospects: avant ? [avant] : [],
         actions: state.actions.filter((a) => a.prospect_id === id),
@@ -451,18 +460,21 @@ function Crm() {
       }))
     }),
     addActions: wrap(async (list) => {
+      garde('ecrire')
       const rows = await db.addActions(list)
       setState((s) => ({ ...s, actions: [...s.actions, ...rows] }))
       rows.forEach((r) => emettre(evenementDAction(r)))
       return rows
     }),
     updateAction: wrap(async (id, patch) => {
+      garde('ecrire')
       const a = await db.updateAction(id, patch)
       setState((s) => ({ ...s, actions: s.actions.map((x) => (x.id === id ? { ...x, ...a } : x)) }))
       return a
     }),
     deleteAction: wrap(async (id, opts = {}) => {
       const avant = state.actions.find((x) => x.id === id)
+      garde('supprimer', avant?.user_id)
       await db.deleteAction(id)
       if (avant && !opts.silencieux) {
         const cid = corbeille.ajouter('action', `${avant.action || 'Action'} du ${avant.date || ''}`, { actions: [avant] })
@@ -471,6 +483,7 @@ function Crm() {
       setState((s) => ({ ...s, actions: s.actions.filter((x) => x.id !== id) }))
     }),
     saveDoc: wrap(async (doc) => {
+      garde('ecrire')
       const d = await db.saveDoc(doc)
       const nouveau = !state.documents.some((x) => x.id === d.id)
       setState((s) => ({ ...s, documents: [...s.documents.filter((x) => x.id !== d.id), d] }))
@@ -479,6 +492,7 @@ function Crm() {
     }),
     deleteDoc: wrap(async (id, opts = {}) => {
       const avant = state.documents.find((x) => x.id === id)
+      garde('supprimer', avant?.user_id)
       await db.deleteDoc(id)
       if (avant && !opts.silencieux) {
         const cid = corbeille.ajouter('document', avant.numero || 'Document', { documents: [avant] })
@@ -490,6 +504,7 @@ function Crm() {
     restaurer: wrap(async (cid) => {
       const item = corbeille.liste().find((x) => x.id === cid)
       if (!item) return
+      garde('ecrire')
       await db.restaurer(item.contenu)
       corbeille.retirer(cid)
       const { prospects = [], actions = [], documents = [] } = item.contenu
@@ -502,18 +517,24 @@ function Crm() {
       }))
       toast(`${item.libelle} restauré ✓`)
     }),
-    uploadRecu: wrap((dataUrl, ext, type) => db.uploadRecu(dataUrl, ext, type)),
+    uploadRecu: wrap(async (dataUrl, ext, type) => {
+      garde('ecrire')
+      return db.uploadRecu(dataUrl, ext, type)
+    }),
     recuUrl: (path) => db.recuUrl(path),
     saveSettings: wrap(async (settings) => {
+      garde('reglages')
       await db.saveSettings(settings)
       setState((s) => ({ ...s, settings }))
     }),
     bulkImport: wrap(async (prospects, actions, replace) => {
+      garde(replace ? 'remplacer' : 'ecrire')
       if (replace) await db.wipe()
       await db.bulkImport(prospects, actions)
       await reload()
     }),
     loadSeed: wrap(async () => {
+      garde('ecrire')
       const { prospects, actions: raw } = buildSeed()
       // Montants d'exemple (en euros) convertis dans la devise choisie
       const k = (DEVISES.find((d) => d.code === state.settings.devise) || DEVISES.find((x) => x.code === 'EUR')).parEuro
@@ -522,6 +543,7 @@ function Crm() {
       await reload()
     }),
     clearSeed: wrap(async () => {
+      garde('remplacer')
       const ex = state.prospects.filter(isExample)
       for (const p of ex) await db.deleteProspect(p.id)
       for (const a of state.actions.filter((a) => !a.prospect_id && (a.notes || '').includes(TAG))) await db.deleteAction(a.id)
@@ -562,6 +584,7 @@ function Crm() {
     openAction: (prefill) => setActionModal(prefill || {}),
     saisirArgent: (modal) => setArgent(modal),
     live: { direct, majLe, sync, reload },
+    role: roleActif(),
   }
   const donnees = { ...donneesEtat, data }
 
@@ -703,6 +726,12 @@ function Crm() {
               <Icon n="grid" size={18} />
             </button>
           </header>
+          {!isLocal && roleActif() === 'lecteur' && (
+            <div className="sync-banner" data-role="lecteur">
+              <span className="dot" />
+              Lecture seule : ton rôle dans cet espace est {ROLES.lecteur.nom}.
+            </div>
+          )}
           {!isLocal && (!sync.online || sync.pending > 0 || sync.error) && (
             <div className={`sync-banner ${syncCls}`}>
               <span className="dot" />

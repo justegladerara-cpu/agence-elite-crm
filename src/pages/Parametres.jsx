@@ -13,6 +13,7 @@ import { mensuel, estActif } from '../lib/tresorerie'
 import Modules from './Modules'
 import Membres from './Membres'
 import { sectionAccessible } from '../core/modules'
+import { peutGerer, ROLES } from '../core/permissions'
 import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
@@ -505,7 +506,7 @@ function RappelsCard({ s, change, setS }) {
 
 export default function Parametres({ section }) {
   const { prospects, actions } = useDonnees()
-  const { settings, api, toast } = useNoyau()
+  const { settings, api, toast, role } = useNoyau()
   const [s, setS] = useState(() => JSON.parse(JSON.stringify(settings)))
   const [dirty, setDirty] = useState(false)
   const [busy, setBusy] = useState('')
@@ -730,6 +731,11 @@ export default function Parametres({ section }) {
         <div>
           <h1>Paramètres</h1>
           <div className="sub">{SECTIONS.find((x) => x[0] === sec)[2]}</div>
+          {!peutGerer(role) && (
+            <div className="small muted" data-reglages="lecture">
+              Rôle {ROLES[role]?.nom} : les réglages de l'espace sont modifiables par le propriétaire et les administrateurs.
+            </div>
+          )}
         </div>
         <div className="row">
           {dirty && (

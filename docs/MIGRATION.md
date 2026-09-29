@@ -114,6 +114,14 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Code : `journal.js` lit `version`/`modifie_le`, `comparerJournal` compte les « contenu différent » (affiché par Vérifier), `fusionner` montre l'état local tant qu'une modification n'est pas reflétée ; la Chronologie indique « modifié le ». Test de parcours : paiement modifié → nouveau montant, sans doublon.
 - Retour arrière : réappliquer les fonctions de `supabase/evenements.sql` et recréer les triggers en `after insert or delete` ; les deux colonnes restent (sans effet).
 
+## Step 6B (2026-09-29) : espace → adhésion → rôle partout
+- Base (`supabase/espace_permissions.sql`, appliqué le 2026-09-29, aucune ligne supprimée) : réglages par espace (index unique `settings.workspace_id`, RPC `enregistrer_reglages` réservée propriétaire/admin) ; `audit_log.workspace_id` (auteur conservé dans `acteur`, 8 lignes rattachées) lu par propriétaire/admin ; règles « own … » (user_id) retirées de prospects/actions/documents/settings ; « membres suppression propre » (un membre supprime ce qu'il a créé) ; site et boutique gérés par propriétaire/admin (« gestion ecriture ») ; ajout dans un espace où l'on est lecteur ou plus membre refusé au lieu d'atterrir ailleurs.
+- Rôles : propriétaire et admin = tout ; membre = lire, créer, modifier, supprimer ses propres éléments ; lecteur = lire.
+- Tests de sécurité avant (état initial : 4 écarts confirmés : membre rétrogradé lecteur modifiait/supprimait encore ses fiches, admin sans accès aux réglages ni à la boutique, réglages d'un membre enregistrés hors de l'espace, audit des membres invisible pour le propriétaire) puis après, en transaction annulée, avec 5 comptes de test (propriétaire, admin, membre, lecteur, étranger) : tous les cas conformes ; Agence Elite et Démo toujours isolés ; Step 6A intact (paiement modifié → événement v2).
+- Données : empreintes identiques avant/après (prospects 210, actions 1675, documents 187, réglages 2, événements 1623, boutique 30, audit 8).
+- Interface : rôle lu dans l'espace actif (`store.js roleActif`), refus expliqués avant envoi (`permissions.js refusDe`, gardes dans l'API d'App.jsx), bandeau « Lecture seule » pour un lecteur, mention dans Paramètres pour membre/lecteur ; réglages enregistrés via la RPC. Propriétaire : comportement inchangé.
+- Retour arrière : voir la fin de `supabase/espace_permissions.sql` (recréer les règles « own … », réappliquer les deux fonctions d'origine).
+
 ## Prochains lots
 1. Étape 5 : statistiques côté serveur, chargement par module.
 2. Brancher d'autres vues sur le journal (activité du tableau de bord) une fois la Chronologie éprouvée.

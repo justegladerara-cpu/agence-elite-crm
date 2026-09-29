@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { MODULES, estActif, pageAccessible, basculer, moduleDePage, dependantsDe, sectionAccessible } from '../src/core/modules'
-import { permissionsDe, peut, TOUTES } from '../src/core/permissions'
+import { permissionsDe, peut, TOUTES, refusDe, peutGerer } from '../src/core/permissions'
 import { evenements, evenementDAction, evenementDeDocument, emettre, ecouter, typeAction } from '../src/core/events'
 import { DEFAULT_SETTINGS } from '../src/lib/defaults'
 import { depuisLigne, comparerJournal, fusionner, lireJournal, contenuDifferent } from '../src/core/journal'
@@ -46,6 +46,24 @@ describe('registre des modules', () => {
   it('retrouve le module d’une page', () => {
     expect(moduleDePage('boutique').id).toBe('store')
     expect(moduleDePage('xyz')).toBeNull()
+  })
+})
+
+describe('Step 6B : droits par rôle dans l’interface', () => {
+  it('propriétaire et admin : tout ; rôle inconnu (local, hors ligne) : comme le propriétaire', () => {
+    for (const r of ['proprietaire', 'admin', undefined]) for (const op of ['ecrire', 'supprimer', 'reglages', 'remplacer']) expect(refusDe(r, op, 'autre', 'moi')).toBeNull()
+    expect(peutGerer(undefined)).toBe(true)
+  })
+  it('membre : écrit, supprime le sien, pas celui des autres, ni les réglages', () => {
+    expect(refusDe('membre', 'ecrire')).toBeNull()
+    expect(refusDe('membre', 'supprimer', 'moi', 'moi')).toBeNull()
+    expect(refusDe('membre', 'supprimer', 'autre', 'moi')).toMatch(/Seuls le propriétaire/)
+    expect(refusDe('membre', 'reglages')).toMatch(/réglages/)
+    expect(refusDe('membre', 'remplacer')).toMatch(/remplacer/)
+    expect(peutGerer('membre')).toBe(false)
+  })
+  it('lecteur : lecture seule partout', () => {
+    for (const op of ['ecrire', 'supprimer', 'reglages', 'remplacer']) expect(refusDe('lecteur', op, 'moi', 'moi')).toMatch(/^Lecture seule/)
   })
 })
 
