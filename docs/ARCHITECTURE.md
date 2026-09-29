@@ -39,7 +39,7 @@ Hypothèses « un seul » trouvées :
 | Permissions | `src/core/permissions.js` (rôle → permissions par module) | vérifiées aussi en base (RLS par rôle) |
 | Modules | `src/core/modules.js` : registre, activation, dépendances | idem + réglages par module |
 | Navigation | dérivée du registre (App.jsx) | idem |
-| Événements | `src/core/events.js` : événements dérivés d'`actions`/`documents` + bus local | table `events` écrite par les modules |
+| Événements | table `events` écrite par triggers sur `actions`/`documents` (étape 4) ; `src/core/events.js` dérive les mêmes côté client + bus local | lecture de `events` par les modules |
 | Relations | fiche client (Fiche.jsx), drill.js | `src/core/relations.js` « tout ce qui est lié » |
 | Audit / sécurité | `audit_log` (triggers en base), étape 1b | + connexions, exports |
 | Réglages | `settings.data` (un JSON) | core / module / utilisateur / espace |
@@ -158,6 +158,6 @@ Aujourd'hui tout est chargé (`fetchAll`, pages de 1000). Cible : noyau minimal 
 | 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | fait (2026-09-29), vérifié : 0 identifiant en dur, catalogue et visites OK en anonyme, audit testé |
 | 2 | Découplage par lots (`src/modules/<id>` + contrat `index.js`), règle d'import vérifiée par `tests/architecture.test.js` | fait (lots 1 à 9, 2026-09-29) |
 | 3 | Contexte découpé : core (session, espace, réglages) + données par module | fait pour les écrans (lots 1-2 : `core/contexte.js`) ; données par module avec l'étape 5 |
-| 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | à faire |
+| 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | fait (2026-09-29) : `supabase/espace_donnees.sql`, `supabase/evenements.sql`. RLS encore sur `user_id` |
 | 5 | Calculs lourds côté serveur, chargement à la demande | à faire |
 | 6 | Entités paiements / dépenses / abonnements, module Projets, module Vie perso | à faire |

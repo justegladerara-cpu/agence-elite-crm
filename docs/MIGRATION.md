@@ -88,7 +88,13 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 ## Étape 3, lot 2 (2026-09-29) : plus de contexte fusionné dans les écrans
 - Les 22 fichiers mixtes lisent séparément `useDonnees()` et `useNoyau()`. `useApp` ne reste que dans Sécurité (sauvegarde complète) ; plafond abaissé à 1.
 
+## Étape 4 (2026-09-29, accord « vas-y étape 4 ») : base
+- `workspace_id` sur 9 tables métier, rempli à l'insertion depuis `user_id` et verrouillé (trigger `rattacher_espace`) ; rattrapage 0 ligne orpheline, journal d'audit non pollué.
+- Table `events` append-only : triggers sur `actions` et `documents`, même correspondance que `core/events.js`, suppression → `annule`. Un échec d'écriture d'événement ne bloque jamais l'utilisateur.
+- Vérifié : 1439 + 184 événements = lignes source, sommes des paiements identiques (74 495 500), tests trigger en transaction annulée, visite anonyme du site OK, aucun nouvel avertissement de sécurité.
+- Retour arrière : supprimer les triggers `evenement` / `rattacher_espace`, la table `events` et les colonnes `workspace_id` (aucun code ne les lit encore).
+
 ## Prochains lots
-1. Mémoïser le noyau : gain nul tant que les pages sont rendues par App (elles se redessinent avec lui) ; à faire avec le chargement par module.
-2. Données par module (un fournisseur par module, chargé à la demande) : dépend de l'étape 5 (calculs côté serveur).
-3. Étape 4 (base, accord requis) : table `events`, `workspace_id` sur les tables métier.
+1. RLS double (`user_id` OU membre de l'espace) table par table, puis lecture par espace (accord requis).
+2. Lire `events` dans l'application (fil d'activité, relations) au lieu de le dériver.
+3. Étape 5 : statistiques côté serveur, chargement par module.
