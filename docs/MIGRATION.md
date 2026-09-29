@@ -5,7 +5,7 @@ Garde-fou automatique : `tests/architecture.test.js` (cycles, noyau sans UI, pag
 
 ## État des dépendances (analyse 2026-09-29, avant étape 2)
 - 0 cycle. `lib/` n'importe jamais l'interface.
-- 11 dépendances directes entre pages de modules différents :
+- 11 dépendances directes entre modules différents (10 entre pages + App.jsx → Impayes) :
   - `facturesImpayees` (page Impayes) importé par App, Bilan, Calendrier, Cockpit, Journee
   - `Repartition` (Finances) par Charges
   - `ProspectPicker` (Saisie) par Factures, Finances
@@ -22,7 +22,7 @@ Garde-fou automatique : `tests/architecture.test.js` (cycles, noyau sans UI, pag
 | `Repartition` | `pages/Finances.jsx` → `ui.jsx` | composant d'affichage générique (Charges n'importe plus Facturation) |
 
 Premier dossier de module : `src/modules/facturation/` (domaine pur + contrat `index.js`).
-Résultat : dépendances croisées entre pages 11 → 6 (liste `DETTE`), App.jsx ne dépend plus d'une page métier pour ses pastilles.
+Résultat : dépendances croisées 11 → 6 (liste `DETTE`), App.jsx ne dépend plus d'une page métier pour ses pastilles.
 Tests : 48 unitaires (dont 5 d'architecture), 22 parcours navigateur (dont toutes les routes), build OK, 0 cycle.
 
 ## Prochains lots (du moins risqué au plus risqué)
