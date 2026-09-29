@@ -1,7 +1,8 @@
 // Ma journée « Rule of 100 » : objectifs du jour, compteurs rapides, score, to-do et historique
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Bar, Modal, Field, go, nb } from '../ui'
+import { Bar, Modal, Field, go, nb } from '../ui'
+import { useApp, useDonnees } from '../core/contexte'
 import { today, fmtDate } from '../lib/dates'
 import { QuickInsta } from './Insta'
 import { SOURCES, jourId, journeeVue, avancement, compterJour, historique, objectifsParDefaut } from '../modules/commercial/journee'
@@ -227,7 +228,7 @@ function ObjectifsForm({ jour, defaut, onSave }) {
 
 // ---------- To-do list du jour ----------
 export function TodoJour({ jour, update }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [txt, setTxt] = useState('')
   const taches = jour.taches || []
   const faites = taches.filter((x) => x.fait).length

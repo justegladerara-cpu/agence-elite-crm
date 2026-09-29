@@ -1,6 +1,7 @@
 // Prospection Instagram express : ajout en quelques secondes, étapes en 1 clic, scripts prêts à copier.
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Modal, Field, go, Menu } from '../ui'
+import { Modal, Field, go, Menu } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 import { RelanceTag } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { fmtDate, addDays, today } from '../lib/dates'
@@ -302,7 +303,7 @@ export function ProchaineEtape({ p }) {
 
 // Messages prêts à copier, en 2 panneaux : la liste à gauche, le texte rempli à droite
 export function ScriptsCard({ p }) {
-  const { settings, toast } = useApp()
+  const { settings, toast } = useNoyau()
   const groupes = [
     ['Premier contact et suivi', settings.scriptsDM || []],
     ['Relances', settings.messagesRelance || []],
@@ -360,7 +361,7 @@ export function ScriptsCard({ p }) {
 
 // Qualification rapide : 5 questions Oui / Non + objectif
 export function QualifCard({ p }) {
-  const { api } = useApp()
+  const { api } = useNoyau()
   const q = p.fiche?.qualifInsta || {}
   const set = (patch) => api.updateProspect(p.id, { fiche: { ...p.fiche, qualifInsta: { ...q, ...patch } } }).catch(() => {})
   const n = QUALIF.filter(([k]) => q[k]).length
@@ -398,7 +399,7 @@ export function QualifCard({ p }) {
 
 // Relance en 1 clic : copier le message de relance adapté, puis noter « Relancé »
 export function RelanceBoutons({ p, compact }) {
-  const { api, settings, toast } = useApp()
+  const { api, settings, toast } = useNoyau()
   const [busy, setBusy] = useState(false)
   if (p.etape === 'Gagné' || p.etape === 'Perdu') return null
   const n = numeroRelance(p)
@@ -462,7 +463,7 @@ export function RelanceBoutons({ p, compact }) {
 
 // Reporter une relance en 1 touche : demain, dans 3 jours ou lundi
 export function ReporterBouton({ p }) {
-  const { api, toast } = useApp()
+  const { api, toast } = useNoyau()
   if (p.etape === 'Gagné' || p.etape === 'Perdu') return null
   const reporter = async (d, libelle) => {
     try {

@@ -1,11 +1,12 @@
 // Noyau › relations : choisir la fiche (prospect ou client) à laquelle rattacher un élément.
 // Utilisé par Commercial (saisie), Facturation (devis, factures, paiements) et Charges (dépenses).
 import { useMemo, useState } from 'react'
-import { useApp, StageBadge } from '../../ui'
+import { StageBadge } from '../../ui'
+import { useDonnees } from '../contexte'
 import { chercherFiches, nomExiste } from '../relations'
 
 export function ProspectPicker({ value, onPick, onNew, newLabel = "Nouveau prospect" }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [hl, setHl] = useState(0)

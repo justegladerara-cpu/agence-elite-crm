@@ -3,7 +3,8 @@
 // Tous les chiffres viennent des données du CRM (lib/cockpit.js, mêmes règles que les listes de détail).
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, eur, pct, nb, court, go, sym } from '../ui'
+import { eur, pct, nb, court, go, sym } from '../ui'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import { Gauge, useWidth } from '../charts'
 import { computeStats } from '../modules/dashboard/stats'
 import { detail } from '../modules/dashboard/drill'
@@ -353,7 +354,7 @@ function exporterCsv(nom, cols, lignes) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 function TableDetail({ actions, prospects, ouvrirAction }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [onglet, setOnglet] = useState('actions')
   const [q, setQ] = useState('')
   const [tri, setTri] = useState({ k: 'date', dir: -1 })
@@ -519,7 +520,7 @@ function TableDetail({ actions, prospects, ouvrirAction }) {
 const ICONE_ACTION = (a) =>
   a.action === 'Paiement reçu' ? 'coins' : a.action === 'Dépense' ? 'wallet' : a.canal === 'Appel' ? 'phone' : a.canal === 'DM' ? 'instagram' : a.canal === 'WhatsApp' ? 'message' : a.action === 'Signature' ? 'handshake' : 'note'
 function Activite({ actions, live, jour, ouvrirAction }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const liste = actions.slice(0, 14)
   // Actions arrivées depuis l'affichage : surlignées quelques secondes
   const cle = liste.map((a) => a.id).join(',')
@@ -1127,7 +1128,7 @@ export default function Cockpit({ periode, titre, canal, setCanal, voir, voirLis
 
 // Badge « En direct / actualisé à » affiché dans l'en-tête du tableau de bord
 export function EtatDonnees() {
-  const { live } = useApp()
+  const { live } = useNoyau()
   const [tourne, setTourne] = useState(false)
   const [maintenant, setMaintenant] = useState(() => Date.now())
   useEffect(() => {

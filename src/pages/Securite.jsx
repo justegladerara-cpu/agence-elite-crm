@@ -1,6 +1,7 @@
 // Paramètres › Sécurité : sauvegarde des données, corbeille, double authentification et erreurs signalées
 import { useEffect, useState } from 'react'
-import { useApp, Field, confirmer } from '../ui'
+import { Field, confirmer } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 import { Icon } from '../icons'
 import { supabase, isLocal } from '../lib/store'
 import { corbeille } from '../lib/corbeille'
@@ -40,7 +41,7 @@ function Sauvegarde() {
 }
 
 function Corbeille() {
-  const { api } = useApp()
+  const { api } = useNoyau()
   const [liste, setListe] = useState(corbeille.liste)
   const restaurer = async (id) => {
     try {
@@ -98,7 +99,7 @@ function Corbeille() {
 
 // Double authentification : code à 6 chiffres d'une application (Google Authenticator, Microsoft Authenticator…)
 function DoubleAuth() {
-  const { toast } = useApp()
+  const { toast } = useNoyau()
   const [facteurs, setFacteurs] = useState(null)
   const [enrol, setEnrol] = useState(null)
   const [code, setCode] = useState('')

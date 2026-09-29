@@ -1,7 +1,8 @@
 // Formulaire de fiche prospect (création et modification) : rubriques, champs avec icône,
 // choix en pastilles pour les listes courtes, liste avec recherche pour les longues.
 import { useMemo, useState } from 'react'
-import { useApp, lbl, Choix } from '../ui'
+import { lbl, Choix } from '../ui'
+import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { handleInsta, doublonInsta, instaLink } from '../lib/logic'
@@ -48,7 +49,7 @@ export function optionsDe(f, settings) {
 
 // Un champ de la fiche : pastilles (liste courte), liste avec recherche (longue) ou saisie avec icône
 export function ChampFiche({ f, value, onChange, suggestions }) {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const opts = optionsDe(f, settings)
   const m = META[f.key] || {}
   if (opts && opts.length <= 4)
@@ -92,7 +93,7 @@ export function ChampFiche({ f, value, onChange, suggestions }) {
 
 // Formulaire complet : nom + rubriques repliables, barre de complétion, alertes de doublon
 export default function FicheForm({ name, setName, fiche, setFiche, exceptId, ouvertes = ['contact', 'entreprise'] }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [open, setOpen] = useState(() => new Set(ouvertes))
   const set = (k) => (v) => setFiche((s) => ({ ...s, [k]: v }))
   const remplis = TOUS_CHAMPS.filter((x) => fiche[x.key] || fiche[x.key] === 0).length

@@ -1,7 +1,8 @@
 // Elite Store : commandes du site, catalogue de produits et stock de clés de licence
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Tabs, useTab, nb, LienProspect, confirmer } from '../ui'
+import { Field, Kpi, Empty, Modal, Tabs, useTab, nb, LienProspect, confirmer } from '../ui'
+import { useNoyau } from '../core/contexte'
 import { supabase } from '../lib/store'
 import { today, fmtDate } from '../lib/dates'
 
@@ -145,7 +146,7 @@ function Commandes({ s, recharger }) {
 }
 
 function DetailCommande({ c, s, recharger }) {
-  const { api, toast } = useApp()
+  const { api, toast } = useNoyau()
   const [busy, setBusy] = useState(false)
   const cles = s.cles.filter((k) => k.commande_id === c.id)
   const wa = (c.client?.tel || '').replace(/\D/g, '')
@@ -389,7 +390,7 @@ const slugifier = (s) =>
     .replace(/^-|-$/g, '')
 
 function ProduitForm({ p, cats, onDone }) {
-  const { toast } = useApp()
+  const { toast } = useNoyau()
   const [f, setF] = useState(() => ({
     nom: '',
     categorie: cats[0] || '',
@@ -542,7 +543,7 @@ function ProduitForm({ p, cats, onDone }) {
 
 // ---------- Clés de licence ----------
 function Cles({ s, recharger }) {
-  const { toast } = useApp()
+  const { toast } = useNoyau()
   const avecCles = s.produits.filter((p) => p.livraison === 'cle')
   const [produit, setProduit] = useState(avecCles[0]?.id || '')
   const [texte, setTexte] = useState('')

@@ -2,7 +2,8 @@
 // et feuille « Comment s'est passé l'appel ? » au retour d'un appel lancé depuis le CRM
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, StageBadge, sym } from '../ui'
+import { StageBadge, sym } from '../ui'
+import { useApp } from '../core/contexte'
 import { today, nowTime, addDays, fmtDate, lundiProchain } from '../lib/dates'
 
 // Actions proposées selon l'étape de la fiche (les autres restent dans le formulaire complet)

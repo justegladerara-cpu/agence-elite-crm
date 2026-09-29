@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useApp, Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
+import { Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
@@ -146,7 +147,7 @@ function ListEditor({ value, cols, onChange, max, fixedLength, excel }) {
 // Image choisie depuis l'appareil (logo, cachet), gardée dans les paramètres
 function ImagePick({ label, value, fallback, onChange, max = 600, dark, hint }) {
   const ref = useRef()
-  const { toast } = useApp()
+  const { toast } = useNoyau()
   const pick = async (e) => {
     const f = e.target.files[0]
     e.target.value = ''
@@ -416,7 +417,7 @@ function ZohoCard() {
 
 // Rappels sur le téléphone : abonnement de cet appareil, heure par défaut, test
 function RappelsCard({ s, change, setS }) {
-  const { settings, api, toast } = useApp()
+  const { settings, api, toast } = useNoyau()
   const [abonne, setAbonne] = useState(null)
   const [busy, setBusy] = useState('')
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useApp, Kpi, eur, pct, nb, court } from '../ui'
+import { Kpi, eur, pct, nb, court } from '../ui'
+import { useApp } from '../core/contexte'
 import { Icon, withIcon } from '../icons'
 import { Donut, HBars, COULEURS, useWidth } from '../charts'
 import Cockpit, { EtatDonnees, paramsUrl, ecrireUrl } from './Cockpit'

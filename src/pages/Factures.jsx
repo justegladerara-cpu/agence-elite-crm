@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
+import { Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienProspect, LienDoc, confirmer } from '../ui'
+import { useApp, useDonnees } from '../core/contexte'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { PaiementForm } from './Finances'
 import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../modules/facturation/invoice'
@@ -12,7 +13,7 @@ import { RelanceFactureBtn } from '../modules/facturation/ui'
 
 // ---------- Liste ----------
 export default function Factures({ type = 'facture', filtre: filtreDemande }) {
-  const { documents, actions, data } = useApp()
+  const { documents, actions, data } = useDonnees()
   const [q, setQ] = useState('')
   const docs = useMemo(
     () =>

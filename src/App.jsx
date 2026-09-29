@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
+import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './modules/commercial'
 import { setBrand } from './lib/theme'
@@ -37,6 +37,7 @@ import { QuickForm, AppelSheet } from './pages/Rapide'
 import { corbeille } from './lib/corbeille'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
+import { NoyauCtx, DonneesCtx } from './core/contexte'
 import { pageAccessible, moduleDePage, estActif, sectionAccessible } from './core/modules'
 import { emettre, evenementDAction, evenementDeDocument } from './core/events'
 
@@ -553,15 +554,16 @@ function Crm() {
       ? `Synchronisation… (${sync.pending})`
       : `Synchronisé${sync.derniere ? ` à ${new Date(sync.derniere).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` : ' en ligne'}`
   const syncCls = !sync.online ? 'off' : sync.syncing || sync.pending ? 'busy' : ''
-  const ctx = {
-    ...state,
-    data,
+  const { settings, ...donneesEtat } = state
+  const noyau = {
+    settings,
     api,
     toast,
     openAction: (prefill) => setActionModal(prefill || {}),
     saisirArgent: (modal) => setArgent(modal),
     live: { direct, majLe, sync, reload },
   }
+  const donnees = { ...donneesEtat, data }
 
   const [chemin, query = ''] = route.split('?')
   const [page, arg = ''] = chemin.split(/\/(.*)/s)
@@ -624,7 +626,8 @@ function Crm() {
     ) : null
   }
   return (
-    <AppCtx.Provider value={ctx}>
+    <NoyauCtx.Provider value={noyau}>
+      <DonneesCtx.Provider value={donnees}>
       <div className="app" style={{ '--app': appli ? appli.couleur : 'var(--gold)' }}>
         <aside className="sidebar">
           <div className={`brand ${avecNom ? '' : 'no-name'}`}>
@@ -769,6 +772,7 @@ function Crm() {
         </Suspense>
       )}
       {toastNode}
-    </AppCtx.Provider>
+      </DonneesCtx.Provider>
+    </NoyauCtx.Provider>
   )
 }

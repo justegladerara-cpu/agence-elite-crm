@@ -1,7 +1,8 @@
 // Contrat d'interface du module Facturation : composants que les autres modules peuvent afficher
 // (bouton de relance WhatsApp d'une facture impayée)
 import { Icon } from '../../icons'
-import { useApp, eur } from '../../ui'
+import { eur } from '../../ui'
+import { useApp } from '../../core/contexte'
 import { today, nowTime } from '../../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from './whatsapp'
 

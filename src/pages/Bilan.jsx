@@ -1,6 +1,7 @@
 // Bilan du lundi : la semaine passée en chiffres (comparée à celle d'avant) et 3 conseils tirés des chiffres
 import { useMemo } from 'react'
-import { useApp, eur, nb, pct } from '../ui'
+import { eur, nb, pct } from '../ui'
+import { useApp } from '../core/contexte'
 import { Icon } from '../icons'
 import { computeStats, periodeFor } from '../modules/dashboard'
 import { fmtDate, today } from '../lib/dates'

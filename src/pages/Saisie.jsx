@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
-import { useApp, Field, Select, eur, Empty, Modal, LienDoc, confirmer } from '../ui'
+import { Field, Select, eur, Empty, Modal, LienDoc, confirmer } from '../ui'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import { FICHE_FIELDS, LISTES } from '../lib/defaults'
 import { today, nowTime, addDays, fmtDate } from '../lib/dates'
 import { montantRetenu } from '../lib/logic'
@@ -18,7 +19,7 @@ const UPDATE_FICHE = ['offre', 'abonnement', 'budget_ok', 'decideur', 'besoin', 
 const PROCHAINES = ['Rappeler', 'Relancer en DM', 'Envoyer le Loom', 'Faire l’audit', 'Préparer la démo', 'Envoyer la proposition', 'Relancer la proposition', 'Signature', 'Demander le paiement']
 
 export function FicheInput({ f, value, onChange }) {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const opts = f.fixed
     ? LISTES[f.fixed]
     : f.list === 'offres'
@@ -529,7 +530,7 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
 }
 
 export default function Saisie({ prospectId }) {
-  const { data, actions } = useApp()
+  const { data, actions } = useDonnees()
   const [edit, setEdit] = useState(null)
   const [n, setN] = useState(25)
   const recent = useMemo(

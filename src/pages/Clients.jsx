@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useApp, Modal, Field, Select, go } from '../ui'
+import { Modal, Field, Select, go } from '../ui'
+import { useApp } from '../core/contexte'
 import { today, nowTime } from '../lib/dates'
 
 // Ajouter un client que tu avais déjà avant le CRM, sans refaire tout le process de prospection

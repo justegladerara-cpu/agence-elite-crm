@@ -81,5 +81,11 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Registre : `sections` par module (Commercial → Scripts, Agenda → Rappels) ; `sectionAccessible()` dans le noyau.
 - Section d'un module désactivé : retirée du menu, l'URL retombe sur Identité. Sections mixtes (Facturation/devise, Listes, Objectifs) restent communes : la devise sert partout.
 
+## Étape 3, lot 1 (2026-09-29) : contexte noyau / données
+- `src/core/contexte.js` : `NoyauCtx` (settings, api, toast, openAction, saisirArgent, live) et `DonneesCtx` (prospects, actions, documents, data). `useApp` = fusion, gardé pour compatibilité.
+- 46 composants passés à `useNoyau` / `useDonnees` ; 23 fichiers mixtes gardent `useApp` (plafond vérifié par `tests/architecture.test.js`). `ui.jsx` ne porte plus le contexte (lint 51 → 49).
+
 ## Prochains lots
-1. Contexte : noyau (session, réglages, modules, services) séparé des données par module (étape 3).
+1. Migrer les 23 utilisateurs de `useApp` (plafond à abaisser à chaque lot).
+2. Mémoïser le noyau pour que les écrans « noyau seul » ne se redessinent plus à chaque changement de données.
+3. Étape 4 (base, accord requis) : table `events`, `workspace_id` sur les tables métier.

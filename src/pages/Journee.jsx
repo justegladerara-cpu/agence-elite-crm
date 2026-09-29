@@ -4,7 +4,8 @@ import { RelanceBoutons, ReporterBouton } from './Insta'
 import BilanSemaine from './Bilan'
 import { RelanceFactureBtn } from '../modules/facturation/ui'
 import { facturesImpayees } from '../modules/facturation'
-import { useApp, StageBadge, Empty, go, eur, Tabs, useTab, LienProspect, Bar } from '../ui'
+import { StageBadge, Empty, go, eur, Tabs, useTab, LienProspect, Bar } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 import { Score, RelanceTag, ContactButtons } from '../modules/commercial/ui'
 import { ObjectifsJour, TodoJour, HistoriqueJours, useJournee } from './Objectifs'
 import { isExample } from '../lib/seed'
@@ -47,7 +48,7 @@ function ArgentDuJour() {
 }
 
 function ProspectRow({ p, children, overdue, relance }) {
-  const { openAction } = useApp()
+  const { openAction } = useNoyau()
   return (
     <div className={`list-item click ${overdue ? 'overdue' : ''} ${relance ? 'with-relance' : ''}`} onClick={() => go(`/prospect/${p.id}`)}>
       <div className="li-main">

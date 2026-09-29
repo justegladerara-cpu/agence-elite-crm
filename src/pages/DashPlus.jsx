@@ -1,7 +1,8 @@
 // Vues supplémentaires du tableau de bord : pipeline par étape, CA cumulé du mois, carte de chaleur,
 // dépenses par catégorie et meilleurs clients. Tout est cliquable et relié aux fiches.
 import { useMemo, useState } from 'react'
-import { useApp, eur, pct, go } from '../ui'
+import { eur, pct, go } from '../ui'
+import { useApp, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { HBars, COULEURS, useWidth } from '../charts'
 import { isProspection, isReponse, VENTES, montantRetenu } from '../lib/logic'
@@ -161,7 +162,7 @@ export function CumulMois({ canal = 'Tous' }) {
 // Carte de chaleur : jours × heures des prises de contact, avec le taux de réponse
 const JOURS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
 export function Heatmap({ periode, canal, onPick }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [hover, setHover] = useState(null)
   const { grille, heures, max, sansHeure } = useMemo(() => {
     const g = {}
@@ -257,7 +258,7 @@ export function depensesParCategorie(data, periode) {
 
 // Meilleurs clients par chiffre signé, cliquables vers leur fiche
 export function MeilleursClients({ canal = 'Tous' }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const top = data.clients
     .filter((c) => canal === 'Tous' || c.prospect.canal === canal)
     .sort((a, b) => b.total - a.total)

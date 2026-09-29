@@ -1,9 +1,8 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from './icons'
 
-export const AppCtx = createContext(null)
-export const useApp = () => useContext(AppCtx)
+import { useDonnees } from './core/contexte'
 
 // Devise d'affichage, réglée dans Paramètres (settings.devise)
 export const DEVISES = [
@@ -440,7 +439,7 @@ export function KV({ rows }) {
 
 // Liens entre fiches : vers un prospect / client, ou vers une facture / un devis par son numéro
 export function LienProspect({ id, children }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const p = id && data.byId[id]
   if (!p) return children || null
   return (
@@ -450,7 +449,7 @@ export function LienProspect({ id, children }) {
   )
 }
 export function LienDoc({ numero, id, children }) {
-  const { documents } = useApp()
+  const { documents } = useDonnees()
   const d = id ? documents.find((x) => x.id === id) : numero && documents.find((x) => x.numero === numero)
   if (!d) return children || numero || null
   return (

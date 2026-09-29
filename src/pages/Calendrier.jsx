@@ -1,6 +1,7 @@
 // Calendrier de la semaine : relances, RDV, échéances de factures et ce qui a été fait
 import { useMemo, useState } from 'react'
-import { useApp, go, eur } from '../ui'
+import { go, eur } from '../ui'
+import { useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { today, addDays, weekday, fmtDate, parse } from '../lib/dates'
 import { facturesImpayees } from '../modules/facturation'
@@ -11,7 +12,7 @@ const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dim
 let derniereSemaine = 0
 
 export default function Calendrier() {
-  const { data, documents, actions } = useApp()
+  const { data, documents, actions } = useDonnees()
   const [dec, setDecState] = useState(derniereSemaine)
   const setDec = (v) => {
     derniereSemaine = v

@@ -1,7 +1,8 @@
 // Hub Charges : ce que coûte le fonctionnement de l'agence (abonnements, charges fixes, dépenses notées)
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
+import { Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 
 import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
 import { num } from '../modules/facturation'
@@ -150,7 +151,7 @@ export function ChargesVue() {
 
 // ---------- Abonnements et charges fixes ----------
 export function Abonnements({ nouveau }) {
-  const { settings, api, toast } = useApp()
+  const { settings, api, toast } = useNoyau()
   const liste = useMemo(() => settings.depensesFixes || [], [settings.depensesFixes])
   const [modal, setModal] = useState(nouveau ? { i: -1 } : null)
   const jour = today()
@@ -236,7 +237,7 @@ export function Abonnements({ nouveau }) {
 }
 
 function AbonnementForm({ poste, onSave, onDelete }) {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const cats = settings.categoriesDepenses || []
   const [f, setF] = useState({ nom: '', montant: '', periodicite: 'mois', echeance: '', categorie: '', fournisseur: '', ...(poste || {}), actif: estActif(poste || {}) })
   const set = (x) => setF((v) => ({ ...v, ...x }))

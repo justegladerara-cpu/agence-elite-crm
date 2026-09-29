@@ -1,6 +1,7 @@
 // Hub Clients : prospects, nouveaux clients, clients actifs, anciens clients et perdus sur une seule page
 import { useEffect, useMemo, useState } from 'react'
-import { useApp, StageBadge, go, eur, nb, Menu, useTab } from '../ui'
+import { StageBadge, go, eur, nb, Menu, useTab } from '../ui'
+import { useApp, useNoyau } from '../core/contexte'
 import { Score, RelanceTag, ContactButtons } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { NewProspect, ActionsGroupees, ACTION_ETAPE } from './Prospects'
@@ -416,7 +417,7 @@ function HubCarte({ c, n, indic, on, lien, onClick }) {
 
 // Ligne prospect : score, étape, relance, montant proposé, contacts et « + Action »
 function LigneProspect({ p, coche, cocher, montrerCat }) {
-  const { openAction } = useApp()
+  const { openAction } = useNoyau()
   const alerte = p.alerte && !p.alerte.startsWith('Relance') ? p.alerte : ''
   return (
     <div role="listitem" className={`hub-row prospect ${coche ? 'sel' : ''}`} onClick={() => go(`/prospect/${p.id}`)}>
@@ -462,7 +463,7 @@ const TON_PAIEMENT = { Payé: 'b-green', 'En retard': 'b-red', Partiel: 'b-orang
 
 // Ligne client : montants, paiement, onboarding, « + Paiement » et « + Suivi »
 function LigneClient({ x, onPay }) {
-  const { openAction, settings } = useApp()
+  const { openAction, settings } = useNoyau()
   const { p, c, cat } = x
   const [lib, ton] = BADGE_CAT[cat] || BADGE_CAT.actifs
   const ancien = cat === 'anciens'

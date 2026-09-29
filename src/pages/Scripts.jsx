@@ -1,10 +1,11 @@
 // Scripts : messages Instagram à copier et script d'appel, au même endroit
-import { useApp, go, Tabs, useTab } from '../ui'
+import { go, Tabs, useTab } from '../ui'
+import { useNoyau } from '../core/contexte'
 import { Icon } from '../icons'
 import { ScriptsCard } from './Insta'
 
 export default function Scripts() {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const [onglet, setOnglet] = useTab('scripts', 'dm')
   return (
     <div className="stack">

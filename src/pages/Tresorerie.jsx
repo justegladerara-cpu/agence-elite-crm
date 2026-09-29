@@ -1,13 +1,14 @@
 // Tableau de bord : l'argent de la période, mouvement par mouvement, avec liens vers le client, la facture et la saisie
 import { useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
+import { Empty, eur, nb, pct, go, LienProspect, LienDoc } from '../ui'
+import { useApp, useDonnees } from '../core/contexte'
 import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, modalPour } from '../lib/tresorerie'
 import { fmtDate } from '../lib/dates'
 
 
 function Ligne({ m, onOpen }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const a = m.a
   const client = a.prospect_id && data.byId[a.prospect_id]
   const titre = m.entree ? client?.name || a.notes || 'Paiement sans client' : a.notes || a.fournisseur || a.categorie || 'Dépense'
@@ -157,7 +158,7 @@ export function ArgentPeriode({ periode, titre, depensesTotal = 0, onVoir, compa
 
 // Ce que chaque client t'a vraiment rapporté sur la période (encaissé moins les frais liés)
 export function RentabiliteClients({ periode }) {
-  const { actions, data } = useApp()
+  const { actions, data } = useDonnees()
   const rows = useMemo(() => rentabiliteClients(mouvements(actions, periode.debut, periode.fin), data.byId), [actions, data, periode.debut, periode.fin])
   return (
     <div className="card rentab">

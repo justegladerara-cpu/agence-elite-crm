@@ -1,7 +1,8 @@
 // Panneau latéral « détail d'un chiffre » : la liste des prospects ou actions derrière un chiffre, avec liens
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useApp, StageBadge, Empty, go, eur, nb } from '../ui'
+import { StageBadge, Empty, go, eur, nb } from '../ui'
+import { useApp } from '../core/contexte'
 import { Score } from '../modules/commercial/ui'
 import { Icon } from '../icons'
 import { fmtDate } from '../lib/dates'

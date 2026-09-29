@@ -1,7 +1,8 @@
 // Recherche globale (Ctrl/⌘ + K ou « / ») : potentiels, clients, perdus, factures et devis, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useApp, go, eur, StageBadge } from '../ui'
+import { go, eur, StageBadge } from '../ui'
+import { useApp } from '../core/contexte'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../modules/facturation'
 import { fmtDate } from '../lib/dates'

@@ -1,7 +1,8 @@
 // Paiements reçus et dépenses (onglets du menu Factures)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
+import { Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { totals, paiementsDe, num } from '../modules/facturation/invoice'
@@ -64,7 +65,7 @@ async function preparerFichier(file) {
 }
 
 export function RecuLien({ path, children }) {
-  const { api, toast } = useApp()
+  const { api, toast } = useNoyau()
   const open = async (e) => {
     e.stopPropagation()
     try {
@@ -90,7 +91,7 @@ export function RecuLien({ path, children }) {
 }
 
 function RecuField({ value, onChange }) {
-  const { api, toast } = useApp()
+  const { api, toast } = useNoyau()
   const ref = useRef()
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState('')
@@ -387,7 +388,7 @@ const grouper = (list, key, def) =>
 
 // ---------- Onglet Paiements reçus ----------
 export function PaiementsTab() {
-  const { actions, data } = useApp()
+  const { actions, data } = useDonnees()
   const [periode, setPeriode] = useState('mois')
   const [q, setQ] = useState('')
   const [modal, setModal] = useState(null)

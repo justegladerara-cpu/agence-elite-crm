@@ -1,7 +1,8 @@
 // Écran d'accueil façon Odoo / Zoho One : chaque module est une application avec son icône et sa couleur
 import { useEffect, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, go } from '../ui'
+import { go } from '../ui'
+import { useNoyau } from '../core/contexte'
 import { supabase } from '../lib/store'
 import { today } from '../lib/dates'
 
@@ -11,7 +12,7 @@ const salut = () => {
 }
 
 export default function Applications({ apps, pastilles }) {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const prenom = settings.apparence?.prenom
   // Commandes du site à traiter : lues à part, la boutique n'est pas dans les données du CRM
   const [store, setStore] = useState(0)

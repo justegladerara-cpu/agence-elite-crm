@@ -1,7 +1,7 @@
 // Contrat d'interface du module Commercial : composants que les autres modules peuvent afficher
 // (score de priorité, date de relance, boutons appeler / WhatsApp / Instagram / site)
 import { Icon } from '../../icons'
-import { useApp } from '../../ui'
+import { useNoyau } from '../../core/contexte'
 import { today, fmtDate } from '../../lib/dates'
 import { waLink, instaLink, siteLink } from '../../lib/logic'
 import { noterAppelLance } from './appel'
@@ -23,7 +23,7 @@ export function RelanceTag({ date, heure }) {
 }
 
 export function ContactButtons({ p, compact }) {
-  const { settings } = useApp()
+  const { settings } = useNoyau()
   const f = p.fiche || {}
   const phone = f.telephone
   const wa = waLink(f.whatsapp || f.telephone, settings.clients.indicatifWhatsApp)

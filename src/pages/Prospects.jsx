@@ -1,7 +1,8 @@
 // Fiches partagées par le hub Clients : nouvelle fiche, liste réduite de la vue côte à côte, actions groupées
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useApp, go, Modal, Menu, confirmer } from '../ui'
+import { go, Modal, Menu, confirmer } from '../ui'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import FicheForm from './FicheForm'
 import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
@@ -49,7 +50,7 @@ export function NewProspect({ onClose }) {
 
 // Liste réduite à gauche de la fiche (vue côte à côte, grand écran) : les fiches de la même catégorie du hub
 export function MiniListe({ current }) {
-  const { data } = useApp()
+  const { data } = useDonnees()
   const [q, setQ] = useState('')
   const [insta, setInsta] = useState(false)
   const fiches = useMemo(() => fichesHub(data), [data])
@@ -98,7 +99,7 @@ export const ACTION_ETAPE = ['Ajout prospect', 'Premier contact', 'Qualification
 
 // Actions sur plusieurs prospects cochés dans la liste
 export function ActionsGroupees({ choisis, etapes, vider }) {
-  const { api, settings, toast } = useApp()
+  const { api, settings, toast } = useNoyau()
   const [busy, setBusy] = useState(false)
   const ouverts = choisis.filter((p) => p.etape !== 'Gagné' && p.etape !== 'Perdu')
   const lancer = async (fn, msg) => {

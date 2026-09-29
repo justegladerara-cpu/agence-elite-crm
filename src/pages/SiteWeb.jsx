@@ -2,7 +2,8 @@
 // Les données viennent des tables site_visites / site_demandes (remplies par le site) et de /site/pages.json.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { useApp, Kpi, Empty, Tabs, useTab, nb, pct, LienProspect, go } from '../ui'
+import { Kpi, Empty, Tabs, useTab, nb, pct, LienProspect, go } from '../ui'
+import { useNoyau } from '../core/contexte'
 import { HBars, Donut, COULEURS } from '../charts'
 import { supabase } from '../lib/store'
 import { today, addDays, fmtDate } from '../lib/dates'
@@ -259,7 +260,7 @@ function ListeDemandes({ demandes, compact, onTraitee }) {
 
 export function SiteDemandes({ onglet: demande }) {
   const [s, , setS] = useSite()
-  const { toast } = useApp()
+  const { toast } = useNoyau()
   const [onglet, setOnglet] = useTab('site-demandes', 'atraiter', demande)
   const liste = s.demandes.filter((d) => (onglet === 'atraiter' ? !d.traitee : onglet === 'traitees' ? d.traitee : true))
   const basculer = async (d) => {

@@ -1,11 +1,12 @@
 // Paramètres › Modules : activer ou désactiver chaque application. Les données d'un module désactivé restent en base.
-import { useApp, confirmer } from '../ui'
+import { confirmer } from '../ui'
+import { useNoyau } from '../core/contexte'
 import { MODULES, estActif, basculer, moduleParId } from '../core/modules'
 
 const noms = (ids) => ids.map((x) => moduleParId(x).nom).join(', ')
 
 export default function Modules() {
-  const { settings, api, toast } = useApp()
+  const { settings, api, toast } = useNoyau()
   const changer = async (m, actif) => {
     const { modules, entraines } = basculer(m.id, actif, settings)
     if (entraines.length && !actif && !(await confirmer(`Désactiver ${m.nom} désactive aussi : ${noms(entraines)}. Continuer ?`, { ok: 'Désactiver' }))) return

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { modalPour } from '../lib/tresorerie'
 import { Icon } from '../icons'
-import { lbl, useApp, StageBadge, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
+import { lbl, StageBadge, Empty, go, eur, Modal, Tabs, useTab, Menu, KV, LienProspect } from '../ui'
+import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import { Score, ContactButtons } from '../modules/commercial/ui'
 import { ActionForm, ActionLine } from './Saisie'
 import FicheForm, { GROUPES_FICHE, TOUS_CHAMPS } from './FicheForm'
@@ -377,7 +378,7 @@ export default function Fiche({ id }) {
 
 // Note rapide : une ligne « Note » dans l'historique, sans ouvrir le formulaire
 function NoteRapide({ pid }) {
-  const { api, toast } = useApp()
+  const { api, toast } = useNoyau()
   const [txt, setTxt] = useState('')
   const [busy, setBusy] = useState(false)
   const ajouter = async (e) => {
@@ -413,7 +414,7 @@ const AUDIT = [
   ['pubs', 'Publicités (où atterrit la pub, offre claire)'],
 ]
 function AuditCard({ p }) {
-  const { api } = useApp()
+  const { api } = useNoyau()
   const audit = p.fiche?.audit || {}
   const done = AUDIT.filter(([k]) => audit[k]).length
   const set = (patch) => api.updateProspect(p.id, { fiche: { ...p.fiche, audit: { ...audit, ...patch } } }).catch(() => {})
@@ -443,7 +444,7 @@ function AuditCard({ p }) {
 }
 
 function DocsCard({ pid }) {
-  const { documents, actions } = useApp()
+  const { documents, actions } = useDonnees()
   const docs = documents.filter((d) => d.prospect_id === pid).sort((a, b) => (b.data?.date || '').localeCompare(a.data?.date || ''))
   return (
     <div className="card">
