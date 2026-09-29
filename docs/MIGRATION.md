@@ -108,6 +108,12 @@ Résultat : 0 dépendance croisée entre pages, 0 contournement de contrat, 0 cy
 - Vérifié sur la base : Démo 1616/1616 et Agence Elite 7/7 événements, 0 orphelin, paiements et dépenses identiques ; étape, devis, facture, paiement, dépense testés dans une transaction annulée (suppression → retiré de la chronologie) ; lecture d'une fiche 0,75 ms, 1000 événements 5 ms. Le journal n'est lu qu'à l'ouverture de la Chronologie : démarrage inchangé.
 - Retour arrière : retirer l'onglet et la carte (aucune donnée concernée).
 
+## Step 6A (2026-09-29) : le journal suit les modifications
+- Base (`supabase/evenements_modifications.sql`, ajout seulement) : colonnes `events.version` (1 par défaut) et `events.modifie_le` ; triggers `evenement` en `after insert or update or delete`. Approche A : l'événement reflète l'état courant. Une modification réécrit l'événement (version + 1) seulement si son contenu change ; une ligne qui n'est plus un fait métier annule son événement ; une ligne restaurée le réactive. `audit_log` reste l'historique technique.
+- Test complet en transaction annulée avant application (18 cas : modification, changement de type aller-retour, paiement/dépense/facture, rejeu hors ligne, suppression puis restauration, isolation d'espace, retour arrière). Après application : 1623 événements = 1623 sources, 0 manquant, 0 orphelin, 0 réécrit par le rattrapage ; paiements Démo 74 465 500 / Agence Elite 30 000 et dépenses 807 000 identiques entre tables et journal ; factures 91/91, devis 93/93 ; aucune donnée supprimée ; conseiller sécurité inchangé.
+- Code : `journal.js` lit `version`/`modifie_le`, `comparerJournal` compte les « contenu différent » (affiché par Vérifier), `fusionner` montre l'état local tant qu'une modification n'est pas reflétée ; la Chronologie indique « modifié le ». Test de parcours : paiement modifié → nouveau montant, sans doublon.
+- Retour arrière : réappliquer les fonctions de `supabase/evenements.sql` et recréer les triggers en `after insert or delete` ; les deux colonnes restent (sans effet).
+
 ## Prochains lots
 1. Étape 5 : statistiques côté serveur, chargement par module.
 2. Brancher d'autres vues sur le journal (activité du tableau de bord) une fois la Chronologie éprouvée.

@@ -252,7 +252,7 @@ function VerifJournal() {
     const j = await lireJournal({ actions, documents })
     setR(j.source === 'journal' ? comparerJournal(j.serveur, j.derives) : 'indisponible')
   }
-  const ok = r && typeof r === 'object' && !r.manquants.length && !r.enTrop.length && !r.typeDifferent.length && r.paiements[0] === r.paiements[1] && r.depenses[0] === r.depenses[1]
+  const ok = r && typeof r === 'object' && !r.manquants.length && !r.enTrop.length && !r.typeDifferent.length && !r.contenuDifferent.length && r.paiements[0] === r.paiements[1] && r.depenses[0] === r.depenses[1]
   return (
     <div className="card">
       <h2 className="section">
@@ -261,7 +261,7 @@ function VerifJournal() {
         </span>
         Journal d'événements
       </h2>
-      <p className="small muted" style={{ marginTop: 0 }}>Compare le journal tenu par la base (étapes, paiements, dépenses, devis, factures) avec tes données.</p>
+      <p className="small muted" style={{ marginTop: 0 }}>Compare le journal tenu par la base (étapes, paiements, dépenses, devis, factures, y compris leurs modifications) avec tes données.</p>
       <button className="btn sm" id="verifier-journal" onClick={verifier}>
         Vérifier
       </button>
@@ -277,7 +277,7 @@ function VerifJournal() {
           </div>
           {!ok && (
             <div className="tiny">
-              Manquants {r.manquants.length} · en trop {r.enTrop.length} · type différent {r.typeDifferent.length} · paiements {r.paiements.join(' / ')} · dépenses {r.depenses.join(' / ')}
+              Manquants {r.manquants.length} · en trop {r.enTrop.length} · type différent {r.typeDifferent.length} · contenu différent {r.contenuDifferent.length} · paiements {r.paiements.join(' / ')} · dépenses {r.depenses.join(' / ')}
             </div>
           )}
         </div>

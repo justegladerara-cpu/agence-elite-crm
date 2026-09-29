@@ -158,6 +158,6 @@ Aujourd'hui tout est chargé (`fetchAll`, pages de 1000). Cible : noyau minimal 
 | 1b | Base : espaces + adhésions, fin des uid/e-mails en dur (`supabase/espaces.sql`), journal d'audit (`supabase/audit.sql`) | fait (2026-09-29), vérifié : 0 identifiant en dur, catalogue et visites OK en anonyme, audit testé |
 | 2 | Découplage par lots (`src/modules/<id>` + contrat `index.js`), règle d'import vérifiée par `tests/architecture.test.js` | fait (lots 1 à 9, 2026-09-29) |
 | 3 | Contexte découpé : core (session, espace, réglages) + données par module | fait pour les écrans (lots 1-2 : `core/contexte.js`) ; données par module avec l'étape 5 |
-| 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | fait (2026-09-29) : `supabase/espace_donnees.sql`, `supabase/evenements.sql`. RLS encore sur `user_id` |
+| 4 | Table `events` écrite en parallèle ; `workspace_id` sur les tables métier | fait (2026-09-29) : `supabase/espace_donnees.sql`, `supabase/evenements.sql` ; modifications suivies (version, `modifie_le`) depuis le Step 6A (`supabase/evenements_modifications.sql`) |
 | 5 | Calculs lourds côté serveur, chargement à la demande | à faire |
 | 6 | Entités paiements / dépenses / abonnements, module Projets, module Vie perso | à faire |

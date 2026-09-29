@@ -3,7 +3,7 @@ import { MODULES, estActif, pageAccessible, basculer, moduleDePage, dependantsDe
 import { permissionsDe, peut, TOUTES } from '../src/core/permissions'
 import { evenements, evenementDAction, evenementDeDocument, emettre, ecouter, typeAction } from '../src/core/events'
 import { DEFAULT_SETTINGS } from '../src/lib/defaults'
-import { depuisLigne, comparerJournal, fusionner, lireJournal } from '../src/core/journal'
+import { depuisLigne, comparerJournal, fusionner, lireJournal, contenuDifferent } from '../src/core/journal'
 
 describe('registre des modules', () => {
   it('chaque page appartient à un seul module et les dépendances existent', () => {
@@ -191,6 +191,21 @@ describe('journal d’événements (Lot B)', () => {
     const f = fusionner(serveur, derives)
     expect(f.map((e) => e.id)).toEqual(derives.map((e) => e.id))
     expect(f.find((e) => e.id === derives[0].id).meta.serveur).toBe(true)
+  })
+  it('Step 6A : une modification (montant, date) est détectée et l’état local prime tant qu’elle n’est pas reflétée', () => {
+    const derives = evenements(actions, documents)
+    const serveur = derives.map(ligne).map((l) => depuisLigne({ ...l, version: 1 }))
+    const pay = derives.find((e) => e.type === 'payment.received')
+    expect(comparerJournal(serveur, derives).contenuDifferent).toEqual([])
+    const modifie = derives.map((e) => (e.id === pay.id ? { ...e, date: '2026-09-05', meta: { ...e.meta, montant: 1500 } } : e))
+    const r = comparerJournal(serveur, modifie)
+    expect(r.contenuDifferent).toEqual([pay.id])
+    expect(r.paiements).toEqual([1500, 1000])
+    expect(fusionner(serveur, modifie).find((e) => e.id === pay.id).meta.montant).toBe(1500)
+    const aJour = serveur.map((e) => (e.id === pay.id ? { ...e, date: '2026-09-05', meta: { ...e.meta, montant: 1500 }, version: 2, modifieLe: '2026-09-29T12:00:00Z' } : e))
+    expect(comparerJournal(aJour, modifie).contenuDifferent).toEqual([])
+    expect(fusionner(aJour, modifie).find((e) => e.id === pay.id).version).toBe(2)
+    expect(contenuDifferent({ type: 't', date: '2026-01-01', meta: { montant: '10' } }, { type: 't', date: '2026-01-01', meta: { montant: 10, facture: '' } })).toBe(false)
   })
   it('lireJournal sans base : repli sur le calcul, filtré par client', async () => {
     const r = await lireJournal({ prospectId: 'p1', actions, documents })

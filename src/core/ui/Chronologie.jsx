@@ -38,6 +38,7 @@ export default function Chronologie({ prospectId }) {
                   {fmtDate(e.date)}
                   {e.meta?.action && LIBELLE[e.type] !== e.meta.action ? ` · ${e.meta.action}` : ''}
                   {e.meta?.facture ? ` · facture ${e.meta.facture}` : ''}
+                  {e.version > 1 ? ` · modifié${e.modifieLe ? ` le ${fmtDate(e.modifieLe.slice(0, 10))}` : ''}` : ''}
                 </div>
               </div>
             </div>

@@ -33,19 +33,36 @@ export const depuisLigne = (e) => ({
   entiteId: e.entite_id,
   meta: e.meta || {},
   correlationId: e.correlation_id,
+  version: e.version,
+  modifieLe: e.modifie_le,
 })
 
 const duProspect = (liste, prospectId) => (prospectId ? liste.filter((e) => e.meta?.prospectId === prospectId) : liste)
 const tri = (a, b) => (a.date || '').localeCompare(b.date || '') || a.id.localeCompare(b.id)
 
+// Même fait métier mais contenu différent (date, montant, client, facture, numéro) : modification pas encore reflétée
+const v = (x) => (x === undefined || x === '' ? null : x)
+export const contenuDifferent = (s, d) =>
+  s.type !== d.type ||
+  v(s.date) !== v(d.date) ||
+  (Number(s.meta?.montant) || 0) !== (Number(d.meta?.montant) || 0) ||
+  ['prospectId', 'facture', 'numero'].some((k) => v(s.meta?.[k]) !== v(d.meta?.[k]))
+
 // Journal du serveur complété par ce qui est encore sur l'appareil (modifs pas encore envoyées),
-// sans ce qui a été supprimé localement. Le calcul local fait foi pour la présence, le serveur pour le contenu.
+// sans ce qui a été supprimé localement. Le calcul local fait foi pour la présence ; le serveur pour le contenu,
+// sauf s'il diffère encore (modification en cours d'envoi) : on montre alors l'état local.
 export function fusionner(serveur, derives) {
   const parId = new Map(serveur.map((e) => [e.id, e]))
-  return derives.map((d) => parId.get(d.id) || d).sort(tri)
+  return derives
+    .map((d) => {
+      const s = parId.get(d.id)
+      if (!s) return d
+      return contenuDifferent(s, d) ? { ...d, version: s.version, modifieLe: s.modifieLe } : s
+    })
+    .sort(tri)
 }
 
-// Écarts entre le journal du serveur et le calcul local : manquants, en trop, type différent, montants
+// Écarts entre le journal du serveur et le calcul local : manquants, en trop, type ou contenu différent, montants
 export function comparerJournal(serveur, derives) {
   const s = new Map(serveur.map((e) => [e.id, e]))
   const d = new Map(derives.map((e) => [e.id, e]))
@@ -57,6 +74,7 @@ export function comparerJournal(serveur, derives) {
     manquants: derives.filter((e) => !s.has(e.id)).map((e) => e.id),
     enTrop: serveur.filter((e) => !d.has(e.id)).map((e) => e.id),
     typeDifferent: derives.filter((e) => s.has(e.id) && s.get(e.id).type !== e.type).map((e) => e.id),
+    contenuDifferent: derives.filter((e) => s.has(e.id) && s.get(e.id).type === e.type && contenuDifferent(s.get(e.id), e)).map((e) => e.id),
     paiements: [somme(derives, 'payment.received'), somme(serveur, 'payment.received')],
     depenses: [somme(derives, 'expense.created'), somme(serveur, 'expense.created')],
     parType,
@@ -67,7 +85,7 @@ async function lireServeur(prospectId) {
   const w = await espaceActif()
   const out = []
   for (let from = 0; ; from += 1000) {
-    let q = supabase.from('events').select('source, type, date, acteur, module, entite, entite_id, meta, correlation_id').eq('annule', false)
+    let q = supabase.from('events').select('source, type, date, acteur, module, entite, entite_id, meta, correlation_id, version, modifie_le').eq('annule', false)
     if (w) q = q.eq('workspace_id', w)
     if (prospectId) q = q.eq('meta->>prospectId', prospectId)
     const { data, error } = await q.order('id').range(from, from + 999)
