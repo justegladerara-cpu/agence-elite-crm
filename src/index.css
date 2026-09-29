@@ -1686,3 +1686,19 @@ button.at:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .aj-resume span { min-width: 0; overflow-wrap: anywhere; }
 .aj-resume b { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .aj-resume svg { color: var(--gold-3); }
+
+/* Barre de gauche façon Zoho Books : rubriques et pages, dépliables */
+.nav-arbre { display: flex; flex-direction: column; gap: 2px; }
+.nav-arbre .nav-item { width: 100%; }
+.nav-rubrique { display: flex; flex-direction: column; gap: 1px; }
+.nav-parent .nav-chev { margin-left: auto; display: grid; place-items: center; color: var(--on-dark-2); transition: transform .15s ease; }
+.nav-rubrique.open > .nav-parent .nav-chev { transform: rotate(90deg); }
+.nav-parent.dans { color: #fff; font-weight: 600; }
+.nav-parent.dans .ico { color: var(--gold-2); }
+.nav-enfants { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 6px; }
+.nav-enfant { padding-left: 42px; font-size: 13.5px; }
+.nav-enfant.active { background: color-mix(in srgb, var(--app, var(--gold)) 85%, #000); color: #fff; box-shadow: none; }
+.nav-enfant .nav-badge { margin-left: auto; }
+.nav-parent .nav-badge { margin-left: auto; }
+.nav-parent .nav-badge + .nav-chev { margin-left: 6px; }
+@media (prefers-reduced-motion: reduce) { .nav-parent .nav-chev { transition: none; } }

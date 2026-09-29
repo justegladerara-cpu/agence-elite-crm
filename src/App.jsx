@@ -290,6 +290,8 @@ function Crm() {
     return () => window.removeEventListener('keydown', k)
   }, [])
   const [toast, toastNode] = useToast()
+  // Rubriques dépliées à la main dans la barre de gauche (celle de la page affichée l'est toujours)
+  const [ouverts, setOuverts] = useState([])
   const [sync, setSync] = useState(syncStatus.get())
   useEffect(() => syncStatus.subscribe(setSync), [])
 
@@ -503,6 +505,7 @@ function Crm() {
     devis: [devisAttente, '', 'devis en attente'],
   }
   // Application ouverte : son menu, sa couleur ; sans application (accueil, saisie) le menu liste les applications
+  const basculerRubrique = (id) => setOuverts((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]))
   const appli = page === 'apps' || page === 'saisie' ? null : APP_DE[current] || APP_DE.dashboard
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
@@ -537,19 +540,6 @@ function Crm() {
       </span>
     ) : null
   }
-  // Une ligne par page : les filtres et onglets restent dans la page (pas de doublon avec la barre de gauche)
-  const navBtn = (n) => (
-    <div key={n.path} className="nav-node">
-      <div className="nav-row">
-        <button className={`nav-item ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => go(`/${n.path}`)}>
-          <span className="ico"><Icon n={n.ico} size={17} /></span>
-          {n.label}
-          {pastille(n.path)}
-        </button>
-      </div>
-    </div>
-  )
-
   return (
     <AppCtx.Provider value={ctx}>
       <div className="app" style={{ '--app': appli ? appli.couleur : 'var(--gold)' }}>
@@ -563,41 +553,60 @@ function Crm() {
               </div>
             )}
           </div>
-          <button className={`app-switch ${appli ? '' : 'on'}`} style={appli ? { '--c': appli.couleur } : undefined} onClick={() => go('/apps')} title="Toutes les applications">
-            <span className="app-switch-ic">
-              <Icon n={appli ? appli.ico : 'grid'} size={16} />
-            </span>
-            <span className="app-switch-nom">{appli ? appli.nom : 'Applications'}</span>
-            <Icon n="grid" size={15} />
-          </button>
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
           <button className="nav-new" onClick={() => setActionModal({})} aria-keyshortcuts="N">
             <Icon n="plus" size={17} /> Nouvelle action <kbd>N</kbd>
           </button>
-          <nav className="nav-scroll">
-            {appli ? (
-              (appli.groupes || [[`Menu ${appli.nom}`, appli.pages]]).map(([titre, pages]) => (
-                <div key={titre || 'accueil'} className="nav-group">
-                  {titre && <div className="nav-title">{titre}</div>}
-                  {pages.map((x) => navBtn(ITEM[x]))}
-                </div>
-              ))
-            ) : (
-              <div className="nav-group">
-                <div className="nav-title">Applications</div>
-                {APPS.map((a) => (
-                  <button key={a.id} className="nav-item nav-appli" style={{ '--c': a.couleur }} onClick={() => (a.lien ? window.open(a.lien, '_blank', 'noopener') : go(`/${a.route}`))}>
-                    <span className="ico">
-                      <Icon n={a.ico} size={13} />
-                    </span>
+          <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
+            <button className={`nav-item ${page === 'apps' ? 'active' : ''}`} aria-current={page === 'apps' ? 'page' : undefined} onClick={() => go('/apps')}>
+              <span className="ico"><Icon n="grid" size={17} /></span>
+              Accueil
+            </button>
+            {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
+            {APPS.map((a) => {
+              const actif = appli?.id === a.id
+              if (a.lien)
+                return (
+                  <button key={a.id} className="nav-item" onClick={() => window.open(a.lien, '_blank', 'noopener')}>
+                    <span className="ico"><Icon n={a.ico} size={17} /></span>
                     {a.nom}
-                    {pastille(a.pages.find((x) => badges[x]?.[0]))}
                   </button>
-                ))}
-              </div>
-            )}
+                )
+              if (a.pages.length === 1)
+                return (
+                  <button key={a.id} className={`nav-item ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => go(`/${a.route}`)}>
+                    <span className="ico"><Icon n={a.ico} size={17} /></span>
+                    {a.nom}
+                    {pastille(a.pages[0])}
+                  </button>
+                )
+              const ouvert = actif || ouverts.includes(a.id)
+              return (
+                <div key={a.id} className={`nav-rubrique ${ouvert ? 'open' : ''}`}>
+                  <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => (actif ? go(`/${a.route}`) : basculerRubrique(a.id))}>
+                    <span className="ico"><Icon n={a.ico} size={17} /></span>
+                    {a.nom}
+                    {!ouvert && pastille(a.pages.find((x) => badges[x]?.[0]))}
+                    <span className="nav-chev" aria-hidden="true"><Icon n="chevron" size={12} /></span>
+                  </button>
+                  {ouvert && (
+                    <div className="nav-enfants">
+                      {a.pages.map((x) => {
+                        const n = ITEM[x]
+                        return (
+                          <button key={x} className={`nav-item nav-enfant ${current === x ? 'active' : ''}`} aria-current={current === x ? 'page' : undefined} onClick={() => go(`/${x}`)}>
+                            {n.label}
+                            {pastille(x)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </nav>
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
