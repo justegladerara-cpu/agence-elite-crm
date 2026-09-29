@@ -1,6 +1,6 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ongletActuel, ConfirmHost } from './ui'
+import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
 import { computeAll } from './lib/logic'
 import { setBrand } from './lib/theme'
@@ -104,25 +104,6 @@ const PARAMETRES = {
   label: 'Paramètres',
   ico: 'settings',
   sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
-}
-const lirePref = (k) => {
-  try {
-    return JSON.parse(localStorage.getItem(k)) || []
-  } catch {
-    return []
-  }
-}
-// Ouvre ou ferme un élément du menu et s'en souvient sur cet appareil
-function basculer(set, k, x) {
-  set((l) => {
-    const n = l.includes(x) ? l.filter((y) => y !== x) : [...l, x]
-    try {
-      localStorage.setItem(k, JSON.stringify(n))
-    } catch {
-      /* stockage indisponible : le menu reste ouvert pour la session */
-    }
-    return n
-  })
 }
 PAGES.saisie = 'Nouvelle action'
 PAGES.apps = 'Applications'
@@ -307,13 +288,6 @@ function Crm() {
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
-  }, [])
-  const [deplies, setDeplies] = useState(() => lirePref('crm-nav-deplies'))
-  // Un onglet changé dans une page met à jour le sous-menu surligné
-  const [, rafraichir] = useReducer((x) => x + 1, 0)
-  useEffect(() => {
-    window.addEventListener('crm-onglet', rafraichir)
-    return () => window.removeEventListener('crm-onglet', rafraichir)
   }, [])
   const [toast, toastNode] = useToast()
   const [sync, setSync] = useState(syncStatus.get())
@@ -563,44 +537,18 @@ function Crm() {
       </span>
     ) : null
   }
-  // Sous-rubrique surlignée : le lien exact, sinon l'onglet affiché dans la page
-  const sousActif = (n, h, cible) => {
-    if (!n.memo) return route === cible
-    const val = (x) => new URLSearchParams(x.slice(1)).values().next().value
-    return current === n.path && (ongletActuel(n.memo) || val(n.sub[0][0])) === val(h)
-  }
-  // Sous-menus : ouverts sous la rubrique active, ou dépliés à la main (mémorisé)
-  const navBtn = (n) => {
-    const ouvert = n.sub && (current === n.path || deplies.includes(n.path))
-    return (
-      <div key={n.path} className={`nav-node ${ouvert ? 'open' : ''}`}>
-        <div className="nav-row">
-          <button className={`nav-item ${current === n.path ? 'active' : ''}`} onClick={() => go(`/${n.path}`)}>
-            <span className="ico"><Icon n={n.ico} size={17} /></span>
-            {n.label}
-            {pastille(n.path)}
-          </button>
-          {n.sub && current !== n.path && (
-            <button className="nav-caret" title={ouvert ? 'Replier' : 'Voir les sous-rubriques'} aria-expanded={!!ouvert} onClick={() => basculer(setDeplies, 'crm-nav-deplies', n.path)}>
-              <Icon n="chevron" size={13} />
-            </button>
-          )}
-        </div>
-        {ouvert && (
-          <div className="nav-sub">
-            {n.sub.map(([h, l]) => {
-              const cible = `${n.path}${h}`
-              return (
-                <button key={h} className={sousActif(n, h, cible) ? 'on' : ''} onClick={() => go(`/${cible}`)}>
-                  {l}
-                </button>
-              )
-            })}
-          </div>
-        )}
+  // Une ligne par page : les filtres et onglets restent dans la page (pas de doublon avec la barre de gauche)
+  const navBtn = (n) => (
+    <div key={n.path} className="nav-node">
+      <div className="nav-row">
+        <button className={`nav-item ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => go(`/${n.path}`)}>
+          <span className="ico"><Icon n={n.ico} size={17} /></span>
+          {n.label}
+          {pastille(n.path)}
+        </button>
       </div>
-    )
-  }
+    </div>
+  )
 
   return (
     <AppCtx.Provider value={ctx}>
