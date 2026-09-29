@@ -2,7 +2,7 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react
 import { Icon, Logo } from './icons'
 import { AppCtx, Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush } from './lib/store'
-import { computeAll } from './lib/logic'
+import { computeAll } from './modules/commercial'
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'

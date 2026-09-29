@@ -1,7 +1,9 @@
 // Tests des calculs du CRM : étapes, relances, périodes, factures, lecture des fichiers
 import { mouvements, resumeArgent, rentabiliteClients, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../src/lib/tresorerie'
 import { describe, test, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { computeAll, computeStats, periodeFor, waLink, handleInsta, montantRetenu } from '../src/lib/logic'
+import { waLink, handleInsta, montantRetenu } from '../src/lib/logic'
+import { computeAll } from '../src/modules/commercial/pipeline'
+import { computeStats, periodeFor } from '../src/modules/dashboard/stats'
 import { agreger, somme, objectifPeriode, parcours, qualite, sante } from '../src/modules/dashboard/cockpit'
 import { mergeSettings } from '../src/lib/store'
 import { totals, statutDe, nextNumero, num, enLettres } from '../src/modules/facturation/invoice'

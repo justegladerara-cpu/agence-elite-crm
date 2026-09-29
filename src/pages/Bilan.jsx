@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { useApp, eur, nb, pct } from '../ui'
 import { Icon } from '../icons'
-import { computeStats, periodeFor } from '../lib/logic'
+import { computeStats, periodeFor } from '../modules/dashboard'
 import { fmtDate, today } from '../lib/dates'
 import { facturesImpayees } from '../modules/facturation'
 
