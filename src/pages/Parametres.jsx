@@ -9,6 +9,7 @@ import { isExample } from '../lib/seed'
 import { rappelsDispo, iosSansInstall, abonnementActuel, activerRappels, desactiverRappels, testerRappels } from '../lib/rappels'
 import { totals, nouveauDoc } from '../lib/invoice'
 import { mensuel, estActif } from '../lib/tresorerie'
+import Modules from './Modules'
 import Securite from './Securite'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
@@ -28,6 +29,7 @@ const SECTIONS = [
   ['scripts', 'Scripts', "Messages Instagram, script d'appel et accroches.", 'message'],
   ['rappels', 'Rappels', 'Notifications sur ton téléphone à l’heure des relances.', 'bell'],
   ['excel', 'Import / Export', 'Excel, Zoho Invoice et données d’exemple.', 'folder'],
+  ['modules', 'Modules', 'Activer ou désactiver les applications.', 'layers'],
   ['securite', 'Sécurité', 'Sauvegarde, corbeille, double authentification.', 'check-circle'],
   ['compte', 'Compte', 'Connexion et remise à zéro des réglages.', 'users'],
 ]
@@ -551,7 +553,8 @@ export default function Parametres({ section }) {
   }
 
   const save = async () => {
-    await api.saveSettings(normalize(s))
+    // Les modules se règlent dans leur propre section : on garde leur état actuel
+    await api.saveSettings(normalize({ ...s, modules: settings.modules }))
     setDirty(false)
     toast('Paramètres enregistrés ✓')
   }
@@ -938,6 +941,7 @@ export default function Parametres({ section }) {
 
             </>
           )}
+          {sec === 'modules' && <Modules />}
           {sec === 'securite' && <Securite />}
           {sec === 'compte' && (
             <>

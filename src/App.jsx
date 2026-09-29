@@ -38,6 +38,8 @@ import { appelEnCours, oublierAppel } from './lib/appel'
 import { corbeille } from './lib/corbeille'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
+import { pageAccessible, moduleDePage } from './core/modules'
+import { emettre, evenementDAction, evenementDeDocument } from './core/events'
 
 installerSuiviErreurs()
 
@@ -123,7 +125,7 @@ const PARAMETRES = {
   path: 'parametres',
   label: 'Paramètres',
   ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
+  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/modules', 'Modules'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
 }
 PAGES.saisie = 'Nouvelle action'
 PAGES.apps = 'Applications'
@@ -155,6 +157,26 @@ const APPS = [
 // Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
 const ONGLET_DASH = { vue: 'vue', acquisition: 'acquisition', conversion: 'conversion', finances: 'finances', prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
 const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])))
+// Sections du tableau de bord qui lisent les données d'un module : masquées si ce module est désactivé
+const MODULE_ENTREE = { 'dashboard/acquisition': 'commercial', 'dashboard/conversion': 'commercial', 'dashboard/finances': 'facturation' }
+const entreeActive = (route, settings) => pageAccessible(route.split('/')[0], settings) && (!MODULE_ENTREE[route] || settings?.modules?.[MODULE_ENTREE[route]] !== false)
+function appsActives(settings) {
+  return APPS.map((a) => ({ ...a, pages: a.pages.filter((p) => pageAccessible(p, settings)), entrees: a.entrees.filter((e) => entreeActive(e.route, settings)) }))
+    .filter((a) => a.pages.length)
+    .map((a) => ({ ...a, route: a.pages[0] }))
+}
+// Page d'un module désactivé : ses données sont gardées, il suffit de le réactiver
+function ModuleInactif({ nom }) {
+  return (
+    <div className="card empty" style={{ maxWidth: 520, margin: '40px auto', textAlign: 'center' }}>
+      <h2 className="section" style={{ justifyContent: 'center' }}>Module « {nom} » désactivé</h2>
+      <p className="small muted">Ses données sont conservées. Réactive-le pour retrouver ses pages.</p>
+      <button className="btn primary" onClick={() => go('/parametres/modules')}>
+        Gérer les modules
+      </button>
+    </div>
+  )
+}
 // Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
 const BOTTOM = [
   { path: 'dashboard', short: 'Tableau', ico: 'chart' },
@@ -426,6 +448,7 @@ function Crm() {
     addActions: wrap(async (list) => {
       const rows = await db.addActions(list)
       setState((s) => ({ ...s, actions: [...s.actions, ...rows] }))
+      rows.forEach((r) => emettre(evenementDAction(r)))
       return rows
     }),
     updateAction: wrap(async (id, patch) => {
@@ -444,7 +467,9 @@ function Crm() {
     }),
     saveDoc: wrap(async (doc) => {
       const d = await db.saveDoc(doc)
+      const nouveau = !state.documents.some((x) => x.id === d.id)
       setState((s) => ({ ...s, documents: [...s.documents.filter((x) => x.id !== d.id), d] }))
+      if (nouveau) emettre(evenementDeDocument(d))
       return d
     }),
     deleteDoc: wrap(async (id, opts = {}) => {
@@ -556,9 +581,13 @@ function Crm() {
   }
   // Application ouverte : son menu, sa couleur ; sans application (accueil, saisie) le menu liste les applications
   const basculerRubrique = (id, ouvert) => setOuverts((m) => ({ ...m, [id]: !ouvert }))
-  const appli = page === 'apps' || page === 'saisie' ? null : APP_DE[current] || APP_DE.dashboard
+  // Modules désactivés (Paramètres › Modules) : leurs pages sortent du menu et de la navigation
+  const apps = appsActives(state.settings)
+  const appliBrute = page === 'apps' || page === 'saisie' ? null : APP_DE[current] || APP_DE.dashboard
+  const appli = appliBrute && (apps.find((a) => a.id === appliBrute.id) || appliBrute)
   let content
-  if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
+  if (!pageAccessible(page, state.settings)) content = <ModuleInactif nom={moduleDePage(page).nom} />
+  else if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
   else if (page === 'prospects') content = null
   else if (page === 'prospect')
     content = (
@@ -585,7 +614,7 @@ function Crm() {
   else if (page === 'site-demandes') content = <SiteDemandes key={route} onglet={q.get('onglet')} />
   else if (page === 'site-pages') content = <SitePages />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
-  else if (page === 'apps') content = <Applications apps={APPS} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
+  else if (page === 'apps') content = <Applications apps={apps} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
   const pastille = (path) => {
     const [n, cls, t] = badges[path] || []
@@ -616,7 +645,7 @@ function Crm() {
           </button>
           <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
             {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
-            {APPS.map((a) => {
+            {apps.map((a) => {
               const actif = appli?.id === a.id
               if (a.lien)
                 return (
@@ -695,7 +724,7 @@ function Crm() {
           <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
         </main>
         <nav className="bottom-nav" aria-label="Navigation principale">
-          {BOTTOM.map((n) => (
+          {BOTTOM.filter((n) => pageAccessible(n.path, state.settings)).map((n) => (
             <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => (n.cta ? setActionModal({}) : go(`/${n.path}`))}>
               <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
               {n.short}
@@ -732,7 +761,7 @@ function Crm() {
       <ConfirmHost />
       {recherche && (
         <Suspense fallback={null}>
-          <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES]} />
+          <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES].filter((n) => pageAccessible(n.path, state.settings))} />
         </Suspense>
       )}
       {toastNode}
