@@ -291,7 +291,8 @@ function Crm() {
   }, [])
   const [toast, toastNode] = useToast()
   // Rubriques dépliées à la main dans la barre de gauche (celle de la page affichée l'est toujours)
-  const [ouverts, setOuverts] = useState([])
+  // { id: true | false } : choix fait à la main ; sans choix, seule la rubrique de la page affichée est ouverte
+  const [ouverts, setOuverts] = useState({})
   const [sync, setSync] = useState(syncStatus.get())
   useEffect(() => syncStatus.subscribe(setSync), [])
 
@@ -505,7 +506,7 @@ function Crm() {
     devis: [devisAttente, '', 'devis en attente'],
   }
   // Application ouverte : son menu, sa couleur ; sans application (accueil, saisie) le menu liste les applications
-  const basculerRubrique = (id) => setOuverts((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]))
+  const basculerRubrique = (id, ouvert) => setOuverts((m) => ({ ...m, [id]: !ouvert }))
   const appli = page === 'apps' || page === 'saisie' ? null : APP_DE[current] || APP_DE.dashboard
   let content
   if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
@@ -582,10 +583,10 @@ function Crm() {
                     {pastille(a.pages[0])}
                   </button>
                 )
-              const ouvert = actif || ouverts.includes(a.id)
+              const ouvert = ouverts[a.id] ?? actif
               return (
                 <div key={a.id} className={`nav-rubrique ${ouvert ? 'open' : ''}`}>
-                  <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => (actif ? go(`/${a.route}`) : basculerRubrique(a.id))}>
+                  <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => basculerRubrique(a.id, ouvert)}>
                     <span className="ico"><Icon n={a.ico} size={17} /></span>
                     {a.nom}
                     {!ouvert && pastille(a.pages.find((x) => badges[x]?.[0]))}
