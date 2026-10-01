@@ -5,7 +5,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 ## Stack
 - React 19 + Vite, JS (pas de TS), pas de routeur ni de lib d'état. Routage hash `#/route?onglet=` (`useRoute`, App.jsx), pages `lazy`.
 - Supabase (projet mylgnsuoppplmfaanyze) : Postgres + RLS, Auth, Storage (bucket `recus`), Realtime, Edge function `rappels`, pg_cron.
-- Hébergement officiel Cloudflare Pages depuis le repository GitHub `justegladerara-cpu/agence-elite-crm` : build `npm run build`, sortie `dist`, domaine `crm.agence-elite.fr`. La branche de production se choisit dans Cloudflare, pas dans le code.
+- Hébergement Cloudflare Pages, deux projets reliés à `justegladerara-cpu/agence-elite-crm` : CRM `agence-elite-crm` (branche `claude/project-thread-j6wx9s`, `npm run build` → `dist`, `crm.agence-elite.fr`) et site public `agence-elite-site` (branche `site`, `node site/build.mjs out` → `out`). Push sur `claude/project-thread-j6wx9s` = déploiement du CRM. Si `site/` change : aussi `git push origin HEAD:site`.
 - PWA : `public/sw.js` (version + assets injectés par le plugin vite `swBuild`).
 
 ## Structure

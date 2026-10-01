@@ -25,15 +25,22 @@ N'exécute pas seulement `supabase/schema.sql` : le CRM courant dépend aussi de
 Les inscriptions sont contrôlées en base par invitations/e-mails autorisés. Les rôles sont **propriétaire**, **administrateur**, **membre** et **lecteur**. La sécurité métier repose sur l'espace actif, l'adhésion et le rôle ; la RLS Supabase reste l'autorité finale.
 
 ### 2. Cloudflare Pages (hébergement actuel)
-1. Dans Cloudflare Pages, connecte le repository GitHub `justegladerara-cpu/agence-elite-crm`.
-2. Sélectionne la branche de production voulue dans le tableau de bord Cloudflare (elle n'est pas imposée dans le repository).
-3. Configure la commande de build `npm run build` et le dossier de sortie `dist`.
-4. Dans **Environment variables**, ajoute :
-   - `VITE_SUPABASE_URL` = la Project URL de Supabase
-   - `VITE_SUPABASE_ANON_KEY` = la clé publishable (ou anon public)
-5. Déploie. Le domaine de production est `crm.agence-elite.fr`.
 
-Le CRM utilise des routes par hash (`/#/…`) : aucune règle de réécriture SPA n'est nécessaire. Le build copie `public/_headers` dans `dist/_headers` afin que Cloudflare ne mette pas `sw.js` en cache ; le service worker et son inventaire d'assets sont finalisés par `vite.config.js`. Le site public statique est généré sous `dist/site` par la même commande.
+Deux projets Cloudflare Pages distincts, reliés au repository GitHub `justegladerara-cpu/agence-elite-crm` :
+
+| | CRM | Site public |
+|---|---|---|
+| Projet Cloudflare | `agence-elite-crm` | `agence-elite-site` |
+| Branche de production | `claude/project-thread-j6wx9s` | `site` |
+| Commande de build | `npm run build` | `node site/build.mjs out` |
+| Dossier de sortie | `dist` | `out` |
+| Adresse | `crm.agence-elite.fr` (et `agence-elite-crm.pages.dev`) | domaine du site à vérifier dans Cloudflare |
+| Variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (clé publishable) | aucune |
+
+**Déployer le CRM** : pousser sur `claude/project-thread-j6wx9s` ; Cloudflare reconstruit seul.
+**Déployer le site public** : si `site/` change, pousser aussi la même révision sur la branche `site` (`git push origin HEAD:site`). Sans ce second push, le site public reste sur l'ancienne version.
+
+Le CRM utilise des routes par hash (`/#/…`) : aucune règle de réécriture SPA n'est nécessaire. Le build copie `public/_headers` dans `dist/_headers` afin que Cloudflare ne mette pas `sw.js` en cache ; le service worker et son inventaire d'assets sont finalisés par `vite.config.js`. `npm run build` génère aussi un aperçu du site public sous `dist/site` (servi sur `crm.agence-elite.fr/site/`) ; ce n'est pas le déploiement du site public.
 
 Sur téléphone : ouvre l'adresse puis « Ajouter à l'écran d'accueil » pour l'avoir comme une appli.
 

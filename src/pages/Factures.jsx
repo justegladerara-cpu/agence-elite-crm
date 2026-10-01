@@ -127,6 +127,7 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
                     <td className="muted ell hide-m">{d.data?.objet || ''}</td>
                     <td>
                       <span className={`badge ${STATUT_TONE[d.statut] || 'b-gold'}`}>{d.statut}</span>
+                      {d.conflitNumero && <span className="badge b-red" style={{ marginLeft: 6 }} title="Numéro déjà utilisé dans cet espace : ouvre le document et change le numéro">Numéro à changer</span>}
                     </td>
                     <td className="num bold">{eur(d.total)}</td>
                     {type === 'facture' && <td className="num hide-m">{d.statut === 'Annulée' ? '—' : eur(Math.max(0, d.total - d.paye))}</td>}
@@ -219,8 +220,15 @@ export function DocEditor({ id, query }) {
     if (!d.client?.nom?.trim()) return toast('Indique le client', true)
     if (!t.lignes.some((l) => (l.designation || '').trim())) return toast('Ajoute au moins une ligne', true)
     if (!doc.numero.trim()) return toast('Numéro manquant', true)
-    if (documents.some((x) => x.type === doc.type && x.numero === doc.numero.trim() && x.id !== doc.id)) return toast('Ce numéro existe déjà', true)
+    // Même règle que la base : sans tenir compte de la casse ni des espaces
+    const meme = (x) => x.type === doc.type && (x.numero || '').trim().toLowerCase() === doc.numero.trim().toLowerCase() && x.id !== doc.id
+    if (documents.some(meme)) return toast('Ce numéro existe déjà', true)
     setBusy('save')
+    // En ligne : vérifie aussi les documents créés entre-temps sur un autre appareil, avant toute écriture
+    if (!(await api.numeroLibre(doc.type, doc.numero, doc.id))) {
+      setBusy('')
+      return toast(`Le numéro ${doc.numero.trim()} est déjà utilisé dans cet espace (créé sur un autre appareil ?). Choisis un autre numéro.`, true)
+    }
     try {
       let pid = doc.prospect_id
       if (newName) {
@@ -364,6 +372,7 @@ export function DocEditor({ id, query }) {
           </h1>
           <div className="sub row" style={{ gap: 8 }}>
             {saved && <span className={`badge ${STATUT_TONE[statut] || 'b-gold'}`}>{statut}</span>}
+            {doc.conflitNumero && <span className="badge b-red" data-conflit="numero">Numéro déjà utilisé : change-le puis enregistre</span>}
             {saved && doc.prospect_id && (
               <span>
                 Client : <LienProspect id={doc.prospect_id} />
