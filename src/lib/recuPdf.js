@@ -15,7 +15,7 @@ export async function recuBlob(doc, { fact, code = 'XAF', sym = 'FCFA', paye = 0
   const R = W - M
   const logo = await loadImg(getBrand().logo || `${import.meta.env.BASE_URL}logo-full.png`)
   // Hauteur : en-tête + lignes + totaux + pied
-  const H = 92 + t.lignes.length * 9 + (logo ? 21 : 0) + (t.remise ? 8 : 0) + (fact.adresse || '').split('\n').length * 3.3
+  const H = 96 + t.lignes.length * 9 + (logo ? 21 : 0) + (t.remise ? 8 : 0) + (fact.adresse || '').split('\n').length * 3.3
   const pdf = new jsPDF({ unit: 'mm', format: [W, H], compress: true })
   let y = 6
   const txt = (s, x, yy, o = {}) => {
@@ -56,6 +56,10 @@ export async function recuBlob(doc, { fact, code = 'XAF', sym = 'FCFA', paye = 0
   y += 4
   txt(`Client : ${d.client?.nom || 'Client comptoir'}`, M, y, { size: 8, max: R - M })
   y += 4
+  if (d.vente?.etablissement && d.vente.etablissement !== 'Magasin principal') {
+    txt(`Établissement : ${d.vente.etablissement}`, M, y, { size: 8, max: R - M })
+    y += 4
+  }
   if (d.vente?.vendeur) {
     txt(`Servi par : ${d.vente.vendeur}`, M, y, { size: 8 })
     y += 4

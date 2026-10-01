@@ -67,7 +67,7 @@ async function chargerImage(file) {
 }
 
 // Vente au comptoir : une facture, son paiement (sauf vente à crédit) et la baisse du stock
-export async function enregistrerVente({ panier, client, mode, vendeur, remise }, { documents, settings, api }) {
+export async function enregistrerVente({ panier, client, mode, vendeur, remise, etablissement }, { documents, settings, api }) {
   const fact = settings.facturation
   const numero = nextNumero(documents, 'facture', fact)
   const lignes = panier.map((l) => ({ designation: l.nom, description: l.ref || '', qte: l.qte, pu: l.prix, produitId: l.id }))
@@ -83,7 +83,7 @@ export async function enregistrerVente({ panier, client, mode, vendeur, remise }
       lignes,
       remise: num(remise) || '',
       echeance: credit ? addDays(today(), 30) : today(),
-      vente: { vendeur: vendeur || '', mode, heure: nowTime() },
+      vente: { vendeur: vendeur || '', mode, heure: nowTime(), ...(etablissement ? { etablissementId: etablissement.id, etablissement: etablissement.nom } : {}) },
     },
   })
   const total = totals(doc.data).total

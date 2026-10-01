@@ -15,6 +15,8 @@ import Caisse from './pages/Caisse'
 import Articles from './pages/Articles'
 import Ventes from './pages/Ventes'
 import Equipe from './pages/Equipe'
+import Etablissements from './pages/Etablissements'
+import Cloture from './pages/Cloture'
 import ClientsMagasin, { clientsDe } from './pages/ClientsMagasin'
 import { Menu } from './ui'
 import { articlesDe, enAlerte } from './lib/magasin'
@@ -32,6 +34,7 @@ const NAV = [
     titre: 'Ventes',
     items: [
       { path: 'caisse', label: 'Point de vente', ico: 'coins', droit: 'vendre' },
+      { path: 'cloture', label: 'Clôture de caisse (Z)', ico: 'clipboard', droit: ['vendre', 'finances'] },
       {
         path: 'factures',
         memo: 'liste-facture',
@@ -57,6 +60,8 @@ const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator
 const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
 PAGES.parametres = 'Paramètres'
 const EQUIPE = { path: 'equipe', label: 'Équipe et accès', ico: 'users', droit: 'equipe' }
+const ETABLISSEMENTS = { path: 'etablissements', label: 'Établissements', ico: 'briefcase', droit: ['reglages', 'finances'] }
+PAGES.etablissements = ETABLISSEMENTS.label
 PAGES.equipe = EQUIPE.label
 PAGES.journal = 'Mes ventes du jour'
 const PARAMETRES = {
@@ -417,7 +422,7 @@ function Crm() {
   }
 
   const [chemin, query = ''] = route.split('?')
-  const tousItems = [...NAV.flatMap((g) => g.items), EQUIPE, PARAMETRES]
+  const tousItems = [...NAV.flatMap((g) => g.items), EQUIPE, ETABLISSEMENTS, PARAMETRES]
   const pageDemandee = chemin.split('/')[0] || accueil
   const interdite = tousItems.find((n) => n.path === pageDemandee && !permis(n, profil))
   const [page, arg = ''] = (interdite || !chemin ? accueil : chemin).split(/\/(.*)/s)
@@ -434,6 +439,8 @@ function Crm() {
   else if (page === 'articles') content = <Articles />
   else if (page === 'clients') content = <ClientsMagasin nom={q.get('c')} />
   else if (page === 'equipe') content = <Equipe />
+  else if (page === 'etablissements') content = <Etablissements />
+  else if (page === 'cloture') content = <Cloture key={route} etab={q.get('e')} />
   else if (page === 'journal') content = <Ventes key={route} caisse />
   else if (!peut(profil, 'finances')) content = peut(profil, 'vendre') ? <Caisse /> : <Factures key={route} type="facture" />
   else content = <Ventes key={route} periode={q.get('periode')} />
@@ -530,10 +537,11 @@ function Crm() {
               )
             })}
           </nav>
-          {(permis(EQUIPE, profil) || permis(PARAMETRES, profil)) && (
+          {(permis(EQUIPE, profil) || permis(ETABLISSEMENTS, profil) || permis(PARAMETRES, profil)) && (
             <div className="nav-group nav-admin">
               <div className="nav-title">Administration</div>
               {permis(EQUIPE, profil) && navBtn(EQUIPE)}
+              {permis(ETABLISSEMENTS, profil) && navBtn(ETABLISSEMENTS)}
               {permis(PARAMETRES, profil) && navBtn(PARAMETRES)}
             </div>
           )}
@@ -609,7 +617,7 @@ function Crm() {
         {plus && (
           <div className="sheet-bg" onClick={() => setPlus(false)}>
             <div className="sheet" role="dialog" aria-label="Toutes les pages" onClick={(e) => e.stopPropagation()}>
-              {[...NAV, { titre: 'Administration', items: [EQUIPE, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
+              {[...NAV, { titre: 'Administration', items: [EQUIPE, ETABLISSEMENTS, PARAMETRES] }].map((g) => ({ ...g, items: g.items.filter((n) => permis(n, profil)) })).filter((g) => g.items.length).map((g) => (
                 <div key={g.titre} className="sheet-group">
                   <div className="nav-title">{g.titre}</div>
                   <div className="sheet-grid">

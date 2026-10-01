@@ -168,6 +168,8 @@ export const DEFAULT_SETTINGS = {
     { nom: 'Publicité agence', montant: 0 },
     { nom: 'Autre', montant: 0 },
   ],
+  // Boutiques / points de vente (vide : un seul « Magasin principal »)
+  etablissements: [],
   categoriesArticles: ['Robinetterie', 'Vannes', 'EPI', 'Tôles noires', 'Chiffons', 'Peinture', 'Tiges', 'Outillage', 'Consommables', 'Autre'],
   categoriesDepenses: ['Achat de marchandises', 'Transport / dédouanement', 'Loyer', 'Salaires', 'Électricité / eau', 'Carburant', 'Téléphone / internet', 'Entretien', 'Autre'],
   modesPaiement: ['Espèces', 'MTN Mobile Money', 'Airtel Money', 'Virement', 'Chèque', 'Carte'],

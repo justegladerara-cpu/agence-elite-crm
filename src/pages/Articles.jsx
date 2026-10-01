@@ -16,10 +16,129 @@ export function Vignette({ a, size = 56 }) {
   )
 }
 
+// Catégories : celles des réglages, plus celles déjà utilisées par un article
+export const categoriesDe = (settings, documents) => [...new Set([...(settings.categoriesArticles || CATEGORIES_ARTICLES), ...articlesDe(documents).map((a) => a.categorie).filter(Boolean)])]
+
+// Gestion des catégories : ajouter, renommer (les articles suivent), supprimer (les articles passent dans une autre)
+function CategoriesModal({ onClose }) {
+  const { documents, settings, api, toast, profil } = useApp()
+  const cats = categoriesDe(settings, documents)
+  const articles = articlesDe(documents)
+  const nbDans = (c) => articles.filter((a) => a.categorie === c).length
+  const [nouvelle, setNouvelle] = useState('')
+  const [edit, setEdit] = useState(null)
+  const [suppr, setSuppr] = useState(null)
+  const [busy, setBusy] = useState(false)
+  // La liste des réglages ne se modifie qu'avec le droit « réglages » ; sinon les catégories vivent par les articles
+  const sauverListe = async (liste) => {
+    if (!peut(profil, 'reglages')) return
+    await api.saveSettings({ ...settings, categoriesArticles: liste })
+  }
+  const deplacer = async (de, vers) => {
+    const docs = articles.filter((a) => a.categorie === de).map((a) => ({ ...a.doc, data: { ...a.doc.data, categorie: vers } }))
+    if (docs.length) await api.saveDocs(docs)
+  }
+  const existe = (n, sauf) => cats.some((c) => c !== sauf && c.toLowerCase() === n.toLowerCase())
+  const run = async (fn, msg) => {
+    setBusy(true)
+    try {
+      await fn()
+      toast(msg)
+    } catch {
+      /* erreur déjà affichée */
+    }
+    setBusy(false)
+  }
+  const ajouter = () => {
+    const n = nouvelle.trim()
+    if (!n) return toast('Écris le nom de la catégorie', true)
+    if (existe(n)) return toast('Cette catégorie existe déjà', true)
+    if (!peut(profil, 'reglages')) return toast("Ajouter une catégorie à la liste demande le droit « Réglages ». Tu peux aussi l'écrire directement dans la fiche d'un article.", true)
+    run(async () => {
+      const autre = cats.includes('Autre')
+      await sauverListe(autre ? [...cats.filter((c) => c !== 'Autre'), n, 'Autre'] : [...cats, n])
+      setNouvelle('')
+    }, `Catégorie « ${n} » ajoutée ✓`)
+  }
+  const renommer = () => {
+    const n = edit.nom.trim()
+    if (!n) return toast('Le nom ne peut pas être vide', true)
+    if (n === edit.de) return setEdit(null)
+    if (existe(n, edit.de)) return toast('Une autre catégorie porte déjà ce nom', true)
+    run(async () => {
+      await deplacer(edit.de, n)
+      await sauverListe(cats.map((c) => (c === edit.de ? n : c)))
+      setEdit(null)
+    }, `Catégorie renommée en « ${n} » ✓`)
+  }
+  const supprimer = () => {
+    run(async () => {
+      await deplacer(suppr.de, suppr.vers)
+      await sauverListe(cats.filter((c) => c !== suppr.de))
+      setSuppr(null)
+    }, `Catégorie « ${suppr.de} » supprimée ✓`)
+  }
+  return (
+    <Modal title="Catégories d'articles" onClose={onClose}>
+      <div className="stack">
+        <div className="row">
+          <input className="input" id="cat-nouvelle" style={{ flex: 1 }} value={nouvelle} onChange={(e) => setNouvelle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ajouter()} placeholder="Nouvelle catégorie, ex. Quincaillerie" />
+          <button className="btn primary" disabled={busy} onClick={ajouter}>
+            <Icon n="plus" size={15} /> Ajouter
+          </button>
+        </div>
+        <div>
+          {cats.map((c) => (
+            <div key={c} className="cat-ligne">
+              {edit?.de === c ? (
+                <>
+                  <input className="input" autoFocus value={edit.nom} onChange={(e) => setEdit({ ...edit, nom: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && renommer()} aria-label={`Nouveau nom de ${c}`} />
+                  <button className="btn sm primary" disabled={busy} onClick={renommer}>OK</button>
+                  <button className="btn sm" onClick={() => setEdit(null)}>Annuler</button>
+                </>
+              ) : suppr?.de === c ? (
+                <>
+                  <span className="cat-nom small">Ses {nbDans(c)} article{nbDans(c) > 1 ? 's' : ''} iront dans</span>
+                  <select className="input sm" style={{ flex: '0 1 160px' }} value={suppr.vers} onChange={(e) => setSuppr({ ...suppr, vers: e.target.value })} aria-label="Catégorie de remplacement">
+                    {cats.filter((x) => x !== c).map((x) => (
+                      <option key={x}>{x}</option>
+                    ))}
+                  </select>
+                  <button className="btn sm danger" disabled={busy} onClick={supprimer}>Supprimer</button>
+                  <button className="btn sm" onClick={() => setSuppr(null)}>Non</button>
+                </>
+              ) : (
+                <>
+                  <span className="cat-nom">{c}</span>
+                  <span className="small muted">{nbDans(c)} article{nbDans(c) > 1 ? 's' : ''}</span>
+                  <button className="btn sm ghost" onClick={() => setEdit({ de: c, nom: c })} title="Renommer" aria-label={`Renommer ${c}`}>
+                    <Icon n="edit" size={14} />
+                  </button>
+                  <button
+                    className="btn sm ghost"
+                    onClick={() => (nbDans(c) && cats.length > 1 ? setSuppr({ de: c, vers: cats.find((x) => x !== c && x === 'Autre') || cats.find((x) => x !== c) }) : run(() => sauverListe(cats.filter((x) => x !== c)), `Catégorie « ${c} » supprimée ✓`))}
+                    title="Supprimer"
+                    aria-label={`Supprimer ${c}`}
+                  >
+                    <Icon n="trash" size={14} />
+                  </button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="small muted">Renommer une catégorie met à jour tous ses articles. Les catégories apparaissent dans la caisse dès qu'un article y est rangé.</div>
+      </div>
+    </Modal>
+  )
+}
+
 // Fiche article : photo + nom + prix + quantité suffisent, le reste est facultatif
 export function ArticleForm({ article, onDone }) {
   const { documents, settings, api, toast } = useApp()
-  const cats = useMemo(() => [...new Set([...(settings.categoriesArticles || CATEGORIES_ARTICLES), ...articlesDe(documents).map((a) => a.categorie).filter(Boolean)])], [documents, settings])
+  const [ajoutCat, setAjoutCat] = useState(null)
+  const [catsEnPlus, setCatsEnPlus] = useState([])
+  const cats = useMemo(() => [...new Set([...categoriesDe(settings, documents), ...catsEnPlus])], [documents, settings, catsEnPlus])
   const [f, setF] = useState(() => ({
     nom: article?.nom || '',
     prix: article?.prix ?? '',
@@ -106,6 +225,38 @@ export function ArticleForm({ article, onDone }) {
       </div>
       <Field label="Catégorie">
         <Chips small options={cats} value={f.categorie} onChange={(v) => set({ categorie: v })} />
+        {ajoutCat === null ? (
+          <button type="button" className="toggle-link" style={{ marginTop: 6 }} onClick={() => setAjoutCat('')}>
+            + Nouvelle catégorie
+          </button>
+        ) : (
+          <div className="row" style={{ marginTop: 6 }}>
+            <input
+              className="input sm"
+              id="art-cat-nouvelle"
+              autoFocus
+              style={{ flex: 1 }}
+              value={ajoutCat}
+              onChange={(e) => setAjoutCat(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), e.currentTarget.nextSibling.click())}
+              placeholder="Nom de la catégorie"
+            />
+            <button
+              type="button"
+              className="btn sm primary"
+              onClick={() => {
+                const n = ajoutCat.trim()
+                if (!n) return setAjoutCat(null)
+                const ex = cats.find((c) => c.toLowerCase() === n.toLowerCase())
+                if (!ex) setCatsEnPlus((l) => [...l, n])
+                set({ categorie: ex || n })
+                setAjoutCat(null)
+              }}
+            >
+              OK
+            </button>
+          </div>
+        )}
       </Field>
       {!plus ? (
         <button type="button" className="toggle-link" onClick={() => setPlus(true)}>
@@ -161,6 +312,7 @@ export default function Articles() {
   const [cat, setCat] = useState('')
   const [filtre, setFiltre] = useState('')
   const [modal, setModal] = useState(null)
+  const [gererCats, setGererCats] = useState(false)
   const tous = useMemo(() => articlesDe(documents), [documents])
   const cats = [...new Set(tous.map((a) => a.categorie).filter(Boolean))]
   const liste = tous.filter((a) => {
@@ -178,9 +330,14 @@ export default function Articles() {
           <div className="sub">{modifier ? "Une photo, un nom, un prix, une quantité : l'article apparaît aussitôt dans la caisse." : 'Prix et quantités en stock (consultation).'}</div>
         </div>
         {modifier && (
-          <button className="btn primary" onClick={() => setModal({})}>
-            <Icon n="plus" size={16} /> Nouvel article
-          </button>
+          <div className="row">
+            <button className="btn" onClick={() => setGererCats(true)}>
+              <Icon n="tag" size={15} /> Catégories
+            </button>
+            <button className="btn primary" onClick={() => setModal({})}>
+              <Icon n="plus" size={16} /> Nouvel article
+            </button>
+          </div>
         )}
       </div>
       <div className="grid grid-4">
@@ -227,6 +384,7 @@ export default function Articles() {
           </div>
         )}
       </div>
+      {gererCats && <CategoriesModal onClose={() => setGererCats(false)} />}
       {modal && (
         <Modal title={modal.article ? modal.article.nom : 'Nouvel article'} onClose={() => setModal(null)} large>
           <ArticleForm article={modal.article} onDone={() => setModal(null)} />

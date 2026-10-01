@@ -1685,3 +1685,13 @@ table.ztable td { white-space: normal; }
 .sorties .so-btn, .sorties .so.deux { grid-template-columns: minmax(0, 1fr) auto; }
 .so-btn .so-m, .so.deux .so-m { color: var(--gold-ink, var(--text)); }
 .so-btn:hover { background: var(--line-2); }
+
+/* Clôture de caisse */
+.z-ecart { padding: 10px 14px; border-radius: var(--radius); font-weight: 800; font-size: 15px; }
+.z-ecart.ok { background: rgba(22, 163, 74, .1); color: var(--green); }
+.z-ecart.plus { background: rgba(217, 119, 6, .12); color: #b45309; }
+.z-ecart.moins { background: rgba(220, 38, 38, .1); color: var(--red); }
+/* Catégories d'articles */
+.cat-ligne { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+.cat-ligne .cat-nom { flex: 1; min-width: 0; font-weight: 600; }
+.cat-ligne .input { flex: 1; }

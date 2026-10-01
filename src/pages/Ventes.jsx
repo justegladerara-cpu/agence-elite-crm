@@ -8,6 +8,7 @@ import { ventesDe, periodeBornes, dansPeriode, articlesDe, enAlerte } from '../l
 import { Vignette } from './Articles'
 import { clientsDe } from './ClientsMagasin'
 import { statutDe } from '../lib/invoice'
+import { etablissementsDe, etabDe, etabParFacture } from '../lib/etablissements'
 
 const PERIODES = [
   ['jour', "Aujourd'hui"],
@@ -65,7 +66,15 @@ function Colonnes({ jours }) {
 }
 
 export default function Ventes({ periode: demandee, caisse }) {
-  const { documents, actions, api, profil, data } = useApp()
+  const { documents, actions: toutesActions, api, profil, data, settings } = useApp()
+  const liste = useMemo(() => etablissementsDe(settings), [settings])
+  const [etabF, setEtabF] = useState('')
+  // Filtre par établissement : ventes de ses factures, paiements de ces factures ; les dépenses restent communes
+  const actions = useMemo(() => {
+    if (!etabF) return toutesActions
+    const m = etabParFacture(documents, liste)
+    return toutesActions.filter((a) => a.action !== 'Paiement reçu' || (m[a.facture] || liste[0].id) === etabF)
+  }, [toutesActions, etabF, documents, liste])
   const [periodeChoisie, setPeriode] = useTab('ventes-periode', 'jour', demandee)
   const periode = caisse ? 'jour' : periodeChoisie
   const [maj, setMaj] = useState(() => new Date())
@@ -81,7 +90,7 @@ export default function Ventes({ periode: demandee, caisse }) {
       clearInterval(s)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  const ventes = useMemo(() => ventesDe(documents, actions), [documents, actions])
+  const ventes = useMemo(() => ventesDe(documents, actions).filter((v) => !etabF || etabDe(v.doc, liste) === etabF), [documents, actions, etabF, liste])
   const bornes = periodeBornes(periode)
   const dansP = ventes.filter((v) => dansPeriode(v.date, bornes))
   // Période précédente de même durée, pour comparer
@@ -210,7 +219,17 @@ export default function Ventes({ periode: demandee, caisse }) {
           </button>
         </div>
       </div>
-      <Tabs items={PERIODES} value={periode} onChange={setPeriode} />
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Tabs items={PERIODES} value={periode} onChange={setPeriode} />
+        {liste.length > 1 && (
+          <select className="input sm" style={{ width: 'auto' }} value={etabF} onChange={(e) => setEtabF(e.target.value)} aria-label="Établissement">
+            <option value="">Tous les établissements</option>
+            {liste.map((e) => (
+              <option key={e.id} value={e.id}>{e.nom}</option>
+            ))}
+          </select>
+        )}
+      </div>
       <div className="grid grid-4" style={{ marginTop: 12 }}>
         <div className="flux entree" role="button" tabIndex={0} onClick={() => go('/paiements')}>
           <span>Entrées d'argent</span>

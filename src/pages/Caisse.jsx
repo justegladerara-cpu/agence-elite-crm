@@ -7,6 +7,7 @@ import { getBrand } from '../lib/theme'
 import { articlesDe, enregistrerVente, A_CREDIT } from '../lib/magasin'
 import { Vignette, ArticleForm } from './Articles'
 import { peut, membres } from '../lib/store'
+import { etablissementsDe, etabCourant, choisirEtab } from '../lib/etablissements'
 
 const lirePref = (k, d) => {
   try {
@@ -83,6 +84,13 @@ export default function Caisse() {
   const [busy, setBusy] = useState(false)
   const [fin, setFin] = useState(null)
   const [nouvel, setNouvel] = useState(false)
+  const etablissements = etablissementsDe(settings)
+  const [etab, setEtabState] = useState(() => etabCourant(settings))
+  const etabActif = etablissements.find((e) => e.id === etab.id) || etablissements[0]
+  const setEtab = (id) => {
+    choisirEtab(id)
+    setEtabState(etablissements.find((e) => e.id === id) || etablissements[0])
+  }
   const [choixClient, setChoixClient] = useState(false)
   const [heure, setHeure] = useState(nowTime())
   useEffect(() => {
@@ -180,7 +188,7 @@ export default function Caisse() {
     setBusy(true)
     try {
       const lignes = panier.map((l) => ({ ...l, nom: num(l.remise) ? `${l.nom} (remise ${nb(num(l.remise))} %)` : l.nom, prix: Math.round(prixNet(l)) }))
-      const r = await enregistrerVente({ panier: lignes, client, mode, vendeur }, ctx)
+      const r = await enregistrerVente({ panier: lignes, client, mode, vendeur, etablissement: etabActif }, ctx)
       setFin({ ...r, rendu, recu: recuN })
       setEcran('recu')
       setPanier([])
@@ -229,7 +237,17 @@ export default function Caisse() {
           ) : (
             <span className="pos-vendeur">{vendeur}</span>
           )}
+          {etablissements.length > 1 && (
+            <select className="pos-vendeur" value={etabActif.id} onChange={(e) => setEtab(e.target.value)} aria-label="Établissement" title="Établissement de cette caisse">
+              {etablissements.map((e) => (
+                <option key={e.id} value={e.id}>{e.nom}</option>
+              ))}
+            </select>
+          )}
           <span className="pos-heure">{heure}</span>
+          <button className="pos-btn" onClick={() => go('/cloture')} title="Clôturer la caisse (ticket Z)">
+            <Icon n="file" size={16} /> <span>Clôture Z</span>
+          </button>
           {peut(profil, 'articles') && (
             <button className="pos-btn" onClick={() => setNouvel(true)} title="Ajouter un article">
               <Icon n="plus" size={16} /> <span>Article</span>
