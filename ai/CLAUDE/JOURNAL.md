@@ -127,17 +127,17 @@ Fusionner la PR #1 une fois les contrôles GitHub au vert, vérifier le déploie
 - `crm.agence-elite.fr` et `*.pages.dev` ne sont pas joignables depuis l'environnement cloud (proxy 403) : contrôle visuel à faire par Juste.
 - Production Supabase, lecture seule : 211 prospects, 1679 actions, 190 documents, 1630 événements (inchangés depuis l'audit). Index `documents_workspace_type_numero_unique` **absent** (non appliqué, volontairement).
 
-### Final state
-- Production code = `0306e72`. The new code works without the index: the pre-check `numeroLibre` is already active, and the conflict handling waits for the index.
-- No database writes and no migration.
+### État final
+- Code en production = `0306e72`. Le nouveau code fonctionne sans l'index : le contrôle préalable `numeroLibre` est déjà actif, la gestion des conflits attend l'index.
+- Aucune écriture en base, aucune migration.
 
-### Next step (waits for Juste's go)
-1. Juste confirms a recent Supabase backup.
-2. Run `supabase/tests/diagnostic_avant_migration.sql` again (read-only).
-3. Apply `supabase/migrations/20260930180000_pareto_v1_documents_uniques.sql`.
-4. Run `supabase/tests/pareto_v1.sql`.
-5. Update KNOWN_ISSUES.
+### Prochaine étape (attend le GO de Juste)
+1. Juste confirme une sauvegarde Supabase récente.
+2. Relancer `supabase/tests/diagnostic_avant_migration.sql` (lecture seule).
+3. Appliquer `supabase/migrations/20260930180000_pareto_v1_documents_uniques.sql`.
+4. Lancer `supabase/tests/pareto_v1.sql`.
+5. Mettre à jour KNOWN_ISSUES.
 
-### For Codex
-- PR #1 is merged (`0306e72`). Start any new work from `claude/project-thread-j6wx9s` at that commit or later.
-- The uniqueness index is still not applied in production. Do not mark it resolved.
+### À transmettre à Codex
+- PR #1 fusionnée (`0306e72`). Tout nouveau travail part de `claude/project-thread-j6wx9s` à ce commit ou après.
+- L'index d'unicité n'est toujours pas appliqué en production : ne le marque pas comme résolu.
