@@ -110,7 +110,9 @@ export default function Ventes({ periode: demandee, caisse }) {
   const marge = cout > 0 ? ca - cout : null
   const valeurStock = articlesDe(documents).reduce((m, a) => m + Math.max(0, a.stock) * (num(a.prixAchat) || a.prix), 0)
   const debiteurs = clientsDe(documents, actions, data).filter((c) => c.reste > 0).sort((a, b) => b.reste - a.reste)
-  const creditComptoir = ventes.filter((v) => v.reste > 0 && !debiteurs.some((c) => c.nom === v.client)).reduce((m, v) => m + v.reste, 0)
+  const sansNom = ventes.filter((v) => v.reste > 0 && !debiteurs.some((c) => c.nom === v.client))
+  const creditComptoir = sansNom.reduce((m, v) => m + v.reste, 0)
+  const nbSansNom = sansNom.length
   const devisAttente = documents.filter((d) => d.type === 'devis' && statutDe(d, actions) === 'En attente')
   const devisMontant = devisAttente.reduce((m, d) => m + ventesDe([{ ...d, type: 'facture' }], []).reduce((k, v) => k + v.total, 0), 0)
   // Tous les mouvements d'argent de la période, du plus récent au plus ancien
@@ -249,7 +251,11 @@ export default function Ventes({ periode: demandee, caisse }) {
         <div className="flux credit" role="button" tabIndex={0} onClick={() => go('/clients')}>
           <span>On nous doit (crédits clients)</span>
           <strong>{eur(credit)}</strong>
-          <em>{nb(debiteurs.length)} client{debiteurs.length > 1 ? 's' : ''} à relancer</em>
+          <em>
+            {credit <= 0
+              ? 'Aucune vente à encaisser'
+              : [debiteurs.length && `${nb(debiteurs.length)} client${debiteurs.length > 1 ? 's' : ''} à relancer`, nbSansNom && `${nb(nbSansNom)} vente${nbSansNom > 1 ? 's' : ''} sans nom de client`].filter(Boolean).join(' · ')}
+          </em>
         </div>
       </div>
       <div className="grid grid-4" style={{ marginTop: 12 }}>
@@ -301,10 +307,10 @@ export default function Ventes({ periode: demandee, caisse }) {
                 </button>
               ))}
               {creditComptoir > 0 && (
-                <div className="so deux">
-                  <span className="so-l">Ventes à crédit sans nom de client</span>
+                <button className="so so-btn" onClick={() => go('/factures?filtre=impayees')}>
+                  <span className="so-l">{nb(nbSansNom)} vente{nbSansNom > 1 ? 's' : ''} non payée{nbSansNom > 1 ? 's' : ''} sans nom de client</span>
                   <span className="so-m">{eur(creditComptoir)}</span>
-                </div>
+                </button>
               )}
             </div>
           )}

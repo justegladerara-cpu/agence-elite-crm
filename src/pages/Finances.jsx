@@ -188,7 +188,8 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
     }
   }
   const remove = async () => {
-    if (!window.confirm('Supprimer ce paiement ?')) return
+    // Supprimer le paiement ne supprime pas la vente : elle redevient « à encaisser »
+    if (!window.confirm(edit?.facture ? `Supprimer ce paiement ?\n\nLa vente ${edit.facture} restera enregistrée et apparaîtra comme NON PAYÉE (argent dû). Pour effacer une vente faite par erreur, ouvre plutôt la facture et annule-la.` : 'Supprimer ce paiement ?')) return
     await api.deleteAction(edit.id)
     toast('Paiement supprimé')
     onDone()
