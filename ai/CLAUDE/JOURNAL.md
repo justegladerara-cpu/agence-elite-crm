@@ -111,3 +111,33 @@ Corriger les 3 problèmes de l'audit sur la branche de la PR (`codex/creer-journ
 - `numeroLibre` est l'API de contrôle préalable ; garde la même règle que l'index (`lower(btrim(numero))`, par espace et type).
 - Deux projets Cloudflare : ne supprime pas la consigne de la branche `site`.
 - L'index `documents_workspace_type_numero_unique` n'est toujours **pas** appliqué en production.
+
+## 2026-10-01 — Fusion de la PR #1 et vérification du déploiement (GO de Juste, 05:37)
+
+### Mission
+Fusionner la PR #1 une fois les contrôles GitHub au vert, vérifier le déploiement Cloudflare et le CRM en production sans écrire en base, puis s'arrêter avant l'étape Supabase.
+
+### Fusion
+- Contrôles sur la tête de PR `3370b31` : `controle` ×2 succès, Cloudflare Pages succès (Netlify : ancien projet encore lié, contrôles neutres/succès, non bloquants).
+- PR #1 fusionnée par commit de fusion **`0306e72`** dans `claude/project-thread-j6wx9s` (état `clean`, tête vérifiée `3370b31`).
+
+### Vérifications après fusion
+- Local sur `0306e72` : `npm run check` → 0 erreur lint, **77/77** tests, build OK.
+- Cloudflare Pages (`agence-elite-crm`) sur `0306e72` : « Deployed successfully » (05:37:58 UTC), déploiement `c8868112`. Branche de production → `crm.agence-elite.fr`.
+- `crm.agence-elite.fr` et `*.pages.dev` ne sont pas joignables depuis l'environnement cloud (proxy 403) : contrôle visuel à faire par Juste.
+- Production Supabase, lecture seule : 211 prospects, 1679 actions, 190 documents, 1630 événements (inchangés depuis l'audit). Index `documents_workspace_type_numero_unique` **absent** (non appliqué, volontairement).
+
+### Final state
+- Production code = `0306e72`. The new code works without the index: the pre-check `numeroLibre` is already active, and the conflict handling waits for the index.
+- No database writes and no migration.
+
+### Next step (waits for Juste's go)
+1. Juste confirms a recent Supabase backup.
+2. Run `supabase/tests/diagnostic_avant_migration.sql` again (read-only).
+3. Apply `supabase/migrations/20260930180000_pareto_v1_documents_uniques.sql`.
+4. Run `supabase/tests/pareto_v1.sql`.
+5. Update KNOWN_ISSUES.
+
+### For Codex
+- PR #1 is merged (`0306e72`). Start any new work from `claude/project-thread-j6wx9s` at that commit or later.
+- The uniqueness index is still not applied in production. Do not mark it resolved.
