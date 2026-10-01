@@ -72,3 +72,42 @@ Dépôt (sur `8f74b60`, worktree temporaire) :
 - Ne retire pas la consigne de la branche `site` : deux projets Cloudflare Pages existent (CRM sur `claude/project-thread-j6wx9s`, site public sur `site`).
 - Les hashes de ton journal ne sont pas sur GitHub (seul `8f74b60` l'est) : cite le commit publié.
 - L'index `documents_workspace_type_numero_unique` n'est **pas** appliqué en production au 2026-10-01.
+
+---
+
+## 2026-10-01 — Corrections avant fusion de la PR #1 (accord de Juste, 05:27)
+
+### Mission
+Corriger les 3 problèmes de l'audit sur la branche de la PR (`codex/creer-journal-de-memoire-persistante`), sans fusionner la PR ni appliquer la migration.
+
+### Corrections (commit `3370b31` sur la branche de la PR)
+1. **Conflit de numéro devis/facture** (`src/lib/conflits.js` nouveau, `src/lib/store.js`, `src/pages/Factures.jsx`, `src/App.jsx`) :
+   - `doFlush` : un `saveDoc` refusé par `documents_workspace_type_numero_unique` n'est plus jeté. Il est gardé dans `localStorage` `aecrm-conflits` (une entrée par document), et le bandeau de synchronisation affiche un message clair (numéro, « change le numéro et enregistre à nouveau »). Les autres refus serveur gardent l'ancien comportement.
+   - `load` : les documents en conflit sont réaffichés par-dessus les données serveur/cache avec `conflitNumero: true`. Badge « Numéro à changer » dans la liste, mention dans l'éditeur.
+   - `saveDoc` en ligne attend la synchronisation et lève une erreur claire (`droits`, `conflitNumero`) si la base refuse : plus d'enregistrement annoncé à tort. Hors ligne : comportement inchangé (enregistré sur l'appareil, signalé à la synchronisation).
+   - Une nouvelle version ou la suppression du document retire le conflit. Le drapeau `conflitNumero` n'est jamais envoyé à la base. `clearOffline` efface aussi la liste.
+   - `numeroLibre(type, numero, id)` : contrôle en ligne auprès de la base avant toute écriture (insensible casse/espaces, comme l'index). `Factures.jsx` l'appelle avant de créer actions/prospect/document, et le contrôle local ignore désormais casse et espaces.
+2. **Doc Cloudflare** (`README.md`, `docs/PROJECT_CONTEXT.md`, `docs/DECISIONS.md`) : deux projets Pages documentés. CRM `agence-elite-crm` (branche `claude/project-thread-j6wx9s`, `npm run build` → `dist`, `crm.agence-elite.fr`) et site public `agence-elite-site` (branche `site`, `node site/build.mjs out` → `out`, domaine à vérifier dans Cloudflare). Consigne `git push origin HEAD:site` rétablie. Source : configuration créée par Juste le 2026-09-28 (mémoire projet), non revérifiable d'ici (`*.pages.dev` bloqué).
+3. **KNOWN_ISSUES** : unicité en `[MED]`, « préparé et validé, index non appliqué en production ».
+
+### Tests exécutés (réels)
+- `npx vitest run tests/sync.test.js` : 7/7. Supabase simulé, mêmes erreurs que la base. Couvre : refus en ligne avec message, conservation après rechargement, correction puis synchronisation, hors ligne puis conflit, suppression, contrôle préalable, document non concerné.
+- `npm run check` : 0 erreur lint (49 avertissements, inchangé), **77/77** tests, build OK (`npm run build` code 0).
+- Playwright complet (Chromium `/opt/pw-browsers`) : **27 réussis, 1 ignoré**, dont le nouveau parcours « numéro déjà utilisé (même en minuscules) refusé avant tout enregistrement » (ordinateur + téléphone). Ce parcours échouait avant la correction (comparaison exacte).
+- `git diff --check` : OK.
+- Supabase : aucune requête d'écriture, migration non appliquée.
+
+### État final
+- PR #1 = `8f74b60` (Codex) + `3370b31` (corrections Claude). Aucun fichier en commun avec `23fee39` (journal Claude) : pas de conflit attendu.
+- Prête techniquement à être fusionnée. L'index peut être appliqué après fusion et déploiement, puis sauvegarde, diagnostic et `pareto_v1.sql`.
+
+### Limites connues
+- Conflit né hors ligne : les actions liées (intervention avec numéro de facture, paiements renumérotés) ont pu partir avant le document refusé. Elles portent le numéro en conflit jusqu'à ce que l'utilisateur change le numéro et réenregistre (l'éditeur met alors à jour l'action liée et les paiements).
+- Le message de conflit remplace un éventuel autre message d'erreur de synchronisation jusqu'au prochain envoi.
+
+### À transmettre à Codex
+- Ne réintroduis pas le rejet silencieux dans `doFlush` : `saveDoc` + `estConflitNumero` → `aecrm-conflits`. Toute nouvelle contrainte unique doit avoir le même traitement (conserver, signaler, permettre la correction).
+- `src/lib/conflits.js` contient la logique pure. `tests/sync.test.js` simule Supabase via `vi.mock('@supabase/supabase-js')` et `vi.stubEnv` : réutilisable pour tester la file.
+- `numeroLibre` est l'API de contrôle préalable ; garde la même règle que l'index (`lower(btrim(numero))`, par espace et type).
+- Deux projets Cloudflare : ne supprime pas la consigne de la branche `site`.
+- L'index `documents_workspace_type_numero_unique` n'est toujours **pas** appliqué en production.
