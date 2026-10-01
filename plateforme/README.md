@@ -1,17 +1,30 @@
 # Plateforme des solutions métier (nom provisoire)
 
-Base propre de la future plateforme qu'Agence Elite éditera et vendra : Solution Hôtel, Solution Restaurant, Solution Commerce, puis d'autres.
+Base propre de la future plateforme qu'Agence Elite éditera et vendra.
 
-**État : structure et documentation seulement.** Il n'y a encore ni code, ni base, ni déploiement.
+**État : conception seulement.** Pas de code, pas de base, pas de déploiement.
 
-- **Séparée d'Agence Elite CRM.** Le CRM (`src/`, `site/`, `supabase/` à la racine) reste l'outil interne de l'agence. Rien ici n'est importé par le CRM ni construit avec lui.
-- **Provisoirement dans ce dépôt.** Le dossier ira dans son propre dépôt GitHub dès qu'il existera. Cette session n'a pas le droit d'en créer un.
-- **Point de départ neutre.** Elle ne reprend pas l'ancien prototype Elite Hôtel (archivé, voir `archive/a-supprimer/elite-hotel/`).
-- **Le Kangourou reste intact** sur sa branche. On s'en servira comme modèle pour la Solution Commerce, sans le modifier.
+## Principe : un seul socle, des solutions configurées
+```
+Agence Elite (éditeur / super-admin)
+→ Clients
+→ Établissements
+→ Solution (Commerce, Restaurant, Hôtel…)
+→ Modules activés
+→ Utilisateurs / rôles / permissions
+→ Données de l'établissement
+```
+- **Une seule application, une seule base, un seul code.** Commerce, Restaurant et Hôtel ne sont pas des applications séparées.
+- **Une solution est une entrée du catalogue** : la liste des modules qu'elle propose et ses réglages par défaut.
+- **Un module est écrit une seule fois** et sert à toutes les solutions qui l'incluent (exemple : la caisse sert à Commerce et à Restaurant).
+- **Un client peut avoir plusieurs établissements**, chacun avec sa solution : un magasin, un restaurant, un hôtel.
+- **Première solution : Commerce.** Le logiciel Le Kangourou sert de référence fonctionnelle. Il reste intact : aucun développement dans sa branche, aucune donnée réelle migrée.
 
-## Structure
-- `docs/ARCHITECTURE_CIBLE.md` : le modèle Client → Établissement → Solution.
+## Organisation
+- `docs/ARCHITECTURE_CIBLE.md` : le socle, ses entités et ses règles.
 - `docs/DECISIONS.md` : les décisions propres à la plateforme.
-- `socle/` : ce qui est commun à toutes les solutions.
-- `solutions/<id>/` : ce qui est propre à chaque solution.
-- `supabase/` : le brouillon du schéma, **non appliqué**.
+- `catalogue/solutions.md` : les solutions, décrites comme des données.
+- `catalogue/modules.md` : le catalogue unique des modules (communs et métier).
+- `supabase/brouillon_schema_socle.sql` : le brouillon du schéma, **non appliqué**.
+
+Ce dossier est provisoire dans le dépôt du CRM. Il ira dans son propre dépôt GitHub quand celui-ci existera. Rien ici n'est importé par le CRM ni construit avec lui. L'ancien prototype Elite Hôtel est archivé et ne sert pas de base.

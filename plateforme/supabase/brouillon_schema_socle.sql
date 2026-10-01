@@ -16,6 +16,19 @@ create table solutions (
   statut text not null default 'active'
 );
 
+create table modules (
+  id text primary key,                 -- 'caisse', 'articles', 'stock'…
+  nom text not null,
+  socle boolean not null default false -- true = toujours présent
+);
+
+create table solution_modules (
+  solution_id text references solutions(id),
+  module_id text references modules(id),
+  par_defaut boolean not null default false,
+  primary key (solution_id, module_id)
+);
+
 create table etablissements (
   id uuid primary key default gen_random_uuid(),
   client_id uuid not null references clients(id),
@@ -43,7 +56,7 @@ create table client_membres (
 
 create table etablissement_modules (
   etablissement_id uuid references etablissements(id),
-  module text not null,
+  module text not null references modules(id),  -- doit faire partie de la solution de l'établissement
   actif boolean not null default true,
   config jsonb not null default '{}',
   primary key (etablissement_id, module)
