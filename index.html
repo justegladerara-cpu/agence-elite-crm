@@ -2,17 +2,26 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon-64.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Elite Hôtel" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#714B67" />
-    <title>Elite Hôtel · Gestion hôtelière</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ARCHIVE — ELITE HÔTEL — À SUPPRIMER</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 system-ui, sans-serif; background: #f4f4f5; color: #27272a; padding: 16px; }
+      main { max-width: 520px; text-align: center; }
+      h1 { font-size: 20px; letter-spacing: .04em; }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <main>
+      <h1>ARCHIVE — ELITE HÔTEL — À SUPPRIMER</h1>
+      <p>Ce logiciel n'est plus en service depuis le 1er octobre 2026.</p>
+      <p>Il est conservé uniquement comme archive. Aucune connexion ni saisie n'est possible.</p>
+    </main>
+    <script>
+      // Retire l'ancienne application installée (service worker et caches hors ligne)
+      if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()))
+      if (window.caches) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)))
+      try { localStorage.clear() } catch (e) {}
+    </script>
   </body>
 </html>

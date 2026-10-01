@@ -1,97 +1,10 @@
-// Service worker : permet d'ouvrir le logiciel sans internet.
-// Pages : réseau d'abord, copie locale en secours. Fichiers de l'appli : copie locale d'abord.
-// VERSION et ASSETS sont remplis à chaque build (vite.config.js)
-const VERSION = 'aecrm-dev'
-const ASSETS = [] /* ASSETS */
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/logo-full.png', '/logo-mark.png', '/logo-mark-light.png', '/icon-192.png', '/favicon-64.png']
-
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches
-      .open(VERSION)
-      .then((c) => c.addAll(SHELL).then(() => Promise.all(ASSETS.map((a) => c.add(a).catch(() => {})))))
-      .then(() => self.skipWaiting()),
-  )
-})
-
+// ARCHIVE — ELITE HÔTEL — À SUPPRIMER
+// Service worker de retrait : efface les caches de l'ancienne application, se désinscrit et recharge les pages ouvertes.
+self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  )
-})
-
-const put = (req, res) => {
-  // Les polices Google arrivent en réponse « opaque » : on les garde aussi
-  if (res && (res.ok || res.type === 'opaque')) {
-    const copy = res.clone()
-    caches.open(VERSION).then((c) => c.put(req, copy))
-  }
-  return res
-}
-
-self.addEventListener('fetch', (e) => {
-  const req = e.request
-  if (req.method !== 'GET') return
-  const url = new URL(req.url)
-  const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com'
-  if (url.origin !== self.location.origin && !fonts) return // Supabase : jamais mis en cache
-
-  // Navigation : dernière version en ligne, sinon la copie locale
-  if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then((res) => put('/index.html', res))
-        .catch(() => caches.match('/index.html').then((r) => r || Response.error())),
-    )
-    return
-  }
-  // Fichiers versionnés (assets) et polices : copie locale d'abord
-  if (url.pathname.startsWith('/assets/') || fonts) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => put(req, res)).catch(() => Response.error())))
-    return
-  }
-  // Le reste (logo, modèle Excel…) : copie locale tout de suite, mise à jour en arrière-plan
-  e.respondWith(
-    caches.match(req).then((hit) => {
-      const net = fetch(req)
-        .then((res) => put(req, res))
-        .catch(() => hit || Response.error())
-      return hit || net
-    }),
-  )
-})
-
-// Rappels : notification reçue du service d'envoi (même appli fermée)
-self.addEventListener('push', (e) => {
-  let d = {}
-  try {
-    d = e.data ? e.data.json() : {}
-  } catch {
-    d = { body: e.data ? e.data.text() : '' }
-  }
-  e.waitUntil(
-    self.registration.showNotification(d.title || 'Le Kangourou', {
-      body: d.body || '',
-      icon: '/icon-192.png',
-      badge: '/favicon-64.png',
-      tag: d.tag,
-      data: { url: d.url || '/' },
-    }),
-  )
-})
-
-// Clic sur la notification : ouvre le CRM à la bonne page
-self.addEventListener('notificationclick', (e) => {
-  e.notification.close()
-  const url = new URL(e.notification.data?.url || '/', self.location.origin).href
-  e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      const w = list.find((c) => c.url.startsWith(self.location.origin))
-      if (w) return w.focus().then(() => w.navigate(url))
-      return self.clients.openWindow(url)
-    }),
-  )
+  e.waitUntil((async () => {
+    for (const k of await caches.keys()) await caches.delete(k)
+    await self.registration.unregister()
+    for (const c of await self.clients.matchAll({ type: 'window' })) c.navigate(c.url)
+  })())
 })
