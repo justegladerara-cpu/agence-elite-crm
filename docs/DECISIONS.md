@@ -9,3 +9,5 @@
 2026-09-29 · Architecture core + modules, migration progressive (docs/ARCHITECTURE.md) · Raison : ajouter des modules sans réécrire · Impact : un module n'importe que core/ et lib/ pur ; désactiver ne supprime aucune donnée.
 2026-09-29 · Espaces de travail + rôles, plus d'identifiant en dur · Raison : multi-utilisateur futur, module Vie perso · Impact : nouvelles tables liées à un espace ; bascule user_id → workspace_id table par table.
 2026-09-29 · Journal d'audit séparé du journal métier · Raison : sécurité · Impact : ne jamais écrire d'événement métier dans audit_log ni l'inverse.
+2026-10-01 · Agence Elite CRM reste l'outil interne ; les solutions vendues (Hôtel, Restaurant, Commerce) iront dans une plateforme séparée Client → Établissement → Solution · Raison : décision de Juste · Impact : rien de métier hôtel ou magasin dans le CRM ; base propre dans `plateforme/` en attendant un dépôt dédié.
+2026-10-01 · Elite Hôtel archivé (« à supprimer »), Kangourou préservé · Raison : décision de Juste · Impact : branche hôtel inerte, tables `h_*` hors API dans Supabase kangourou-gestion, voir `archive/a-supprimer/elite-hotel/`.

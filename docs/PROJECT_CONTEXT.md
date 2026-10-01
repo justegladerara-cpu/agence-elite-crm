@@ -6,6 +6,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - React 19 + Vite, JS (pas de TS), pas de routeur ni de lib d'état. Routage hash `#/route?onglet=` (`useRoute`, App.jsx), pages `lazy`.
 - Supabase (projet mylgnsuoppplmfaanyze) : Postgres + RLS, Auth, Storage (bucket `recus`), Realtime, Edge function `rappels`, pg_cron.
 - Hébergement Cloudflare Pages, deux projets reliés à `justegladerara-cpu/agence-elite-crm` : CRM `agence-elite-crm` (branche `claude/project-thread-j6wx9s`, `npm run build` → `dist`, `crm.agence-elite.fr`) et site public `agence-elite-site` (branche `site`, `node site/build.mjs out` → `out`). Push sur `claude/project-thread-j6wx9s` = déploiement du CRM. Si `site/` change : aussi `git push origin HEAD:site`.
+- Écosystème (2026-10-01) : ce CRM est l'outil interne d'Agence Elite. Les logiciels vendus aux clients sont prévus dans une plateforme séparée (`plateforme/`, documentation seulement, non implémentée). Le logiciel Le Kangourou vit sur la branche `claude/project-thread-bm6nwc` (base Supabase kangourou-gestion), intact. Elite Hôtel est archivé : `archive/a-supprimer/elite-hotel/`.
 - PWA : `public/sw.js` (version + assets injectés par le plugin vite `swBuild`).
 
 ## Structure

@@ -141,3 +141,38 @@ Fusionner la PR #1 une fois les contrôles GitHub au vert, vérifier le déploie
 ### À transmettre à Codex
 - PR #1 fusionnée (`0306e72`). Tout nouveau travail part de `claude/project-thread-j6wx9s` à ce commit ou après.
 - L'index d'unicité n'est toujours pas appliqué en production : ne le marque pas comme résolu.
+
+## 2026-10-01 — Archivage d'Elite Hôtel et base propre de la plateforme (demande de Juste, 21:19 puis 21:40)
+
+### Mission
+Juste ne veut plus d'Elite Hôtel comme projet actif. Il faut l'archiver, le rendre inutilisable et garder le Kangourou intact et fonctionnel, puis préparer une base propre pour la future plateforme. La suppression définitive a été remplacée par un archivage : l'outil Supabase demande une confirmation humaine pour tout DROP, et cette session ne peut pas supprimer une branche GitHub.
+
+### Sauvegardes
+- Supabase kangourou-gestion : schéma `sauvegarde_20261001`, avec une copie de toutes les tables Kangourou et `h_*` ainsi que des définitions des fonctions et règles d'accès. Empreintes md5 identiques à la source.
+- Dossier projet `archive/a-supprimer/elite-hotel/` : bundle Git de la branche hôtel, `hotel.sql`, données `h_*` en JSON, captures d'écran.
+- Dossier projet `kangourou/sauvegardes/` : bundle Git de la branche Kangourou.
+
+### Supabase (kangourou-gestion)
+- `compte_unique()` (inscription) remise à la version Kangourou d'origine, sans `h_membres`.
+- Tables `h_*` déplacées dans le schéma `archive_elite_hotel_a_supprimer`, tous droits retirés (hors API).
+- Fonctions `h_*` neutralisées (null ou false) et renommées `archive_elite_hotel_a_supprimer_*`. Elles restent parce que la règle de stockage `h espace recus` y fait référence.
+- Bucket `h-recus` (vide) bloqué. Comptes `pdg@kangou.com` et `demo@kangourou.com` désactivés (bannis).
+- Restent en place : la règle `h espace recus`, désormais toujours fausse ; le bucket vide ; 84 anciennes fiches de démo hôtel (types chambre, table, plat, sejour, commande) dans l'espace `demo` du Kangourou, que le code Kangourou n'utilise pas. Le script de suppression définitive est dans le dossier projet.
+
+### GitHub
+- Commit `ff35a8b` sur `claude/project-thread-hp6xmt` : l'application est remplacée par un avis « ARCHIVE — ELITE HÔTEL — À SUPPRIMER ». Le service worker efface les caches et se désinscrit. Build Cloudflare : succès.
+- Nouvelle branche `archive/a-supprimer/elite-hotel`, même commit. L'ancienne branche ne peut être supprimée qu'à la main.
+- La branche Kangourou `claude/project-thread-bm6nwc` (`2c51c6c`) n'a pas été touchée.
+
+### Vérifications Kangourou
+- Empreintes md5 identiques avant et après : documents (hors fiches hôtel), actions, membres, réglages, prospects.
+- Simulation en tant que `pdg@lekangourou.com` : rôle pdg, espace kangourou, 25 documents visibles.
+- Simulation en tant que `narcie@lekangourou.com` (caisse) : écriture d'un reçu dans le bucket `recus` acceptée (transaction annulée).
+- Écriture dans `h-recus` refusée.
+
+### Plateforme
+- Dossier `plateforme/` (documentation et brouillon SQL non appliqué). Il est provisoire, car la création d'un dépôt GitHub est refusée à cette session (403).
+
+### À transmettre à Codex
+- Ne pas réutiliser Elite Hôtel. Ne rien modifier sur la branche Kangourou ni dans les tables Kangourou.
+- `plateforme/` n'est pas encore du code. Aucune implémentation sans validation de Juste.
