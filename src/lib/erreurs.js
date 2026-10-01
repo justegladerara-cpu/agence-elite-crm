@@ -5,6 +5,7 @@ import { supabase } from './store'
 export function messageErreur(e) {
   const m = String(e?.message || e || '')
   if (e?.droits || /^(Lecture seule|Seuls le propriétaire)/.test(m)) return m
+  if (/documents_workspace_type_numero_unique/i.test(m)) return 'Ce numéro de devis ou de facture existe déjà dans cet espace. Choisis un autre numéro.'
   if (navigator.onLine === false || /failed to fetch|network|load failed|timed? ?out/i.test(m))
     return 'Pas de connexion. Ta saisie est gardée sur le téléphone et partira toute seule.'
   if (/jwt|token|session expir|401|auth/i.test(m)) return 'Ta session a expiré. Reconnecte-toi : tes saisies en attente sont conservées.'

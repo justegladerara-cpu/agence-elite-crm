@@ -236,3 +236,19 @@ test('chronologie du client : étapes, paiements, dépenses et factures lus dans
   await expect(liste.locator('[data-type="payment.received"]').filter({ hasText: /23\s?456/ })).toHaveCount(1)
   await expect(liste.locator('[data-type="payment.received"]').filter({ hasText: /12\s?345/ })).toHaveCount(0)
 })
+
+test('facture : un numéro déjà utilisé (même en minuscules) est refusé avant tout enregistrement', async ({ page }) => {
+  const nouvelle = async (numero) => {
+    await page.goto('/#/facture/new?type=facture')
+    await page.getByLabel('Nom affiché sur le document').fill('Client test numéro')
+    await page.getByPlaceholder('Désignation').first().fill('Prestation')
+    await page.getByRole('textbox', { name: 'Numéro' }).fill(numero)
+    await page.locator('.main').getByRole('button', { name: 'Enregistrer', exact: true }).click()
+  }
+  await nouvelle('FAC-TEST-0001')
+  await expect(page.getByRole('heading', { name: 'Facture FAC-TEST-0001' })).toBeVisible()
+  await nouvelle(' fac-test-0001 ')
+  await expect(page.getByText('Ce numéro existe déjà')).toBeVisible()
+  await page.goto('/#/factures')
+  await expect(page.locator('.main td.lnk', { hasText: /FAC-TEST-0001/i })).toHaveCount(1)
+})

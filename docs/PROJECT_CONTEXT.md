@@ -5,7 +5,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 ## Stack
 - React 19 + Vite, JS (pas de TS), pas de routeur ni de lib d'état. Routage hash `#/route?onglet=` (`useRoute`, App.jsx), pages `lazy`.
 - Supabase (projet mylgnsuoppplmfaanyze) : Postgres + RLS, Auth, Storage (bucket `recus`), Realtime, Edge function `rappels`, pg_cron.
-- Hébergement Cloudflare Pages : push sur `claude/project-thread-j6wx9s` = déploiement (crm.agence-elite.fr). Si `site/` change : aussi `git push origin HEAD:site`.
+- Hébergement Cloudflare Pages, deux projets reliés à `justegladerara-cpu/agence-elite-crm` : CRM `agence-elite-crm` (branche `claude/project-thread-j6wx9s`, `npm run build` → `dist`, `crm.agence-elite.fr`) et site public `agence-elite-site` (branche `site`, `node site/build.mjs out` → `out`). Push sur `claude/project-thread-j6wx9s` = déploiement du CRM. Si `site/` change : aussi `git push origin HEAD:site`.
 - PWA : `public/sw.js` (version + assets injectés par le plugin vite `swBuild`).
 
 ## Structure
@@ -13,10 +13,10 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - `src/ui.jsx` composants communs · `src/charts.jsx` graphiques SVG · `src/icons.jsx` · `src/index.css` (unique feuille, jetons CSS, Inter).
 - `src/core/` noyau : `modules.js` (registre, activation `settings.modules`, dépendances), `permissions.js` (rôles → `module.view/edit`), `events.js` (événements dérivés d'actions/documents + bus `emettre/ecouter`), `relations.js` (recherche de fiche) ; `core/ui/` composants communs (`ProspectPicker`). Voir `docs/ARCHITECTURE.md`.
 - `src/modules/<id>/` domaine d'un module + contrat `index.js` (seul point d'entrée pour les autres). Existent : `facturation` (index.js + ui.jsx), `commercial` (index.js), `dashboard` (interne). Règles : `core/` et `lib/` n'importent aucun module ; entre modules, uniquement `index.js`/`ui.jsx`. Journal : `docs/MIGRATION.md`.
-- `src/lib/` logique pure : `store.js` (accès données, file hors ligne), `logic.js` (`computeAll`, `computeStats`), `tresorerie.js`, `excel.js`/`tableur.js`, `rappels.js`, `appel.js`, `copier.js`, `theme.js`, `defaults.js`.
+- `src/lib/` services partagés : `store.js` (accès données, file hors ligne), `logic.js` (calcul global), `tresorerie.js`, `excel.js`/`tableur.js`, `rappels.js`, `copier.js`, `theme.js`, `defaults.js`. Les statistiques et le domaine d'appel vivent désormais dans `src/modules/`.
 - `src/pages/` un fichier par écran (Cockpit, Dashboard, Hub, Factures, Finances, Charges, Parametres, Boutique, SiteWeb…).
 - `site/` site vitrine statique (`build.mjs` → `dist/site`, données `data.mjs`, `assets/store.js`).
-- `supabase/*.sql` copie lisible des migrations · `supabase/functions/rappels`.
+- `supabase/*.sql` scripts historiques · ordre reproductible, migration V1 et contrôles dans `supabase/README.md`, `supabase/migrations/` et `supabase/tests/` · `supabase/functions/rappels`.
 - `tests/lib.test.js`, `tests/core.test.js`, `tests/architecture.test.js` (frontières, cycles, liste DETTE) (vitest) · `e2e/parcours.spec.js` (Playwright + axe) · `.github/workflows/ci.yml`.
 
 ## Modules (applis du menu)
@@ -34,7 +34,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - `settings` (1 JSON par compte : étapes, objectifs, listes, identité, charges fixes)
 - `store_produits/commandes/cles`, `site_visites/demandes`, `rappels`, `push_subscriptions`, `push_config`, `client_errors`
 - Étape d'un prospect et statut d'une facture = calculés (non stockés).
-- RLS `user_id = auth.uid()` + politique restrictive 2FA `private.mfa_ok()` sur toutes les tables.
+- RLS métier par `workspace_id` + adhésion + rôle (Step 6B), avec politique restrictive 2FA `private.mfa_ok()`. Les anciennes policies métier `user_id = auth.uid()` ont été retirées ; `user_id` conserve l'auteur.
 
 ## Conventions
 - Textes UI en français, tutoiement. Commentaire d'une ligne en tête de fichier.
@@ -47,5 +47,5 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 
 ## Comptes
 - Espaces : `workspaces` (Agence Elite = `site_public`, Démo) + `workspace_members` (rôle). Site/boutique lisent `private.site_proprietaire()`. Inscriptions : `private.inscriptions_autorisees`.
-- Journal d'audit : `audit_log` (triggers `journal_audit`, lecture propriétaire seul), distinct du journal métier `actions`.
+- Journal d'audit : `audit_log` rattaché à `workspace_id` (triggers `journal_audit`, lecture propriétaire/admin), distinct du journal métier `events`. Step 6A fait refléter à `events` l'état courant des actions/documents avec versionnement.
 - Démo demo@agence-elite.fr (reset `supabase/demo.sql`).

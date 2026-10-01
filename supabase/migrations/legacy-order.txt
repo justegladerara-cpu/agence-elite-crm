@@ -1,0 +1,17 @@
+# Socle historique, dans son ordre d'application sur une base Supabase vide.
+# L'ancien script propriétaire est remplacé par espaces.sql ; demo.sql et store_catalogue.sql sont des données, pas du schéma.
+schema.sql
+bootstrap_prerequis.sql
+rappels.sql
+site.sql
+store.sql
+client_errors.sql
+double_auth.sql
+espaces.sql
+audit.sql
+espace_donnees.sql
+evenements.sql
+acces_membres.sql
+evenements_modifications.sql
+espace_permissions.sql
+realtime.sql

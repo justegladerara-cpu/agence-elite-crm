@@ -53,6 +53,8 @@ describe('Step 6B : droits par rôle dans l’interface', () => {
   it('propriétaire et admin : tout ; rôle inconnu (local, hors ligne) : comme le propriétaire', () => {
     for (const r of ['proprietaire', 'admin', undefined]) for (const op of ['ecrire', 'supprimer', 'reglages', 'remplacer']) expect(refusDe(r, op, 'autre', 'moi')).toBeNull()
     expect(peutGerer(undefined)).toBe(true)
+    expect(peutGerer('proprietaire')).toBe(true)
+    expect(peutGerer('admin')).toBe(true)
   })
   it('membre : écrit, supprime le sien, pas celui des autres, ni les réglages', () => {
     expect(refusDe('membre', 'ecrire')).toBeNull()
@@ -61,6 +63,7 @@ describe('Step 6B : droits par rôle dans l’interface', () => {
     expect(refusDe('membre', 'reglages')).toMatch(/réglages/)
     expect(refusDe('membre', 'remplacer')).toMatch(/remplacer/)
     expect(peutGerer('membre')).toBe(false)
+    expect(peutGerer('lecteur')).toBe(false)
   })
   it('lecteur : lecture seule partout', () => {
     for (const op of ['ecrire', 'supprimer', 'reglages', 'remplacer']) expect(refusDe('lecteur', op, 'moi', 'moi')).toMatch(/^Lecture seule/)

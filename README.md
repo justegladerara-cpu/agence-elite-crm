@@ -12,25 +12,35 @@ alertes, clients, tableau de bord).
 - **Tableau de bord** : KPI avec comparaison au mois précédent, objectifs, entonnoir, canaux, CA mois par mois, analyses.
 - **Paramètres** : listes, grille tarifaire, objectifs, relances, alertes, score. Export vers Excel (même fichier, mêmes formules) et import depuis Excel.
 
-Stack : React + Vite, Supabase (base de données + connexion), hébergé sur Netlify.
+Stack : React + Vite, Supabase (base de données + connexion), hébergé sur Cloudflare Pages.
 
-## Mise en ligne (une seule fois)
+Repository officiel : [`justegladerara-cpu/agence-elite-crm`](https://github.com/justegladerara-cpu/agence-elite-crm).
 
-### 1. Supabase (base de données)
-1. Crée un compte sur https://supabase.com puis **New project** (nom : `agence-elite`, région : Paris / eu-west-3). Note le mot de passe de la base quelque part.
-2. Menu **SQL Editor** → **New query** → colle tout le contenu de `supabase/schema.sql` → **Run**.
-3. Menu **Authentication** → **Users** → **Add user** → **Create new user** : ton e-mail et un mot de passe, coche **Auto Confirm User**.
-4. Menu **Authentication** → **Sign In / Providers** → désactive **Allow new users to sign up** (toi seul peux te connecter).
-5. Menu **Project Settings** → **API** (ou **Data API**) : garde ouverts **Project URL** et la clé **publishable** (`sb_publishable_…`, ou l'ancienne clé **anon public**). Jamais la clé secrète.
+## Mise en ligne
 
-### 2. Netlify (hébergement)
-1. Crée un compte sur https://netlify.com avec ton compte GitHub.
-2. **Add new site** → **Import an existing project** → GitHub → `agence-elite-crm`.
-3. Les réglages de build sont lus dans `netlify.toml` (rien à changer).
-4. Avant **Deploy**, dans **Environment variables**, ajoute :
-   - `VITE_SUPABASE_URL` = la Project URL de Supabase
-   - `VITE_SUPABASE_ANON_KEY` = la clé publishable (ou anon public)
-5. **Deploy**. Ton CRM est en ligne à l'adresse donnée par Netlify (modifiable dans **Site configuration → Change site name**).
+### 1. Supabase (base de données et authentification)
+
+N'exécute pas seulement `supabase/schema.sql` : le CRM courant dépend aussi des espaces, rôles, événements et Steps 6A/6B. Suis la procédure complète dans [`supabase/README.md`](supabase/README.md), différente pour une base neuve et une base existante.
+
+Les inscriptions sont contrôlées en base par invitations/e-mails autorisés. Les rôles sont **propriétaire**, **administrateur**, **membre** et **lecteur**. La sécurité métier repose sur l'espace actif, l'adhésion et le rôle ; la RLS Supabase reste l'autorité finale.
+
+### 2. Cloudflare Pages (hébergement actuel)
+
+Deux projets Cloudflare Pages distincts, reliés au repository GitHub `justegladerara-cpu/agence-elite-crm` :
+
+| | CRM | Site public |
+|---|---|---|
+| Projet Cloudflare | `agence-elite-crm` | `agence-elite-site` |
+| Branche de production | `claude/project-thread-j6wx9s` | `site` |
+| Commande de build | `npm run build` | `node site/build.mjs out` |
+| Dossier de sortie | `dist` | `out` |
+| Adresse | `crm.agence-elite.fr` (et `agence-elite-crm.pages.dev`) | domaine du site à vérifier dans Cloudflare |
+| Variables | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (clé publishable) | aucune |
+
+**Déployer le CRM** : pousser sur `claude/project-thread-j6wx9s` ; Cloudflare reconstruit seul.
+**Déployer le site public** : si `site/` change, pousser aussi la même révision sur la branche `site` (`git push origin HEAD:site`). Sans ce second push, le site public reste sur l'ancienne version.
+
+Le CRM utilise des routes par hash (`/#/…`) : aucune règle de réécriture SPA n'est nécessaire. Le build copie `public/_headers` dans `dist/_headers` afin que Cloudflare ne mette pas `sw.js` en cache ; le service worker et son inventaire d'assets sont finalisés par `vite.config.js`. `npm run build` génère aussi un aperçu du site public sous `dist/site` (servi sur `crm.agence-elite.fr/site/`) ; ce n'est pas le déploiement du site public.
 
 Sur téléphone : ouvre l'adresse puis « Ajouter à l'écran d'accueil » pour l'avoir comme une appli.
 
@@ -44,3 +54,15 @@ npm install
 npm run dev
 ```
 Sans fichier `.env`, le CRM tourne en mode démo (données dans le navigateur).
+
+Contrôle complet local : `npm run check`. Parcours navigateur : `npm run test:e2e` après installation de Chromium avec `npx playwright install chromium`.
+
+## Structure rapide
+
+- `src/` : application CRM, noyau, modules et pages ;
+- `site/` : générateur et assets du site public intégré ;
+- `supabase/` : schéma historique, migrations, fonctions et contrôles SQL ;
+- `tests/` et `e2e/` : tests Vitest et Playwright ;
+- `scripts/` : outils d'exploitation contrôlés ;
+- `docs/` : architecture, décisions et contexte ;
+- `ai/CODEX/` : mémoire persistante des interventions Codex.

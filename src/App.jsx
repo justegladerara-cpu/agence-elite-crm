@@ -522,6 +522,7 @@ function Crm() {
       return db.uploadRecu(dataUrl, ext, type)
     }),
     recuUrl: (path) => db.recuUrl(path),
+    numeroLibre: async (type, numero, id) => (db.numeroLibre ? db.numeroLibre(type, numero, id) : true),
     saveSettings: wrap(async (settings) => {
       garde('reglages')
       await db.saveSettings(settings)

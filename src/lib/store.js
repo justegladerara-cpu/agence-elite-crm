@@ -1,6 +1,7 @@
 // Couche de données : Supabase si configuré, sinon stockage local du navigateur (mode démo).
 import { createClient } from '@supabase/supabase-js'
 import { DEFAULT_SETTINGS } from './defaults'
+import { estConflitNumero, ajouterConflit, retirerConflit, avecConflits, messageConflit, messageConflits } from './conflits'
 
 const URL = import.meta.env.VITE_SUPABASE_URL
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -294,6 +295,7 @@ const remote = {
 // tout de suite sur la copie locale, puis envoyée à Supabase dès que la connexion le permet.
 const CACHE = 'aecrm-cache'
 const QUEUE = 'aecrm-queue'
+const CONFLITS = 'aecrm-conflits'
 const readJson = (k, d) => {
   try {
     return JSON.parse(localStorage.getItem(k)) ?? d
@@ -310,7 +312,7 @@ const writeJson = (k, v) => {
 }
 // Déconnexion : on efface la copie locale pour ne rien laisser au compte suivant
 export function clearOffline() {
-  ;[CACHE, QUEUE, RECUS].forEach((k) => localStorage.removeItem(k))
+  ;[CACHE, QUEUE, RECUS, CONFLITS].forEach((k) => localStorage.removeItem(k))
   emit({ pending: 0, error: '' })
 }
 export const hasOfflineCache = () => !!localStorage.getItem(CACHE)
@@ -322,7 +324,7 @@ const isAuthError = (e) => /jwt|token|auth|401|session/i.test(String(e?.message 
 
 // État de synchronisation, affiché dans l'interface
 const LAST = 'aecrm-derniere-synchro'
-let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: '', derniere: readJson(LAST, null) }
+let sync = { online: navigator.onLine, pending: readJson(QUEUE, []).length, syncing: false, error: messageConflits(readJson(CONFLITS, [])), conflits: readJson(CONFLITS, []).length, derniere: readJson(LAST, null) }
 const listeners = new Set()
 const emit = (patch) => {
   // Heure de la dernière synchronisation réussie (tout est envoyé et en ligne)
@@ -416,8 +418,14 @@ async function doFlush() {
         emit({ syncing: false, online: navigator.onLine, pending: q.length, error: !isNetworkError(e) ? 'Reconnecte-toi pour synchroniser tes modifications.' : '' })
         return
       }
-      // Refus du serveur (donnée invalide) : on l'écarte pour ne pas bloquer la file
-      emit({ error: `Une modification n'a pas pu être synchronisée : ${e.message}` })
+      // Numéro de devis/facture déjà pris : le document n'est jamais jeté, il est mis de côté et signalé
+      if (op.t === 'saveDoc' && estConflitNumero(e)) {
+        const liste = ajouterConflit(readJson(CONFLITS, []), op.row)
+        writeJson(CONFLITS, liste)
+        emit({ error: messageConflit(op.row), conflits: liste.length })
+      }
+      // Autre refus du serveur (donnée invalide) : on l'écarte pour ne pas bloquer la file
+      else emit({ error: `Une modification n'a pas pu être synchronisée : ${e.message}` })
     }
     // Relit la file : des modifications ont pu s'ajouter pendant l'envoi
     q = readJson(QUEUE, [])
@@ -429,12 +437,22 @@ async function doFlush() {
     }
     emit({ pending: q.length })
   }
-  emit({ syncing: false, online: true, pending: 0, error: '' })
+  const restants = readJson(CONFLITS, [])
+  emit({ syncing: false, online: true, pending: 0, error: messageConflits(restants), conflits: restants.length })
 }
 
 let generation = 0
 async function queued(op) {
   op = { ...op, k: uid() }
+  // Nouvelle version ou suppression d'un document en conflit : elle remplace l'ancienne tentative
+  if (op.t === 'saveDoc' || op.t === 'deleteDoc') {
+    const avant = readJson(CONFLITS, [])
+    const liste = retirerConflit(avant, op.t === 'saveDoc' ? op.row.id : op.id)
+    if (liste.length !== avant.length) {
+      writeJson(CONFLITS, liste)
+      emit({ conflits: liste.length, error: messageConflits(liste) })
+    }
+  }
   generation++
   const q = [...readJson(QUEUE, []), op]
   writeJson(QUEUE, q)
@@ -468,7 +486,7 @@ const offline = {
               /* cache trop gros : on continue sans */
             }
             emit({ online: true, pending: 0 })
-            return { prospects, actions, documents, settings: mergeSettings(settings?.data) }
+            return { prospects, actions, documents: avecConflits(documents, readJson(CONFLITS, [])), settings: mergeSettings(settings?.data) }
           }
         }
       } catch (e) {
@@ -478,7 +496,7 @@ const offline = {
     if (!hasOfflineCache()) throw new Error("Pas de connexion internet. Ouvre le CRM une première fois en ligne sur cet appareil.")
     emit({ online: navigator.onLine })
     const c = readJson(CACHE, {})
-    return { prospects: c.prospects || [], actions: c.actions || [], documents: c.documents || [], settings: mergeSettings(c.settings) }
+    return { prospects: c.prospects || [], actions: c.actions || [], documents: avecConflits(c.documents || [], readJson(CONFLITS, [])), settings: mergeSettings(c.settings) }
   },
   async addProspect(name, fiche) {
     const row = { id: uid(), name, fiche: fiche || {}, created_at: nowIso() }
@@ -511,8 +529,29 @@ const offline = {
   async saveDoc(doc) {
     const row = { created_at: nowIso(), ...doc, id: doc.id || uid() }
     delete row.user_id
+    delete row.conflitNumero
     await queued({ t: 'saveDoc', row })
+    // En ligne : on attend la réponse de la base pour ne jamais annoncer un enregistrement refusé
+    if (navigator.onLine) {
+      await flush()
+      if (readJson(CONFLITS, []).some((c) => c.row.id === row.id)) throw Object.assign(new Error(messageConflit(row)), { droits: true, conflitNumero: true })
+    }
     return row
+  },
+  // Numéro libre dans l'espace (même règle que l'index : sans tenir compte de la casse ni des espaces).
+  // Hors ligne ou en cas d'erreur : true, la base tranchera à la synchronisation.
+  async numeroLibre(type, numero, id) {
+    if (!navigator.onLine) return true
+    try {
+      await espaceActif()
+      const motif = numero.trim().replace(/[\\%_]/g, (c) => `\\${c}`)
+      let q = filtreEspace(supabase.from('documents').select('id').eq('type', type).ilike('numero', motif))
+      if (id) q = q.neq('id', id)
+      const { data, error } = await q.limit(1)
+      return error ? true : !data.length
+    } catch {
+      return true
+    }
   },
   async deleteDoc(id) {
     await queued({ t: 'deleteDoc', id })
