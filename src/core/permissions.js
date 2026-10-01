@@ -20,9 +20,10 @@ export function permissionsDe(role) {
 
 export const peut = (role, permission) => permissionsDe(role).includes(permission)
 
-
 export const peutEcrire = (role) => role !== 'lecteur'
-export const peutGerer = (role) => !ROLES[role] || role === 'proprietaire' || role === 'admin'
+// Les réglages partagent désormais la même source de vérité que la matrice affichée.
+// `undefined` reste le mode local/hors ligne historique, sans adhésion Supabase à contrôler.
+export const peutGerer = (role) => role === undefined || peut(role, 'settings.edit')
 
 // Message de refus (ou null) avant d'envoyer une opération : l'interface explique au lieu d'échouer en silence.
 // op : 'ecrire' | 'supprimer' (auteur = user_id de l'élément) | 'reglages' | 'remplacer' (tout effacer / réimporter)

@@ -130,6 +130,7 @@ describe('outils', () => {
   })
   test('messages d’erreur compréhensibles', () => {
     expect(messageErreur(new Error('duplicate key value violates unique constraint (23505)'))).toMatch(/existe déjà/)
+    expect(messageErreur(new Error('duplicate key value violates unique constraint "documents_workspace_type_numero_unique"'))).toMatch(/numéro de devis ou de facture/)
     expect(messageErreur(new Error('new row violates row-level security policy'))).toMatch(/Ton rôle dans cet espace/)
     expect(messageErreur(new Error('Lecture seule : pas le droit d’ajouter dans cet espace'))).toMatch(/^Lecture seule/)
   })
@@ -181,6 +182,30 @@ describe('trésorerie : paiements, frais liés et net', () => {
       expect.objectContaining({ id: 'c1', encaisse: 150000, frais: 5000, net: 145000 }),
       expect.objectContaining({ id: '', nom: 'Sans client', encaisse: 34000, frais: 2000, net: 32000 }),
     ])
+  })
+})
+
+describe('parcours V1 : prospect → client → facture → paiement → dépense → trésorerie', () => {
+  it('conserve le même client et les mêmes montants sur tout le parcours', () => {
+    const prospect = p('v1', 'Client V1')
+    const actions = [
+      a('v1', '2026-09-20', 'Premier contact'),
+      a('v1', '2026-09-21', 'Proposition envoyée', { montant: 120000 }),
+      a('v1', '2026-09-22', 'Signature', { montant: 120000, facture: 'FAC-2026000042' }),
+      { id: 'pay-v1', prospect_id: 'v1', date: '2026-09-23', action: 'Paiement reçu', montant: 120000, facture: 'FAC-2026000042' },
+      { id: 'expense-v1', prospect_id: 'v1', date: '2026-09-23', action: 'Dépense', montant: 20000, reference: 'paiement:pay-v1' },
+    ]
+    const devis = { id: 'dev-v1', type: 'devis', numero: 'DEV-2026000042', prospect_id: 'v1', data: { statut: 'Accepté', lignes: [{ designation: 'Service', qte: 1, pu: 120000 }] } }
+    const facture = { id: 'fac-v1', type: 'facture', numero: 'FAC-2026000042', prospect_id: 'v1', data: { devisId: devis.id, date: '2026-09-22', echeance: '2026-10-22', lignes: [{ designation: 'Service', qte: 1, pu: 120000 }] } }
+
+    const crm = computeAll([prospect], actions, S)
+    expect(crm.clients.map((x) => x.id)).toContain('v1')
+    expect(statutDe(devis, actions)).toBe('Accepté')
+    expect(statutDe(facture, actions)).toBe('Payée')
+
+    const argent = resumeArgent(mouvements(actions, '2026-09-01', '2026-09-30'))
+    expect(argent).toMatchObject({ encaisse: 120000, depenses: 20000, net: 100000 })
+    expect(rentabiliteClients(mouvements(actions, '2026-09-01', '2026-09-30'), crm.byId)[0]).toMatchObject({ id: 'v1', encaisse: 120000, frais: 20000, net: 100000 })
   })
 })
 

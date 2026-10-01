@@ -17,7 +17,6 @@ const unsplash = (id, w) => `https://images.unsplash.com/photo-${id}?auto=format
 const srcset = (id, ws) => ws.map((w) => `${unsplash(id, w)} ${w}w`).join(', ')
 const photo = (id, alt, { w = 800, ws = [480, 800, 1200], sizes = '(max-width: 900px) 100vw, 50vw', cls = '', eager = false } = {}) =>
   `<img${cls ? ` class="${cls}"` : ''} src="${unsplash(id, w)}" srcset="${srcset(id, ws)}" sizes="${sizes}" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`
-const fcfa = (n) => n.toLocaleString('fr-FR').replace(/\u202f|\u00a0/g, ' ') + ' FCFA'
 const telHref = (t) => 'tel:' + t.replace(/[^+\d]/g, '')
 
 // Icônes (trait 1.8, 24×24)
