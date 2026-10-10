@@ -15,8 +15,9 @@ const sol = (slug) => SOLUTIONS.find((s) => s.slug === slug)
 // Photo Unsplash redimensionnée à la volée (largeur w)
 const unsplash = (id, w) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=72`
 const srcset = (id, ws) => ws.map((w) => `${unsplash(id, w)} ${w}w`).join(', ')
-const photo = (id, alt, { w = 800, ws = [480, 800, 1200], sizes = '(max-width: 900px) 100vw, 50vw', cls = '', eager = false } = {}) =>
-  `<img${cls ? ` class="${cls}"` : ''} src="${unsplash(id, w)}" srcset="${srcset(id, ws)}" sizes="${sizes}" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`
+// cle : emplacement remplaçable depuis le CRM (voir EMPLACEMENTS_PHOTOS et assets/site.js)
+const photo = (id, alt, { w = 800, ws = [480, 800, 1200], sizes = '(max-width: 900px) 100vw, 50vw', cls = '', eager = false, cle = '' } = {}) =>
+  `<img${cls ? ` class="${cls}"` : ''}${cle ? ` data-photo="${cle}"` : ''} src="${unsplash(id, w)}" srcset="${srcset(id, ws)}" sizes="${sizes}" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`
 const telHref = (t) => 'tel:' + t.replace(/[^+\d]/g, '')
 
 // Icônes (trait 1.8, 24×24)
@@ -191,7 +192,7 @@ const carteSolution = (s, r) => `
 <a class="carte-sol" href="${r('solutions/' + s.slug + '/')}">
   <span class="cs-img">${
     s.photo
-      ? photo(s.photo, s.categorie, { w: 640, ws: [400, 640, 900], sizes: '(max-width: 600px) 100vw, (max-width: 1080px) 50vw, 380px' })
+      ? photo(s.photo, s.categorie, { cle: `solution-${s.slug}`, w: 640, ws: [400, 640, 900], sizes: '(max-width: 600px) 100vw, (max-width: 1080px) 50vw, 380px' })
       : `<img src="${r('assets/img/' + s.image)}" alt="${esc(s.categorie)}" loading="lazy">`
   }</span>
   <span class="cs-tete"><span class="pastille">${ico(s.icone)}</span><span class="cs-cat">${esc(s.categorie)}</span></span>
@@ -218,7 +219,7 @@ const blocCta = (r, titre = 'Parlez-nous de votre projet', txt = "Un échange de
           <a class="btn btn-clair" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener">${SOCIAL.whatsapp} Écrire sur WhatsApp</a>
         </div>
       </div>
-      ${photo(PHOTOS.cta[0], PHOTOS.cta[1], { cls: 'cta-img', sizes: '(max-width: 900px) 100vw, 480px' })}
+      ${photo(PHOTOS.cta[0], PHOTOS.cta[1], { cle: 'contact', cls: 'cta-img', sizes: '(max-width: 900px) 100vw, 480px' })}
     </div>
   </div>
 </section>`
@@ -254,7 +255,7 @@ PAGES.push({
       </ul>
     </div>
     <div class="hero-visuel">
-      ${photo(PHOTOS.hero[0], PHOTOS.hero[1], { w: 1200, ws: [600, 900, 1200, 1600], sizes: '(max-width: 900px) 100vw, 580px', eager: true })}
+      ${photo(PHOTOS.hero[0], PHOTOS.hero[1], { cle: 'accueil', w: 1200, ws: [600, 900, 1200, 1600], sizes: '(max-width: 900px) 100vw, 580px', eager: true })}
       <div class="hero-badge b1">${ico('megaphone')}<span><strong>Réseaux sociaux</strong><small>Gestion et publicité</small></span></div>
       <div class="hero-badge b2">${ico('spark')}<span><strong>Intelligence artificielle</strong><small>Chatbots et automatisation</small></span></div>
     </div>
@@ -307,7 +308,7 @@ PAGES.push({
       <p>Commerçants, restaurateurs, industriels ou associations : nous partons de vos enjeux, pas d'un catalogue.</p>
     </div>
     <div class="grille-sect">${SECTEURS.map(
-      (s) => `<a class="carte-sect avec-photo" href="${r('secteurs/#' + s.slug)}"><span class="sect-img">${photo(s.photo, s.titre, { w: 600, ws: [400, 600, 900], sizes: '(max-width: 600px) 100vw, (max-width: 1080px) 50vw, 380px' })}<span class="pastille">${ico(s.icone)}</span></span><strong>${esc(s.titre)}</strong><span>${esc(s.besoin)}</span></a>`,
+      (s) => `<a class="carte-sect avec-photo" href="${r('secteurs/#' + s.slug)}"><span class="sect-img">${photo(s.photo, s.titre, { cle: `secteur-${s.slug}`, w: 600, ws: [400, 600, 900], sizes: '(max-width: 600px) 100vw, (max-width: 1080px) 50vw, 380px' })}<span class="pastille">${ico(s.icone)}</span></span><strong>${esc(s.titre)}</strong><span>${esc(s.besoin)}</span></a>`,
     ).join('')}</div>
   </div>
 </section>
@@ -319,7 +320,7 @@ PAGES.push({
       <h2>Au plus près des entrepreneurs d'ici</h2>
       <p>Commerçants, artisans, créateurs et équipes de bureau : nous travaillons avec ceux qui font vivre l'économie locale.</p>
     </div>
-    <div class="mosaique">${PHOTOS.terrain.map(([id, alt], i) => `<figure class="m${i}">${photo(id, alt, { w: 700, ws: [400, 700, 1000], sizes: '(max-width: 600px) 100vw, 50vw' })}<figcaption>${esc(alt)}</figcaption></figure>`).join('')}</div>
+    <div class="mosaique">${PHOTOS.terrain.map(([id, alt], i) => `<figure class="m${i}">${photo(id, alt, { cle: `terrain-${i + 1}`, w: 700, ws: [400, 700, 1000], sizes: '(max-width: 600px) 100vw, 50vw' })}<figcaption>${esc(alt)}</figcaption></figure>`).join('')}</div>
   </div>
 </section>
 
@@ -411,7 +412,7 @@ for (const s of SOLUTIONS) {
     </div>
     ${
       s.photo
-        ? photo(s.photo, s.categorie, { w: 900, ws: [500, 900, 1300], sizes: '(max-width: 900px) 100vw, 520px', cls: 'bandeau-img', eager: true })
+        ? photo(s.photo, s.categorie, { cle: `solution-${s.slug}`, w: 900, ws: [500, 900, 1300], sizes: '(max-width: 900px) 100vw, 520px', cls: 'bandeau-img', eager: true })
         : s.image
         ? `<img class="bandeau-img${/webp$/.test(s.image) && ['communication.webp', 'graphisme.webp', 'collaboration.webp', 'visio.webp'].includes(s.image) ? ' illu' : ''}" src="${r('assets/img/' + s.image)}" alt="${esc(s.categorie)}" width="600" height="400">`
         : `<div class="bandeau-img video" aria-hidden="true"><span class="play">${ico('camera')}</span><span class="rec">● REC</span></div>`
@@ -491,7 +492,7 @@ PAGES.push({
   <div class="conteneur liste-sect">
     ${SECTEURS.map(
       (s) => `<article class="sect" id="${s.slug}">
-      <div class="sect-gauche">${photo(s.photo, s.titre, { w: 700, ws: [400, 700, 1000], sizes: '(max-width: 1080px) 100vw, 480px', cls: 'sect-photo' })}
+      <div class="sect-gauche">${photo(s.photo, s.titre, { cle: `secteur-${s.slug}`, w: 700, ws: [400, 700, 1000], sizes: '(max-width: 1080px) 100vw, 480px', cls: 'sect-photo' })}
       <div class="sect-tete"><span class="pastille grande">${ico(s.icone)}</span><div><h2>${esc(s.titre)}</h2><p>${esc(s.besoin)}</p></div></div></div>
       <div class="sect-sols">${s.solutions
         .map((x) => {
@@ -528,7 +529,7 @@ PAGES.push({
       <p>Fondée avec passion et créativité, Agence Elite est bien plus qu'une agence de marketing. Notre histoire a débuté avec une vision audacieuse : créer un lieu où l'innovation, la créativité et l'engagement envers l'excellence se rencontrent pour offrir à nos clients une expérience exceptionnelle.</p>
       <p>Depuis nos débuts, nous avons évolué pour devenir un pilier du marketing 360, avec un portefeuille diversifié de services et une équipe qui se consacre à transformer les idées en résultats concrets.</p>
     </div>
-    ${photo(PHOTOS.agence[0][0], PHOTOS.agence[0][1], { cls: 'img-arrondie' })}
+    ${photo(PHOTOS.agence[0][0], PHOTOS.agence[0][1], { cle: 'agence-1', cls: 'img-arrondie' })}
   </div>
 </section>
 <section class="section section-douce" id="mission">
@@ -540,7 +541,7 @@ PAGES.push({
 <section class="section">
   <div class="conteneur">
     <div class="titre-section"><p class="surtitre">Notre quotidien</p><h2>Créer, conseiller, accompagner</h2></div>
-    <div class="galerie-photos">${PHOTOS.agence.slice(1).map(([id, alt]) => `<figure>${photo(id, alt, { w: 600, ws: [400, 600, 900], sizes: '(max-width: 600px) 100vw, 33vw' })}</figure>`).join('')}</div>
+    <div class="galerie-photos">${PHOTOS.agence.slice(1).map(([id, alt], i) => `<figure>${photo(id, alt, { cle: `agence-${i + 2}`, w: 600, ws: [400, 600, 900], sizes: '(max-width: 600px) 100vw, 33vw' })}</figure>`).join('')}</div>
   </div>
 </section>
 <section class="section" id="valeurs">
@@ -767,7 +768,7 @@ for (const p of PAGES) {
   const html = page(p)
   if (p.chemin === '404/') {
     // Cloudflare Pages sert /404.html à la racine : liens absolus depuis la racine du site
-    writeFileSync(join(OUT, '404.html'), page({ ...p, chemin: '' }).replace('<link rel="canonical" href="https://agence-elite.fr/">', ''))
+    writeFileSync(join(OUT, '404.html'), page({ ...p, chemin: '' }).replace(`<link rel="canonical" href="${SITE.url}/">`, ''))
     continue
   }
   mkdirSync(join(OUT, p.chemin), { recursive: true })
