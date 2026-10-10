@@ -172,7 +172,7 @@ test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
     'dashboard', 'dashboard/acquisition', 'dashboard/conversion', 'dashboard/finances', 'journee', 'calendrier',
     'acquisition', 'clients', 'session', 'scripts', 'saisie', 'apps',
     'devis', 'factures', 'facture/new?type=facture', 'paiements', 'charges', 'depenses', 'abonnements',
-    'site', 'site-demandes', 'site-pages', 'boutique',
+    'site', 'site-demandes', 'site-pages', 'site-photos', 'boutique',
     ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'membres', 'securite', 'compte'].map((s) => `parametres/${s}`),
   ]
   for (const r of routes) {
@@ -251,4 +251,16 @@ test('facture : un numéro déjà utilisé (même en minuscules) est refusé ava
   await expect(page.getByText('Ce numéro existe déjà')).toBeVisible()
   await page.goto('/#/factures')
   await expect(page.locator('.main td.lnk', { hasText: /FAC-TEST-0001/i })).toHaveCount(1)
+})
+
+test('photos du site : emplacements groupés, mode démo sans écriture', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/site-photos')
+  await expect(page.getByRole('heading', { name: 'Photos du site' })).toBeVisible()
+  await expect(page.getByText(/Mode démo : photos d'origine du site/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Accueil' })).toBeVisible()
+  await expect(page.locator('.photo-carte').first().getByText("D'origine")).toBeVisible()
+  await page.locator('.photo-carte').first().getByRole('button', { name: 'Coller un lien' }).click()
+  await page.locator('.photo-carte').first().getByRole('button', { name: 'Enregistrer' }).click()
+  await expect(page.getByText('Mode démo : les photos ne peuvent pas être changées ici.')).toBeVisible()
 })

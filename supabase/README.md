@@ -17,7 +17,7 @@ Ne relance pas le bootstrap et ne rejoue pas tous les anciens scripts.
    group by workspace_id, type, lower(btrim(numero)) having count(*) > 1;
    ```
 
-4. Si les cinq diagnostics sont vides, applique uniquement les migrations `.sql` de `migrations/` qui ne figurent pas encore dans l'historique de la base. Pour la Pareto V1 : `20260930180000_pareto_v1_documents_uniques.sql`.
+4. Si les cinq diagnostics sont vides, applique uniquement les migrations `.sql` de `migrations/` qui ne figurent pas encore dans l'historique de la base. Pour la Pareto V1 : `20260930180000_pareto_v1_documents_uniques.sql`. Pour les photos du site : `20261010220000_site_photos.sql` (additive).
 5. Exécute `tests/pareto_v1.sql`. Ce contrôle est non destructif et doit afficher `Pareto V1 : invariants critiques conformes`.
 
 L'index unique échoue sans modifier les données si des doublons historiques existent. Corrige-les explicitement avant de relancer la migration ; ne supprime jamais arbitrairement un devis ou une facture.

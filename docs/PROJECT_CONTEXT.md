@@ -17,6 +17,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - `src/lib/` services partagés : `store.js` (accès données, file hors ligne), `logic.js` (calcul global), `tresorerie.js`, `excel.js`/`tableur.js`, `rappels.js`, `copier.js`, `theme.js`, `defaults.js`. Les statistiques et le domaine d'appel vivent désormais dans `src/modules/`.
 - `src/pages/` un fichier par écran (Cockpit, Dashboard, Hub, Factures, Finances, Charges, Parametres, Boutique, SiteWeb…).
 - `site/` site vitrine statique (`build.mjs` → `dist/site`, données `data.mjs`, `assets/store.js`).
+- `functions/_middleware.js` sert ce site à la racine de `www.agence-elite.fr` (et redirige `agence-elite.fr` vers www) depuis le projet Pages du CRM ; les autres hôtes passent sans changement.
 - `supabase/*.sql` scripts historiques · ordre reproductible, migration V1 et contrôles dans `supabase/README.md`, `supabase/migrations/` et `supabase/tests/` · `supabase/functions/rappels`.
 - `tests/lib.test.js`, `tests/core.test.js`, `tests/architecture.test.js` (frontières, cycles, liste DETTE) (vitest) · `e2e/parcours.spec.js` (Playwright + axe) · `.github/workflows/ci.yml`.
 
@@ -33,7 +34,7 @@ Lire d'abord ce fichier, puis DECISIONS.md et KNOWN_ISSUES.md. Le code reste la 
 - `prospects` (name + `fiche` JSON) 1─n `actions` (tout événement : étape, appel, « Paiement reçu », « Dépense ») 
 - `documents` (type facture | devis | journee, `numero`, `data` JSON) → prospect
 - `settings` (1 JSON par compte : étapes, objectifs, listes, identité, charges fixes)
-- `store_produits/commandes/cles`, `site_visites/demandes`, `rappels`, `push_subscriptions`, `push_config`, `client_errors`
+- `store_produits/commandes/cles`, `site_visites/demandes`, `site_photos` (photos du site remplacées, bucket `site-photos`), `rappels`, `push_subscriptions`, `push_config`, `client_errors`
 - Étape d'un prospect et statut d'une facture = calculés (non stockés).
 - RLS métier par `workspace_id` + adhésion + rôle (Step 6B), avec politique restrictive 2FA `private.mfa_ok()`. Les anciennes policies métier `user_id = auth.uid()` ont été retirées ; `user_id` conserve l'auteur.
 

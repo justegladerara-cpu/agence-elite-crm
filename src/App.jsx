@@ -32,6 +32,7 @@ const Boutique = lazy(() => import('./pages/Boutique'))
 const SiteVue = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SiteVue })))
 const SiteDemandes = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SiteDemandes })))
 const SitePages = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePages })))
+const SitePhotos = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePhotos })))
 import Applications from './pages/Applications'
 import { syncRappels } from './lib/rappels'
 import { QuickForm, AppelSheet } from './pages/Rapide'
@@ -87,6 +88,7 @@ const NAV = [
       { path: 'site', label: "Vue d'ensemble", ico: 'globe' },
       { path: 'site-demandes', memo: 'site-demandes', label: 'Demandes', ico: 'mail', sub: [['?onglet=atraiter', 'À traiter'], ['?onglet=traitees', 'Traitées']] },
       { path: 'site-pages', label: 'Pages du site', ico: 'layers' },
+      { path: 'site-photos', label: 'Photos du site', ico: 'layers' },
       {
         path: 'boutique',
         memo: 'boutique',
@@ -152,7 +154,7 @@ const APPS = [
   { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures et paiements reçus', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements'] },
   { id: 'charges', nom: 'Charges', desc: 'Dépenses, abonnements et charges fixes', ico: 'wallet', couleur: '#c2410c', pages: ['charges', 'depenses', 'abonnements'] },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
-  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'boutique'] },
+  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'site-photos', 'boutique'] },
   { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]) },
 ].map((a) => ({ ...a, route: a.pages[0], entrees: (a.entrees || a.pages.map((x) => [x, ITEM[x].label])).map(([route, label]) => ({ route, label, badge: route.split('/')[0] === route ? route : null })) }))
 // Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
@@ -638,6 +640,7 @@ function Crm() {
   else if (page === 'site') content = <SiteVue />
   else if (page === 'site-demandes') content = <SiteDemandes key={route} onglet={q.get('onglet')} />
   else if (page === 'site-pages') content = <SitePages />
+  else if (page === 'site-photos') content = <SitePhotos />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'apps') content = <Applications apps={apps} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
