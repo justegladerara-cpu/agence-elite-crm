@@ -72,7 +72,7 @@ export const MODULES = [
     nom: 'Site web',
     version: '1.0',
     desc: 'Audience, demandes de contact et pages du site',
-    pages: ['site', 'site-demandes', 'site-pages'],
+    pages: ['site', 'site-demandes', 'site-pages', 'site-photos'],
     permissions: ['site.view', 'site.edit'],
     entites: ['visite', 'demande'],
     evenements: { produits: ['site.contact'], consommes: [] },

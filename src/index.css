@@ -1974,3 +1974,10 @@ button.at:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
   .ck-grid { display: block; }
   .ck-w { margin-bottom: 12px; }
 }
+
+/* Photos du site (Site web › Photos du site) */
+.photos-titre { font-size: 15px; margin: 8px 0 0; }
+.photo-carte { display: flex; flex-direction: column; gap: 10px; }
+.photo-apercu { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: calc(var(--radius) - 4px); background: var(--line); }
+.photo-carte input[type='url'], .photo-carte label input { flex: 1; min-width: 0; }
+label.btn.disabled { opacity: 0.5; pointer-events: none; }

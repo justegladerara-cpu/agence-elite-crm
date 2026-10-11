@@ -120,6 +120,63 @@
       /* réseau indisponible : la demande part quand même par WhatsApp ou e-mail */
     }
   }
+  // Photos changées depuis le CRM (Site web › Photos du site). L'original est gardé dans data-orig-* : une photo
+  // rétablie dans le CRM revient même si une ancienne liste est en cache. Sans réseau, les photos d'origine restent.
+  var appliquerPhotos = function (liste) {
+    var parCle = {}
+    ;(Array.isArray(liste) ? liste : []).forEach(function (p) {
+      if (p && p.cle && /^https:\/\//.test(p.url || '')) parCle[p.cle] = p
+    })
+    document.querySelectorAll('img[data-photo]').forEach(function (img) {
+      if (!img.hasAttribute('data-orig-src')) {
+        img.setAttribute('data-orig-src', img.getAttribute('src') || '')
+        img.setAttribute('data-orig-srcset', img.getAttribute('srcset') || '')
+        img.setAttribute('data-orig-alt', img.getAttribute('alt') || '')
+      }
+      var p = parCle[img.getAttribute('data-photo')]
+      if (p) {
+        img.removeAttribute('srcset')
+        if (img.getAttribute('src') !== p.url) img.setAttribute('src', p.url)
+        img.setAttribute('alt', p.alt || img.getAttribute('data-orig-alt'))
+      } else {
+        img.setAttribute('src', img.getAttribute('data-orig-src'))
+        if (img.getAttribute('data-orig-srcset')) img.setAttribute('srcset', img.getAttribute('data-orig-srcset'))
+        img.setAttribute('alt', img.getAttribute('data-orig-alt'))
+      }
+    })
+  }
+  if (document.querySelector('img[data-photo]')) {
+    try {
+      var enCache = localStorage.getItem('ae-photos')
+      if (enCache) appliquerPhotos(JSON.parse(enCache))
+    } catch (e) {
+      /* stockage indisponible : photos d'origine */
+    }
+    var CP = window.AE_SITE
+    if (CP && window.fetch) {
+      fetch(CP.url + '/rest/v1/rpc/site_photos_publiques', {
+        method: 'POST',
+        headers: { apikey: CP.cle, Authorization: 'Bearer ' + CP.cle, 'Content-Type': 'application/json' },
+        body: '{}',
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('photos')
+          return r.json()
+        })
+        .then(function (liste) {
+          appliquerPhotos(liste)
+          try {
+            localStorage.setItem('ae-photos', JSON.stringify(liste))
+          } catch (e) {
+            /* stockage indisponible */
+          }
+        })
+        .catch(function () {
+          /* base injoignable (hors ligne, poste local) : la page garde ses photos */
+        })
+    }
+  }
+
   // Mesure d'audience anonyme : page, site d'origine, type d'appareil (rien si « ne pas suivre »)
   try {
     var dnt = navigator.doNotTrack === '1' || window.doNotTrack === '1'

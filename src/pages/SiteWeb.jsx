@@ -2,7 +2,7 @@
 // Les données viennent des tables site_visites / site_demandes (remplies par le site) et de /site/pages.json.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
-import { Kpi, Empty, Tabs, useTab, nb, pct, LienProspect, go } from '../ui'
+import { Kpi, Empty, Tabs, useTab, nb, pct, LienProspect, go, useToast, confirmer } from '../ui'
 import { useNoyau } from '../core/contexte'
 import { HBars, Donut, COULEURS } from '../charts'
 import { supabase } from '../lib/store'
@@ -371,6 +371,203 @@ export function SitePages() {
         )}
       </div>
       <div className="tiny muted">Google affiche environ 60 caractères de titre et 155 de description : au-delà, le texte est coupé.</div>
+    </div>
+  )
+}
+
+// Photos du site : chaque emplacement (site/data.mjs) peut recevoir une autre photo, envoyée depuis l'appareil ou par
+// un lien. La table site_photos garde le remplacement ; le site la lit au chargement (assets/site.js).
+const GROUPES_PHOTOS = ['Accueil', 'Solutions', 'Secteurs', "L'agence", 'Toutes les pages']
+const TYPES_PHOTO = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const PREFIXE_STOCKAGE = '/storage/v1/object/public/site-photos/'
+const messagePhoto = (e) => {
+  const m = String(e?.message || e || '')
+  if (/row-level security|permission|not authorized|unauthorized|403|42501/i.test(m)) return 'Seul le compte propriétaire du site peut changer les photos.'
+  if (/exceeded|too large|maximum allowed size|413/i.test(m)) return 'Photo trop lourde : 5 Mo au plus.'
+  if (/mime|type/i.test(m)) return 'Format refusé : JPEG, PNG ou WebP seulement.'
+  if (/fetch|network/i.test(m)) return 'Pas de connexion : réessayez dans un instant.'
+  return m || 'Erreur inconnue.'
+}
+
+export function SitePhotos() {
+  const [show, toast] = useToast()
+  const [emplacements, setEmplacements] = useState(null)
+  const [lignes, setLignes] = useState({})
+  const [etat, setEtat] = useState({ charge: true, erreur: '' })
+  const [occupe, setOccupe] = useState('')
+  const [lien, setLien] = useState({})
+  const [textes, setTextes] = useState({})
+
+  const charger = useCallback(async () => {
+    const donnees = await import('../../site/data.mjs')
+    setEmplacements(donnees.EMPLACEMENTS_PHOTOS.map((e) => ({ ...e, origine: donnees.photoUnsplash(e.id, 600) })))
+    if (!supabase) return setEtat({ charge: false, erreur: '' })
+    const { data, error } = await supabase.from('site_photos').select('*')
+    setLignes(Object.fromEntries((data || []).map((l) => [l.cle, l])))
+    setEtat({ charge: false, erreur: error ? messagePhoto(error) : '' })
+  }, [])
+  useEffect(() => {
+    charger().catch((e) => setEtat({ charge: false, erreur: messagePhoto(e) }))
+  }, [charger])
+
+  const enregistrer = async (cle, url, alt) => {
+    const { error } = await supabase.from('site_photos').upsert({ cle, url, alt: alt || null, modifie_le: new Date().toISOString() }, { onConflict: 'user_id,cle' })
+    if (error) throw error
+  }
+  const retirerFichier = async (url) => {
+    const i = url ? url.indexOf(PREFIXE_STOCKAGE) : -1
+    if (i >= 0) await supabase.storage.from('site-photos').remove([decodeURIComponent(url.slice(i + PREFIXE_STOCKAGE.length))])
+  }
+  const action = async (cle, fn, ok) => {
+    if (!supabase) return show('Mode démo : les photos ne peuvent pas être changées ici.', true)
+    setOccupe(cle)
+    try {
+      await fn()
+      show(ok)
+      await charger()
+    } catch (e) {
+      show(messagePhoto(e), true)
+    } finally {
+      setOccupe('')
+    }
+  }
+
+  const envoyerFichier = (e, fichier) =>
+    action(
+      e.cle,
+      async () => {
+        const ext = TYPES_PHOTO[fichier.type]
+        if (!ext) throw new Error('mime')
+        if (fichier.size > 5 * 1024 * 1024) throw new Error('too large')
+        const moi = (await supabase.auth.getSession()).data?.session?.user?.id
+        if (!moi) throw new Error('not authorized')
+        const chemin = `${moi}/${e.cle}-${Date.now()}.${ext}`
+        const { error } = await supabase.storage.from('site-photos').upload(chemin, fichier, { upsert: true, contentType: fichier.type })
+        if (error) throw error
+        const url = supabase.storage.from('site-photos').getPublicUrl(chemin).data.publicUrl
+        const avant = lignes[e.cle]?.url
+        await enregistrer(e.cle, url, textes[e.cle] ?? lignes[e.cle]?.alt)
+        if (avant && avant !== url) await retirerFichier(avant).catch(() => {})
+      },
+      'Photo changée ✓',
+    )
+  const collerLien = (e) =>
+    action(
+      e.cle,
+      async () => {
+        const url = String(lien[e.cle] || '').trim()
+        if (!/^https:\/\/\S+$/.test(url) || url.length > 600) throw new Error('Le lien doit commencer par https://')
+        const avant = lignes[e.cle]?.url
+        await enregistrer(e.cle, url, textes[e.cle] ?? lignes[e.cle]?.alt)
+        if (avant && avant !== url) await retirerFichier(avant).catch(() => {})
+        setLien((l) => ({ ...l, [e.cle]: undefined }))
+      },
+      'Photo changée ✓',
+    )
+  const enregistrerTexte = (e) =>
+    action(e.cle, () => enregistrer(e.cle, lignes[e.cle].url, String(textes[e.cle] || '').trim().slice(0, 200)), 'Texte enregistré ✓')
+  const retablir = async (e) => {
+    if (!(await confirmer(`Remettre la photo d'origine pour « ${e.nom} » ?`, { ok: 'Rétablir' }))) return
+    action(
+      e.cle,
+      async () => {
+        const avant = lignes[e.cle]?.url
+        const { error } = await supabase.from('site_photos').delete().eq('cle', e.cle)
+        if (error) throw error
+        await retirerFichier(avant).catch(() => {})
+      },
+      "Photo d'origine rétablie ✓",
+    )
+  }
+
+  const modifiees = Object.keys(lignes).length
+  return (
+    <div className="stack">
+      <Entete titre="Photos du site" sous="Changez les photos du site vitrine : envoyez une image (5 Mo au plus) ou collez un lien. Le site se met à jour tout seul." />
+      {!supabase && <div className="banner">Mode démo : photos d'origine du site. En ligne, vos photos s'enregistrent ici.</div>}
+      {etat.erreur && <div className="banner err">{etat.erreur}</div>}
+      <div className="grid grid-4">
+        <Kpi label="Emplacements" value={nb(emplacements?.length || 0)} navy />
+        <Kpi label="Photos modifiées" value={nb(modifiees)} />
+      </div>
+      {!emplacements ? (
+        <Empty>Chargement des photos…</Empty>
+      ) : (
+        GROUPES_PHOTOS.map((g) => {
+          const liste = emplacements.filter((e) => e.page === g)
+          if (!liste.length) return null
+          return (
+            <section key={g} className="stack">
+              <h2 className="photos-titre">{g}</h2>
+              <div className="grid grid-3">
+                {liste.map((e) => {
+                  const l = lignes[e.cle]
+                  const actif = occupe === e.cle
+                  return (
+                    <div key={e.cle} className="card photo-carte">
+                      <img src={l?.url || e.origine} alt={l?.alt || e.alt} loading="lazy" className="photo-apercu" />
+                      <div className="row" style={{ justifyContent: 'space-between' }}>
+                        <strong>{e.nom}</strong>
+                        <span className={`badge ${l ? 'b-green' : ''}`}>{l ? 'Modifiée' : "D'origine"}</span>
+                      </div>
+                      <div className="row">
+                        <label className={`btn primary ${actif ? 'disabled' : ''}`}>
+                          <Icon n="upload" size={15} /> Changer la photo
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            hidden
+                            disabled={actif}
+                            aria-label={`Changer la photo : ${e.nom}`}
+                            onChange={(ev) => {
+                              const f = ev.target.files?.[0]
+                              ev.target.value = ''
+                              if (f) envoyerFichier(e, f)
+                            }}
+                          />
+                        </label>
+                        <button type="button" className="btn" disabled={actif} onClick={() => setLien((x) => ({ ...x, [e.cle]: x[e.cle] === undefined ? '' : undefined }))}>
+                          <Icon n="copy" size={15} /> Coller un lien
+                        </button>
+                        {l && (
+                          <button type="button" className="btn" disabled={actif} onClick={() => retablir(e)}>
+                            <Icon n="rotate" size={15} /> Rétablir l'originale
+                          </button>
+                        )}
+                      </div>
+                      {lien[e.cle] !== undefined && (
+                        <div className="row">
+                          <input type="url" placeholder="https://…" value={lien[e.cle]} aria-label={`Lien de la photo : ${e.nom}`} onChange={(ev) => setLien((x) => ({ ...x, [e.cle]: ev.target.value }))} />
+                          <button type="button" className="btn primary" disabled={actif} onClick={() => collerLien(e)}>
+                            Enregistrer
+                          </button>
+                        </div>
+                      )}
+                      <label className="tiny muted">
+                        Texte de la photo (facultatif, lu par Google et les lecteurs d'écran)
+                        <div className="row">
+                          <input
+                            maxLength={200}
+                            placeholder={e.alt}
+                            value={textes[e.cle] ?? l?.alt ?? ''}
+                            onChange={(ev) => setTextes((x) => ({ ...x, [e.cle]: ev.target.value }))}
+                          />
+                          {l && textes[e.cle] !== undefined && textes[e.cle] !== (l.alt || '') && (
+                            <button type="button" className="btn" disabled={actif} onClick={() => enregistrerTexte(e)}>
+                              Enregistrer
+                            </button>
+                          )}
+                        </div>
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })
+      )}
+      {toast}
     </div>
   )
 }

@@ -5,9 +5,9 @@ export const SITE = {
   nom: 'Agence Elite',
   slogan: "L'innovation au service de votre succès",
   url: 'https://www.agence-elite.fr',
-  tel1: '+242 06 909 46 11',
+  tel1: '+242 05 522 29 68',
   tel2: '+242 06 808 38 09',
-  whatsapp: '242069094611',
+  whatsapp: '242055222968',
   email: 'contact@agence-elite.fr',
   adresse: '10 avenue Stéphane Tchitchelle, Centre-ville',
   ville: 'Pointe-Noire, République du Congo',
@@ -370,6 +370,18 @@ export const PHOTOS = {
     ['1573164574397-dd250bc8a598', 'Trois collègues travaillant ensemble'],
   ],
 }
+// Emplacements de photo du site : chaque photo peut être remplacée depuis le CRM (Site web › Photos du site).
+// La clé est stable : elle relie la photo du site à son remplacement enregistré dans la base (table site_photos).
+export const EMPLACEMENTS_PHOTOS = [
+  { cle: 'accueil', nom: "Grande photo de l'accueil", page: 'Accueil', id: PHOTOS.hero[0], alt: PHOTOS.hero[1] },
+  ...PHOTOS.terrain.map(([id, alt], i) => ({ cle: `terrain-${i + 1}`, nom: `Sur le terrain ${i + 1}`, page: 'Accueil', id, alt })),
+  { cle: 'contact', nom: "Bandeau « Parlons de votre projet »", page: 'Toutes les pages', id: PHOTOS.cta[0], alt: PHOTOS.cta[1] },
+  ...SOLUTIONS.filter((s) => s.photo).map((s) => ({ cle: `solution-${s.slug}`, nom: s.categorie, page: 'Solutions', id: s.photo, alt: s.categorie })),
+  ...SECTEURS.filter((s) => s.photo).map((s) => ({ cle: `secteur-${s.slug}`, nom: s.titre, page: 'Secteurs', id: s.photo, alt: s.titre })),
+  ...PHOTOS.agence.map(([id, alt], i) => ({ cle: `agence-${i + 1}`, nom: i ? `Galerie de l'agence ${i}` : "Photo principale de l'agence", page: "L'agence", id, alt })),
+]
+export const photoUnsplash = (id, w = 800) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=72`
+
 export const CREDITS_PHOTOS =
   'Iwaria Inc., Christina Morillo (WOCinTech Chat), X (@disruptxn), Oyemike Princewill, Francis Odeyemi, Moise M, Ben Iwara, Ufoma Ojo, Micheal Ogungbe, Johnnathan Tshibangu, Emmanuel Ikwuegbu, Good Faces, Ali Mkumbwa, Muhammad-Taha Ibrahim, Cytonn Photography, Patrick Marah, Ace Maxwell, Emmanuel M, Reproductive Health Supplies Coalition'
 
