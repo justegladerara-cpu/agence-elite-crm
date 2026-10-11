@@ -9,7 +9,7 @@ import { supabase } from '../lib/store'
 import { today, addDays, fmtDate } from '../lib/dates'
 import { waLink } from '../lib/logic'
 
-export const ADRESSE_SITE = 'https://crm.agence-elite.fr/site/'
+export const ADRESSE_SITE = 'https://www.agence-elite.fr/'
 const NOM_PAGE = { '': 'Accueil', '/': 'Accueil' }
 
 // Données d'exemple en mode démo (sans base) : le hub reste lisible
