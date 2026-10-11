@@ -8,7 +8,7 @@ import { today, fmtDate } from '../lib/dates'
 
 // Les prix de la boutique sont en FCFA, quelle que soit la devise choisie dans le CRM
 const eur = (v) => `${nb(Number(v) || 0)} FCFA`
-const SITE_BOUTIQUE = 'https://crm.agence-elite.fr/site/boutique/'
+const SITE_BOUTIQUE = 'https://www.agence-elite.fr/boutique/'
 const STATUTS = {
   en_attente: ['En attente', 'b-orange'],
   payee: ['Payée', 'b-gold'],
