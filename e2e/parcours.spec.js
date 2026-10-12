@@ -85,10 +85,13 @@ test('raccourcis clavier et tableau de bord sur 7 jours', async ({ page, isMobil
 })
 
 test('accessibilité : aucune violation grave sur les écrans principaux', async ({ page }) => {
+  test.setTimeout(60000) // 10 écrans analysés, chacun après la fin de ses animations d'arrivée
   await avecExemples(page)
   for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres/listes', 'parametres/securite', 'saisie']) {
     await page.goto(`/#/${route}`)
     await page.waitForTimeout(400)
+    // Contrastes mesurés une fois les animations d'arrivée terminées (pas pendant un fondu)
+    await page.waitForFunction(() => document.getAnimations().every((a) => !String(a.animationName).startsWith('mvt-') || a.playState !== 'running'))
     const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()
     const graves = r.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious')
     expect(graves.map((v) => `${route} : ${v.id} (${v.nodes.length})`)).toEqual([])
