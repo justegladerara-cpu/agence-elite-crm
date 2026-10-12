@@ -63,13 +63,14 @@ export function Donut({ items, fmt = (v) => v, total: totalLabel = 'Total', max 
         {arcs.map((p, i) => (
           <path
             key={p.label}
+            className="donut-part"
+            style={{ '--i': i, ...(onPick && p.label !== 'Autres' ? { cursor: 'pointer' } : {}) }}
             d={p.d}
             fill={p.color}
             opacity={hover === null || hover === i ? 1 : 0.35}
             onMouseEnter={() => setHover(i)}
             onMouseLeave={() => setHover(null)}
             onClick={() => (onPick && p.label !== 'Autres' ? onPick(p.label) : setHover(hover === i ? null : i))}
-            style={onPick && p.label !== 'Autres' ? { cursor: 'pointer' } : undefined}
           />
         ))}
         <text x="70" y="66" textAnchor="middle" fontSize="17" fontWeight="700" fill="#16203a">
@@ -107,10 +108,11 @@ export function HBars({ rows, fmt = (v) => v, color = COULEURS[0], empty = 'Pas 
   const top = best ? Math.max(...vis.map((r) => r.value)) : null
   return (
     <div className="hbars">
-      {vis.map((r) => (
+      {vis.map((r, i) => (
         <div
           className={`hb-row ${onPick ? 'pick' : ''}`}
           key={r.label}
+          style={{ '--i': i }}
           title={r.title || (onPick ? 'Voir le détail' : '')}
           onClick={() => onPick && onPick(r)}
           role={onPick ? 'button' : undefined}
@@ -167,7 +169,7 @@ export function Funnel({ steps, onPick }) {
               <text x={0} y={y + rowH / 2 + 4} fontSize="12.5" fontWeight="600" fill="#16203a">
                 {s.label}
               </text>
-              <rect x={x} y={y} width={w} height={rowH} rx="8" style={{ fill: win ? '#1d8a61' : `rgba(var(--navy-rgb), ${1 - i * 0.09})` }} />
+              <rect className="funnel-etape" x={x} y={y} width={w} height={rowH} rx="8" style={{ '--i': i, fill: win ? '#1d8a61' : `rgba(var(--navy-rgb), ${1 - i * 0.09})` }} />
               <text x={labW + iw / 2} y={y + rowH / 2 + 5} fontSize="14" fontWeight="700" fill="#fff" textAnchor="middle">
                 {s.n}
               </text>
@@ -208,7 +210,7 @@ export function Gauge({ label, value, cible, proj, fmt = (v) => v, onClick, rest
     <div className={`gauge ${onClick ? 'pick' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined}>
       <svg viewBox="0 0 84 84" role="img" aria-label={`${label} : ${fmt(value)} sur ${fmt(cible)}`}>
         <circle cx="42" cy="42" r={r} fill="none" stroke="#eceae4" strokeWidth="8" />
-        <circle cx="42" cy="42" r={r} fill="none" style={{ stroke: col }} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${c * p} ${c}`} transform="rotate(-90 42 42)" />
+        <circle className="gauge-arc" cx="42" cy="42" r={r} fill="none" style={{ stroke: col, '--plein': `${c * p}px`, '--tour': `${c}px` }} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${c * p} ${c}`} transform="rotate(-90 42 42)" />
         <text x="42" y="47" textAnchor="middle" fontSize="15" fontWeight="700" fill="#16203a">
           {Math.round(p * 100)}%
         </text>

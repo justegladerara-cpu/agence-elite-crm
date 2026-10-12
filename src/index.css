@@ -1981,3 +1981,108 @@ button.at:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .photo-apercu { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: calc(var(--radius) - 4px); background: var(--line); }
 .photo-carte input[type='url'], .photo-carte label input { flex: 1; min-width: 0; }
 label.btn.disabled { opacity: 0.5; pointer-events: none; }
+
+/* Mouvement ---------------------------------------------------------------------
+   Animations douces et courtes : arrivée des pages, cartes et indicateurs en cascade,
+   barres et entonnoir qui se remplissent, anneaux et courbes qui se dessinent, survols
+   qui soulèvent. Aucune animation ne garde de style à la fin (fill-mode backwards).
+   Tout est coupé si l'appareil demande moins d'animations. Chiffres qui montent :
+   src/animations.jsx. */
+
+:root {
+  --mvt-rapide: .16s;
+  --mvt-normal: .32s;
+  --mvt-lent: .7s;
+  --mvt-courbe: cubic-bezier(.22, 1, .36, 1);
+  --mvt-ressort: cubic-bezier(.34, 1.56, .64, 1);
+}
+
+@keyframes mvt-fondu { from { opacity: 0; } }
+@keyframes mvt-monter { from { opacity: 0; transform: translateY(10px); } }
+@keyframes mvt-glisser { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes mvt-zoom { from { opacity: 0; transform: translateY(6px) scale(.97); } }
+@keyframes mvt-barre-h { from { transform: scaleX(0); } }
+@keyframes mvt-tracer { from { stroke-dashoffset: 1; } }
+@keyframes mvt-anneau { from { stroke-dasharray: 0 var(--tour, 999px); } }
+@keyframes mvt-part { from { opacity: 0; transform: scale(.85) rotate(-8deg); } }
+@keyframes mvt-brillance { from { background-position: -160% 0; } to { background-position: 260% 0; } }
+
+/* Pages : fondu à chaque changement d'écran ; titre et blocs montent en cascade. */
+.main > :last-child { animation: mvt-fondu var(--mvt-normal) ease-out backwards; }
+.page-head { animation: mvt-monter var(--mvt-normal) var(--mvt-courbe) backwards; }
+
+/* Cartes et indicateurs : arrivée en cascade. */
+.grid > *, .ck-kpis > *, .ck-grid > * { animation: mvt-zoom var(--mvt-normal) var(--mvt-courbe) backwards; }
+.grid > :nth-child(1), .ck-kpis > :nth-child(1), .ck-grid > :nth-child(1) { animation-delay: 40ms; }
+.grid > :nth-child(2), .ck-kpis > :nth-child(2), .ck-grid > :nth-child(2) { animation-delay: 90ms; }
+.grid > :nth-child(3), .ck-kpis > :nth-child(3), .ck-grid > :nth-child(3) { animation-delay: 140ms; }
+.grid > :nth-child(4), .ck-kpis > :nth-child(4), .ck-grid > :nth-child(4) { animation-delay: 190ms; }
+.grid > :nth-child(5), .ck-kpis > :nth-child(5), .ck-grid > :nth-child(5) { animation-delay: 230ms; }
+.grid > :nth-child(6), .ck-kpis > :nth-child(6), .ck-grid > :nth-child(6) { animation-delay: 270ms; }
+.grid > :nth-child(n + 7), .ck-kpis > :nth-child(n + 7), .ck-grid > :nth-child(n + 7) { animation-delay: 310ms; }
+.card { transition: box-shadow var(--mvt-normal) var(--mvt-courbe), transform var(--mvt-normal) var(--mvt-courbe), border-color var(--mvt-rapide); }
+.kpi, .ck-kpi { transition: box-shadow var(--mvt-normal) var(--mvt-courbe), transform var(--mvt-normal) var(--mvt-courbe), border-color var(--mvt-rapide); }
+.kpi.pick:hover, .ck-kpi:hover, .gauge.pick:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px -10px rgba(var(--navy-rgb), .28);
+}
+.kpi.pick:active, .ck-kpi:active { transform: translateY(-1px) scale(.99); transition-duration: .08s; }
+.kpi::before { transform-origin: 0 50%; animation: mvt-barre-h var(--mvt-lent) .25s var(--mvt-courbe) backwards; }
+.kpi.navy, .ck-kpi:first-child {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, .1) 45%, transparent 60%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  background-position: 260% 0;
+  animation: mvt-zoom var(--mvt-normal) var(--mvt-courbe) backwards, mvt-brillance 1.6s .5s ease-in-out 1 backwards;
+}
+.kpi-delta, .ck-delta { animation: mvt-fondu var(--mvt-lent) .45s ease-out backwards; }
+
+/* Graphiques : barres et entonnoir se remplissent, anneaux et courbes se dessinent. */
+.bar > span, .hb-track span, .ck-obj-bar i {
+  transform-origin: 0 50%;
+  animation: mvt-barre-h var(--mvt-lent) var(--mvt-courbe) backwards;
+  animation-delay: calc(min(var(--i, 0), 12) * 45ms + 150ms);
+}
+.hb-row { animation: mvt-glisser var(--mvt-normal) var(--mvt-courbe) backwards; animation-delay: calc(min(var(--i, 0), 12) * 45ms + 80ms); }
+.hb-row .hb-track span { animation-delay: calc(min(var(--i, 0), 12) * 45ms + 180ms); }
+.funnel-etape {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: mvt-barre-h var(--mvt-lent) var(--mvt-courbe) backwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 100ms);
+}
+.donut-part {
+  transform-box: view-box;
+  transform-origin: 70px 70px;
+  animation: mvt-part var(--mvt-lent) var(--mvt-courbe) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms + 100ms);
+}
+.gauge-arc { animation: mvt-anneau 1s .2s var(--mvt-courbe) backwards; }
+.ck-line, .ck-spark-ligne { stroke-dasharray: 1; animation: mvt-tracer 1.1s .2s var(--mvt-courbe) backwards; }
+.donut-legend > div { transition: background var(--mvt-rapide); }
+
+/* Listes et tableaux : lignes en cascade. */
+table.t tbody tr { animation: mvt-fondu var(--mvt-normal) ease-out backwards; }
+table.t tbody tr:nth-child(2) { animation-delay: 25ms; }
+table.t tbody tr:nth-child(3) { animation-delay: 50ms; }
+table.t tbody tr:nth-child(4) { animation-delay: 75ms; }
+table.t tbody tr:nth-child(5) { animation-delay: 100ms; }
+table.t tbody tr:nth-child(6) { animation-delay: 125ms; }
+table.t tbody tr:nth-child(7) { animation-delay: 150ms; }
+table.t tbody tr:nth-child(n + 8) { animation-delay: 175ms; }
+.ck-alerts > li, .ck-feed li { animation: mvt-glisser var(--mvt-normal) var(--mvt-courbe) backwards; }
+.ck-alerts > li:nth-child(2), .ck-feed li:nth-child(2) { animation-delay: 40ms; }
+.ck-alerts > li:nth-child(3), .ck-feed li:nth-child(3) { animation-delay: 80ms; }
+.ck-alerts > li:nth-child(n + 4), .ck-feed li:nth-child(n + 4) { animation-delay: 120ms; }
+
+/* Boutons et onglets : retour visuel immédiat. */
+.btn { transition: background var(--mvt-rapide), border-color var(--mvt-rapide), box-shadow var(--mvt-rapide), transform var(--mvt-rapide), filter var(--mvt-rapide); }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn.primary:hover:not(:disabled), .btn.gold:hover:not(:disabled) { box-shadow: 0 6px 14px -6px rgba(var(--navy-rgb), .45); }
+.empty, .ck-empty { animation: mvt-zoom var(--mvt-lent) var(--mvt-courbe) backwards; }
+.modal { animation: mvt-zoom var(--mvt-normal) var(--mvt-ressort) backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+  .kpi.pick:hover, .ck-kpi:hover, .gauge.pick:hover, .kpi.pick:active, .ck-kpi:active, .btn:active:not(:disabled) { transform: none; }
+}
