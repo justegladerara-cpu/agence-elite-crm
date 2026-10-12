@@ -3,6 +3,7 @@
 // Tous les chiffres viennent des données du CRM (lib/cockpit.js, mêmes règles que les listes de détail).
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
+import { ChiffreAnime } from '../animations'
 import { eur, pct, nb, court, go, sym } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { Gauge, useWidth } from '../charts'
@@ -84,7 +85,7 @@ function Spark({ vals, label }) {
   const y = (v) => H - 3 - (v / max) * (H - 6)
   return (
     <svg className="ck-spark" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
-      <polyline points={pts.map((v, i) => `${x(i)},${y(v)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+      <polyline pathLength="1" className="ck-spark-ligne" points={pts.map((v, i) => `${x(i)},${y(v)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(pts.length - 1)} cy={y(pts[pts.length - 1])} r="2.6" fill="currentColor" />
     </svg>
   )
@@ -108,7 +109,7 @@ function KpiTile({ label, cur, prev, fmt: fmtBrut, vs, objectif, projection, spa
     <button type="button" className="ck-kpi" onClick={onClick}>
       <span className="ck-kpi-l">{label}</span>
       <span className={`ck-kpi-v ${fmt(cur).length > 10 ? 'long' : ''}`} title={fmtBrut(cur)}>
-        {fmt(cur)}
+        <ChiffreAnime valeur={fmt(cur)} />
       </span>
       <span className="ck-kpi-comp">
         {comp && (
@@ -233,7 +234,7 @@ function Tendance({ cases, prev, pas, metrique, cumul, objectif, sel, jour, sign
           {moyenne !== null && <line x1={pad.l} x2={W - pad.r} y1={y(moyenne)} y2={y(moyenne)} className="ck-avg" />}
           {objCase && <line x1={pad.l} x2={W - pad.r} y1={y(objCase)} y2={y(objCase)} className="ck-objline" />}
           {cumul && objectif ? <line x1={x(0)} y1={y(0)} x2={x(n - 1)} y2={y(objectif)} className="ck-objline" /> : null}
-          <polyline points={ligne(vals)} className="ck-line" fill="none" />
+          <polyline pathLength="1" points={ligne(vals)} className="ck-line" fill="none" />
           {signatures &&
             cases.map((b, i) =>
               signatures[b.date] ? <path key={`s${b.date}`} d={`M${x(i)},${pad.t + ih - 7} l5,7 h-10 z`} className="ck-event" /> : null,

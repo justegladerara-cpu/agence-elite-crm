@@ -265,6 +265,15 @@ Tous dans `src/ui.jsx` sauf mention. **Réutilise-les, ne les recrée pas.**
 - Locaux réutilisables par copie : `Spark` (Cockpit), `MonthChart`, `ActivityChart` (Dashboard), `PipelineEtapes`, `CumulMois`, `Heatmap`, `MeilleursClients` (DashPlus).
 - Règles : un seul axe, traits fins, couleur = entité, info-bulle au survol, **chaque élément cliquable** (`onPick` → drill), vide : « Pas encore de données sur la période. », `role="img"` + `aria-label`.
 
+### 4.12 Mouvement (`index.css`, section « Mouvement » ; `src/animations.jsx`)
+- Chaque page arrive en fondu ; titre, cartes (`.grid`), chiffres clés et blocs du Cockpit montent en cascade.
+- Les chiffres de `Kpi` et des tuiles du Cockpit comptent jusqu'à leur valeur (`ChiffreAnime`) ; le texte final est
+  exactement la valeur formatée, les lecteurs d'écran ne lisent que celle-ci.
+- Barres (`Bar`, `HBars`, objectifs), entonnoir, parts du donut, jauges et courbes (`pathLength="1"`) se dessinent.
+- Survol : cartes cliquables qui se soulèvent ; boutons qui s'enfoncent ; modales avec un léger ressort.
+- Règles : aucune animation ne garde de style à la fin (`backwards`), pas de boucle hors chargement et « en direct »,
+  tout est coupé avec `prefers-reduced-motion: reduce`.
+
 ---
 
 ## 5. Patterns d'écrans (observés dans le code)

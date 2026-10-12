@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from './icons'
+import { ChiffreAnime } from './animations'
 
 import { useDonnees } from './core/contexte'
 
@@ -242,7 +243,7 @@ export function Kpi({ label, value, delta, invert, navy, vs = 'mois préc.', onC
       onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
     >
       <div className="kpi-label">{label}</div>
-      <div className="kpi-value">{value}</div>
+      <div className="kpi-value"><ChiffreAnime valeur={value} /></div>
       {txt && <div className={`kpi-delta ${cls}`}>{txt}</div>}
     </div>
   )
