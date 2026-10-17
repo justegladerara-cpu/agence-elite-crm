@@ -13,6 +13,8 @@ const FICHIERS = {
   '/site/404': ['page introuvable du site', '"etag-404"'],
   '/site/robots.txt': ['User-agent: *', '"etag-robots"', 'text/plain'],
   '/site/sitemap.xml': ['<urlset/>', '"etag-sitemap"', 'application/xml'],
+  '/recrutement/': ['accueil emploi', '"etag-emploi"'],
+  '/recrutement/assets/index.js': ['code emploi', '"etag-emploi-js"', 'text/javascript'],
 }
 const ASSETS = {
   appels: [],
@@ -85,4 +87,27 @@ describe('emplacements de photo du site construit', () => {
     expect(cles.filter((c) => !vues.has(c))).toEqual([])
     for (const c of cles) expect(c).toMatch(/^[a-z0-9-]{1,60}$/)
   }, 60000)
+})
+
+describe('Elite Emploi servi à /recrutement', () => {
+  test('une page de l’application renvoie son accueil, sur www comme sur le CRM', async () => {
+    for (const hote of ['www.agence-elite.fr', 'crm.agence-elite.fr']) {
+      const r = await appel(`https://${hote}/recrutement/offres/123`)
+      expect(r.status).toBe(200)
+      expect(await r.text()).toBe('accueil emploi')
+    }
+  })
+
+  test('les fichiers de l’application sont servis tels quels', async () => {
+    const r = await appel('https://www.agence-elite.fr/recrutement/assets/index.js')
+    expect(await r.text()).toBe('code emploi')
+  })
+
+  test('/recrutement sans barre finale redirige, et agence-elite.fr passe d’abord par www', async () => {
+    const r = await appel('https://www.agence-elite.fr/recrutement?x=1')
+    expect(r.status).toBe(301)
+    expect(r.headers.get('Location')).toBe('https://www.agence-elite.fr/recrutement/?x=1')
+    const nu = await appel('https://agence-elite.fr/recrutement/')
+    expect(nu.headers.get('Location')).toBe('https://www.agence-elite.fr/recrutement/')
+  })
 })

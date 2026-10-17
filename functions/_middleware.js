@@ -5,15 +5,18 @@
 // - www.agence-elite.fr/<chemin> → fichier /site/<chemin>, avec la page 404 du site pour une adresse inconnue
 //   (/site/404 : Pages sert 404.html sans l'extension).
 // Tout autre hôte (crm.agence-elite.fr, *.pages.dev) passe sans changement.
+// Sur tous les hôtes, /recrutement/… sert Elite Emploi (application compilée dans public/recrutement) :
+// une adresse sans extension renvoie sa page d'accueil, qui affiche la bonne page.
 const HOTE_SITE = 'www.agence-elite.fr'
 const HOTE_NU = 'agence-elite.fr'
 
 export async function onRequest({ request, env, next }) {
   const url = new URL(request.url)
   const hote = url.hostname.toLowerCase()
-  if (hote !== HOTE_SITE && hote !== HOTE_NU) return next()
-
   if (hote === HOTE_NU) return Response.redirect(`https://${HOTE_SITE}${url.pathname}${url.search}`, 301)
+  if (url.pathname === '/recrutement' || url.pathname.startsWith('/recrutement/')) return servirRecrutement(env, request, url)
+  if (hote !== HOTE_SITE) return next()
+
   if (url.pathname === '/site' || url.pathname.startsWith('/site/')) {
     return Response.redirect(`https://${HOTE_SITE}${url.pathname.slice(5) || '/'}${url.search}`, 301)
   }
@@ -45,4 +48,12 @@ export async function onRequest({ request, env, next }) {
 async function pageIntrouvable(env, url) {
   const page = await env.ASSETS.fetch(new Request(new URL('/site/404', url), { method: 'GET' }))
   return new Response(page.body, { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } })
+}
+
+async function servirRecrutement(env, request, url) {
+  if (url.pathname === '/recrutement') return Response.redirect(`${url.origin}/recrutement/${url.search}`, 301)
+  const dernier = url.pathname.split('/').pop() || ''
+  if (dernier.includes('.')) return env.ASSETS.fetch(request)
+  const page = await env.ASSETS.fetch(new Request(new URL('/recrutement/', url), { method: 'GET' }))
+  return new Response(page.body, { status: page.status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' } })
 }

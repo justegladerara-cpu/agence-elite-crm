@@ -1,0 +1,5 @@
+Elite Emploi (plateforme de recrutement), version compilée.
+Ne pas modifier ici : le code source est dans le dépôt agenceelite, dossier EMPLOI.
+Pour mettre à jour : dans EMPLOI, lancer
+  BASE_PATH=/recrutement/ VITE_SUPABASE_URL=... VITE_SUPABASE_KEY=... npm run build
+puis remplacer ce dossier par le contenu de dist/ (sans _redirects, _headers ni robots.txt).
