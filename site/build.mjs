@@ -1,9 +1,10 @@
 // Générateur du site vitrine agence-elite.fr (HTML statique, sans dépendance).
 // Usage : node site/build.mjs [dossier de sortie]   (par défaut : site-dist)
 // Les liens sont relatifs : le site fonctionne à la racine d'un domaine comme dans un sous-dossier.
-import { mkdirSync, writeFileSync, cpSync, rmSync } from 'node:fs'
+import { mkdirSync, writeFileSync, cpSync, rmSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { markdownEnHtml } from '../src/lib/markdown.js'
 import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS } from './data.mjs'
 
 const ici = dirname(fileURLToPath(import.meta.url))
@@ -176,7 +177,7 @@ ${corps(r)}
       <a class="pied-ligne" href="mailto:${SITE.email}">${ico('mail')}<span>${esc(SITE.email)}</span></a>
     </div>
   </div>
-  <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite. Tous droits réservés.</span><a href="${r('mentions-legales/')}">Mentions légales</a></div>
+  <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite. Tous droits réservés.</span><span class="pied-legal"><a href="${r('mentions-legales/')}">Mentions légales</a><a href="${r('confidentialite/')}">Confidentialité</a><a href="${r('cookies/')}">Cookies</a><a href="${r('cgv/')}">CGV</a><a href="${r('boutique/cgv/')}">CGV Elite Store</a><a href="${r('recrutement/cgu')}">Elite Emploi</a></span></div>
 </footer>
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
 <script>window.AE_SITE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle })}</script>
@@ -725,27 +726,40 @@ PAGES.push({
 </section>`,
 })
 
-// Mentions légales
-PAGES.push({
-  chemin: 'mentions-legales/',
-  titre: 'Mentions légales | Agence Elite',
-  description: 'Mentions légales du site agence-elite.fr : éditeur, hébergement, propriété intellectuelle et données personnelles.',
-  corps: (r) => `
-<section class="bandeau"><div class="conteneur"><nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>Mentions légales</span></nav><h1>Mentions légales</h1></div></section>
-<section class="section"><div class="conteneur texte">
-  <h2>Éditeur du site</h2>
-  <p>Agence Elite, ${esc(SITE.adresse)}, ${esc(SITE.ville)}, ${esc(SITE.bp)}.<br>Téléphone : ${esc(SITE.tel1)} / ${esc(SITE.tel2)}. E-mail : ${esc(SITE.email)}.</p>
-  <h2>Hébergement</h2>
-  <p>Cloudflare, Inc., 101 Townsend Street, San Francisco, CA 94107, États-Unis.</p>
-  <h2>Propriété intellectuelle</h2>
-  <p>Les textes, logos et visuels de ce site sont la propriété d'Agence Elite ou de ses partenaires. Toute reproduction sans autorisation est interdite.</p>
-  <h2>Crédits photos</h2>
-  <p>Visuels du catalogue Agence Elite. Photographies libres de droits issues d'Unsplash (licence Unsplash) : ${esc(CREDITS_PHOTOS)}.</p>
-  <h2>Données personnelles</h2>
-  <p>Quand vous envoyez le formulaire de contact, votre demande (nom, entreprise, téléphone, e-mail, message) est enregistrée dans notre outil de suivi client, puis transmise par WhatsApp ou par e-mail. Ces informations servent uniquement à répondre à votre demande et à suivre notre échange ; elles ne sont ni vendues ni cédées. Vous pouvez demander leur consultation ou leur suppression à tout moment en écrivant à ${esc(SITE.email)}.</p>
-  <p>Mesure d'audience : nous comptons les pages vues de façon anonyme (page visitée, site d'origine, type d'appareil), sans cookie ni adresse IP. Si votre navigateur demande de ne pas être suivi, rien n'est compté.</p>
+// Textes légaux : rédigés en Markdown dans site/legal (mêmes textes que l'application Documents du CRM), PDF à côté.
+// Les informations de société encore inconnues (RCCM, NIU…) s'affichent « communiqué sur simple demande ».
+const SOCIETE = { AE_REPRESENTANT: 'le représentant légal', AE_FONCTION: 'dirigeant' }
+const LEGAUX = [
+  { chemin: 'mentions-legales/', fichier: 'mentions-legales', court: 'Mentions légales' },
+  { chemin: 'confidentialite/', fichier: 'politique-de-confidentialite', court: 'Confidentialité' },
+  { chemin: 'cookies/', fichier: 'politique-cookies', court: 'Cookies' },
+  { chemin: 'cgv/', fichier: 'conditions-generales-de-vente', court: 'CGV des prestations' },
+  { chemin: 'boutique/cgv/', fichier: 'conditions-generales-de-vente-boutique', court: 'CGV Elite Store' },
+]
+const lireLegal = (fichier) => {
+  const brut = readFileSync(join(ici, 'legal', fichier + '.md'), 'utf8')
+  const m = brut.match(/^---\n([\s\S]*?)\n---\n?/)
+  const entete = Object.fromEntries((m ? m[1] : '').split('\n').map((l) => l.match(/^(\w+):\s*"?(.*?)"?\s*(#.*)?$/)).filter(Boolean).map((x) => [x[1], x[2]]))
+  const corps = (m ? brut.slice(m[0].length) : brut).replace(/\{\{\s*(AE_[A-Z]+)\s*\}\}/g, (_, k) => SOCIETE[k] || 'communiqué sur simple demande')
+  return { entete, html: markdownEnHtml(corps) }
+}
+for (const l of LEGAUX) {
+  const { entete, html } = lireLegal(l.fichier)
+  const credits = l.fichier === 'mentions-legales' ? `<h2>Crédits photos</h2><p>Visuels du catalogue Agence Elite. Photographies libres de droits issues d'Unsplash (licence Unsplash) : ${esc(CREDITS_PHOTOS)}.</p>` : ''
+  PAGES.push({
+    chemin: l.chemin,
+    titre: `${entete.titre} | Agence Elite`,
+    description: `${entete.titre} : le texte complet, à lire en ligne ou à télécharger en PDF.`,
+    corps: (r) => `
+<section class="bandeau"><div class="conteneur"><nav class="fil" aria-label="Fil d'Ariane"><a href="${r('')}">Accueil</a><span>/</span><span>${esc(l.court)}</span></nav><h1>${esc(entete.titre)}</h1>
+  <p class="legal-ref">Réf. ${esc(entete.reference || '')} · version ${esc(entete.version || '1.0')}</p></div></section>
+<section class="section"><div class="conteneur legal-grille">
+  <nav class="legal-nav" aria-label="Documents légaux">${LEGAUX.map((x) => `<a href="${r(x.chemin)}"${x === l ? ' aria-current="page"' : ''}>${esc(x.court)}</a>`).join('')}
+    <a class="btn btn-rouge legal-pdf" href="${r('documents/' + l.fichier + '.pdf')}" download>Télécharger en PDF</a></nav>
+  <article class="texte legal">${html}${credits}</article>
 </div></section>`,
-})
+  })
+}
 
 // 404
 PAGES.push({
@@ -764,6 +778,8 @@ for (const p of PAGES) {
 rmSync(OUT, { recursive: true, force: true })
 mkdirSync(OUT, { recursive: true })
 cpSync(join(ici, 'assets'), join(OUT, 'assets'), { recursive: true })
+mkdirSync(join(OUT, 'documents'), { recursive: true })
+for (const l of LEGAUX) cpSync(join(ici, 'legal', l.fichier + '.pdf'), join(OUT, 'documents', l.fichier + '.pdf'))
 for (const p of PAGES) {
   const html = page(p)
   if (p.chemin === '404/') {

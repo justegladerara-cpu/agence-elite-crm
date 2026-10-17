@@ -175,7 +175,7 @@ test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
     'dashboard', 'dashboard/acquisition', 'dashboard/conversion', 'dashboard/finances', 'journee', 'calendrier',
     'acquisition', 'clients', 'session', 'scripts', 'saisie', 'apps',
     'devis', 'factures', 'facture/new?type=facture', 'paiements', 'charges', 'depenses', 'abonnements',
-    'site', 'site-demandes', 'site-pages', 'site-photos', 'boutique',
+    'site', 'site-demandes', 'site-pages', 'site-photos', 'boutique', 'documents',
     ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'membres', 'securite', 'compte'].map((s) => `parametres/${s}`),
   ]
   for (const r of routes) {
@@ -266,4 +266,19 @@ test('photos du site : emplacements groupés, mode démo sans écriture', async 
   await page.locator('.photo-carte').first().getByRole('button', { name: 'Coller un lien' }).click()
   await page.locator('.photo-carte').first().getByRole('button', { name: 'Enregistrer' }).click()
   await expect(page.getByText('Mode démo : les photos ne peuvent pas être changées ici.')).toBeVisible()
+})
+
+test('documents : liste par dossier, remplir un contrat, aperçu à jour, mode démo sans écriture', async ({ page }) => {
+  await page.goto('/#/documents')
+  await expect(page.getByRole('heading', { level: 1, name: 'Documents' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Contrats clients/ })).toBeVisible()
+  await page.getByRole('textbox', { name: 'Rechercher un document' }).fill('création de site')
+  await page.locator('.docs-carte', { hasText: 'Contrat de création de site internet' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Contrat de création de site internet' })).toBeVisible()
+  await page.getByLabel('Nom du client').first().fill('Boulangerie Mavoungou')
+  await expect(page.locator('.docs-apercu .md-rempli', { hasText: 'Boulangerie Mavoungou' }).first()).toBeVisible()
+  await page.getByRole('tab', { name: 'Modifier le modèle' }).click()
+  await expect(page.getByText('Mode démo : l’enregistrement est désactivé.')).toBeVisible()
+  await page.getByRole('button', { name: '← Tous les documents' }).click()
+  await expect(page.locator('.docs-carte').first()).toBeVisible()
 })
