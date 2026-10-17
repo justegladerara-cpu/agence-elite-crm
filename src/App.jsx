@@ -7,6 +7,7 @@ import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './m
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
+import { ADRESSE_SUPER_ADMIN, extraireJeton, porteOuverte, verifierJeton } from './lib/porte'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
 import { MiniListe } from './pages/Prospects'
@@ -221,7 +222,37 @@ function useRoute() {
   return route
 }
 
+// Porte unique fermée : le CRM s'ouvre seulement depuis l'espace super admin de la plateforme
+function PorteFermee() {
+  return (
+    <div className="login">
+      <div className="card stack">
+        <Logo full />
+        <p className="login-tag">
+          Accès réservé. Le CRM s'ouvre depuis l'espace super admin de la plateforme Agence Elite, avec le bouton « CRM Agence Elite ».
+        </p>
+        <a className="btn primary block" href={ADRESSE_SUPER_ADMIN}>
+          Aller à l'espace super admin
+        </a>
+      </div>
+    </div>
+  )
+}
+
+const etatPorteInitial = () => {
+  if (isLocal) return 'ok'
+  if (/^#porte=/.test(window.location.hash)) return 'verif'
+  return porteOuverte() ? 'ok' : 'ferme'
+}
+
 export default function App() {
+  const [porte, setPorte] = useState(etatPorteInitial)
+  useEffect(() => {
+    if (isLocal) return
+    const jeton = extraireJeton()
+    if (!jeton) return
+    verifierJeton(jeton).then((ok) => setPorte(ok || porteOuverte() ? 'ok' : 'ferme'))
+  }, [])
   const [session, setSession] = useState(isLocal ? 'local' : undefined)
   useEffect(() => {
     if (!supabase) return
@@ -243,6 +274,8 @@ export default function App() {
       () => setAal('ok'),
     )
   }, [session])
+  if (porte === 'verif') return <Attente />
+  if (porte === 'ferme') return <PorteFermee />
   if (session === undefined) return <Attente />
   if (!session) return <Login />
   if (typeof session === 'object' && aal === null) return <Attente />
