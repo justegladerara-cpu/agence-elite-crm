@@ -12,14 +12,27 @@ const TYPES = { contrat: ['Contrat', 'b-navy'], modele: ['Modèle', 'b-gold'], t
 const SOCIETE = 'infos-societe'
 // Informations légales de la société, utilisées dans tous les documents
 const CHAMPS_SOCIETE = [
+  ['AE_SOCIETE', 'Société (raison sociale)', 'Ex. : GROUPE 7M SERVICES'],
   ['AE_FORME', 'Forme juridique', 'Ex. : SARL, SARLU, SA, entreprise individuelle'],
   ['AE_CAPITAL', 'Capital social', 'Ex. : 1 000 000 FCFA'],
   ['AE_RCCM', 'Numéro RCCM', 'Ex. : CG-PNR-01-2024-B12-00000'],
   ['AE_NIU', 'NIU', 'Numéro d’identification unique'],
+  ['AE_SIEGE', 'Siège social', 'Adresse du siège'],
   ['AE_REPRESENTANT', 'Représentant légal', 'Nom et prénom'],
   ['AE_FONCTION', 'Fonction du représentant', 'Ex. : Gérant'],
   ['AE_BANQUE', 'Banque et Mobile Money', 'Banque, RIB, numéro Mobile Money'],
 ]
+// Informations officielles (dossier d'entreprise GROUPE 7M SERVICES) ; « Infos société » peut les remplacer
+const SOCIETE_DEFAUT = {
+  AE_SOCIETE: 'GROUPE 7M SERVICES',
+  AE_FORME: 'SARL',
+  AE_CAPITAL: '1 000 000 FCFA',
+  AE_RCCM: 'CG-PNR-01-2016-B12-00884',
+  AE_NIU: 'M2016110000159132',
+  AE_SIEGE: 'avenue Marien Ngouabi, KM4, Immeuble Le Kangourou, Pointe-Noire, République du Congo',
+  AE_REPRESENTANT: 'M. KIBELO-MAZONGA Guy Blaise',
+  AE_FONCTION: 'Gérant',
+}
 const LIBELLES_SOCIETE = Object.fromEntries(CHAMPS_SOCIETE.map(([k, l]) => [k, `à compléter : ${l.toLowerCase()}`]))
 const cleLibre = (titre) =>
   `perso-${String(titre)
@@ -92,9 +105,9 @@ export default function Documents() {
 
   const societe = useMemo(() => {
     try {
-      return JSON.parse(lignes[SOCIETE]?.contenu || '{}')
+      return { ...SOCIETE_DEFAUT, ...JSON.parse(lignes[SOCIETE]?.contenu || '{}') }
     } catch {
-      return {}
+      return SOCIETE_DEFAUT
     }
   }, [lignes])
 

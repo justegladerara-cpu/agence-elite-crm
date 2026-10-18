@@ -177,7 +177,7 @@ ${corps(r)}
       <a class="pied-ligne" href="mailto:${SITE.email}">${ico('mail')}<span>${esc(SITE.email)}</span></a>
     </div>
   </div>
-  <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite. Tous droits réservés.</span><span class="pied-legal"><a href="${r('mentions-legales/')}">Mentions légales</a><a href="${r('confidentialite/')}">Confidentialité</a><a href="${r('cookies/')}">Cookies</a><a href="${r('cgv/')}">CGV</a><a href="${r('boutique/cgv/')}">CGV Elite Store</a><a href="${r('recrutement/cgu')}">Elite Emploi</a></span></div>
+  <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite, enseigne de GROUPE 7M SERVICES SARL. Tous droits réservés.</span><span class="pied-legal"><a href="${r('mentions-legales/')}">Mentions légales</a><a href="${r('confidentialite/')}">Confidentialité</a><a href="${r('cookies/')}">Cookies</a><a href="${r('cgv/')}">CGV</a><a href="${r('boutique/cgv/')}">CGV Elite Store</a><a href="${r('recrutement/cgu')}">Elite Emploi</a></span></div>
 </footer>
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
 <script>window.AE_SITE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle })}</script>
@@ -727,8 +727,8 @@ PAGES.push({
 })
 
 // Textes légaux : rédigés en Markdown dans site/legal (mêmes textes que l'application Documents du CRM), PDF à côté.
-// Les informations de société encore inconnues (RCCM, NIU…) s'affichent « communiqué sur simple demande ».
-const SOCIETE = { AE_REPRESENTANT: 'le représentant légal', AE_FONCTION: 'dirigeant' }
+// Informations de la société (GROUPE 7M SERVICES) dans site/legal/societe.json ; une valeur absente s'affiche « communiqué sur simple demande ».
+const SOCIETE = JSON.parse(readFileSync(join(ici, 'legal', 'societe.json'), 'utf8'))
 const LEGAUX = [
   { chemin: 'mentions-legales/', fichier: 'mentions-legales', court: 'Mentions légales' },
   { chemin: 'confidentialite/', fichier: 'politique-de-confidentialite', court: 'Confidentialité' },

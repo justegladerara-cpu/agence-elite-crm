@@ -15,7 +15,7 @@ Elle s'applique aux candidats, aux entreprises qui recrutent et à leurs représ
 
 ## 1. Responsable du traitement
 
-Agence Elite, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}
+Agence Elite, enseigne commerciale exploitée par {{AE_SOCIETE}}, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}
 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo
 E-mail : contact@agence-elite.fr
 Téléphones : +242 05 522 29 68 et +242 06 808 38 09

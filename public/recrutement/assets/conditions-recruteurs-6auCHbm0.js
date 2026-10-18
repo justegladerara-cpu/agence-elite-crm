@@ -15,7 +15,7 @@ Les présentes conditions recruteurs définissent les règles applicables aux en
 
 Elles complètent les conditions générales d'utilisation d'Elite Emploi (/recrutement/cgu), la politique de confidentialité d'Elite Emploi (/recrutement/confidentialite) et la charte de non-discrimination (/recrutement/non-discrimination), que l'entreprise accepte également. En cas de contradiction, un devis ou un contrat signé avec Agence Elite prévaut sur les présentes conditions.
 
-Dans les présentes conditions, « Agence Elite » désigne Agence Elite, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}, 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo, et « l'Entreprise » désigne toute entreprise, organisation ou entrepreneur individuel titulaire d'un compte recruteur.
+Dans les présentes conditions, « Agence Elite » désigne Agence Elite, enseigne commerciale exploitée par {{AE_SOCIETE}}, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}, siège social {{AE_SIEGE}}, bureaux 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo, et « l'Entreprise » désigne toute entreprise, organisation ou entrepreneur individuel titulaire d'un compte recruteur.
 
 ## Article 2. Principe du service
 

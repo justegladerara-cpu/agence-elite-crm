@@ -11,7 +11,7 @@ Date d'entrée en vigueur : 17 octobre 2026.
 
 ## Article 1. Présentation et objet
 
-Elite Emploi est une plateforme de recrutement accessible à l'adresse https://www.agence-elite.fr/recrutement, éditée par Agence Elite, {{AE_FORME}}, RCCM {{AE_RCCM}}, dont le siège est situé 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo (ci-après « Agence Elite »).
+Elite Emploi est une plateforme de recrutement accessible à l'adresse https://www.agence-elite.fr/recrutement, éditée par Agence Elite, enseigne commerciale exploitée par {{AE_SOCIETE}}, {{AE_FORME}}, RCCM {{AE_RCCM}}, dont le siège social est situé {{AE_SIEGE}} (bureaux : 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire) (ci-après « Agence Elite »).
 
 Elite Emploi met en relation des candidats à la recherche d'un emploi et des entreprises qui recrutent, en République du Congo et en France. Son fonctionnement est le suivant :
 

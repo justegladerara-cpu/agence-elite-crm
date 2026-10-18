@@ -11,7 +11,7 @@ Date d'entrée en vigueur : 17 octobre 2026.
 
 ## Article 1. Objet et champ d'application
 
-Les présentes conditions générales de vente (ci-après les « CGV ») s'appliquent à toutes les prestations de services réalisées par Agence Elite, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}, dont le siège est situé 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo (ci-après « Agence Elite »), pour le compte de ses clients professionnels ou particuliers (ci-après le « Client »).
+Les présentes conditions générales de vente (ci-après les « CGV ») s'appliquent à toutes les prestations de services réalisées par Agence Elite, enseigne commerciale exploitée par {{AE_SOCIETE}}, {{AE_FORME}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}, dont le siège social est situé {{AE_SIEGE}} (bureaux : 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire) (ci-après « Agence Elite »), pour le compte de ses clients professionnels ou particuliers (ci-après le « Client »).
 
 Sont notamment concernées les prestations suivantes : création de sites internet vitrines et e-commerce, référencement (SEO), communication digitale et gestion des réseaux sociaux, création graphique, création audiovisuelle, impression, services en intelligence artificielle, services informatiques, Microsoft 365, mise en place d'ERP et de logiciels de gestion.
 

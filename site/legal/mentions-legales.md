@@ -17,19 +17,27 @@ Le site est édité par :
 
 | | |
 |---|---|
-| Dénomination | Agence Elite |
+| Enseigne commerciale | Agence Elite |
+| Société exploitante | {{AE_SOCIETE}} |
 | Forme juridique | {{AE_FORME}} |
 | Capital social | {{AE_CAPITAL}} |
 | RCCM | {{AE_RCCM}} |
 | NIU | {{AE_NIU}} |
-| Siège social | 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo |
+| Siège social | {{AE_SIEGE}} |
+| Bureaux Agence Elite | 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo |
 | Téléphones | +242 05 522 29 68 (également WhatsApp) et +242 06 808 38 09 |
 | E-mail | contact@agence-elite.fr |
 | Site | https://www.agence-elite.fr |
 
+## Cadre juridique
+
+Agence Elite est l'enseigne commerciale sous laquelle {{AE_SOCIETE}} {{AE_FORME}} exerce ses activités de communication digitale, de développement de solutions informatiques, de transformation numérique et d'accompagnement technologique des entreprises. Agence Elite n'a pas de personnalité juridique distincte : les contrats conclus sous l'enseigne Agence Elite engagent {{AE_SOCIETE}}, dont elle utilise le RCCM, le NIU et le siège social.
+
+Agence Elite dispose d'une direction opérationnelle propre, chargée de la gestion quotidienne, du développement commercial, de la coordination des projets et des relations avec les clients et partenaires. Les responsabilités juridiques, administratives et fiscales relèvent de {{AE_SOCIETE}}, représentée par son gérant.
+
 ## Directeur de la publication
 
-Le directeur de la publication est {{AE_REPRESENTANT}}, {{AE_FONCTION}} d'Agence Elite.
+Le directeur de la publication est {{AE_REPRESENTANT}}, {{AE_FONCTION}} de {{AE_SOCIETE}}.
 
 ## Hébergement
 

@@ -13,7 +13,7 @@ Date d'entrée en vigueur : 17 octobre 2026.
 
 La boutique en ligne Elite Store, accessible à l'adresse www.agence-elite.fr/boutique, est exploitée par :
 
-Agence Elite, {{AE_FORME}}, capital {{AE_CAPITAL}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}
+Agence Elite, enseigne commerciale exploitée par {{AE_SOCIETE}}, {{AE_FORME}}, capital {{AE_CAPITAL}}, RCCM {{AE_RCCM}}, NIU {{AE_NIU}}
 10 avenue Stéphane Tchitchelle, Centre-ville, BP 761, Pointe-Noire, République du Congo
 E-mail : contact@agence-elite.fr
 Téléphones : +242 05 522 29 68 (également WhatsApp) et +242 06 808 38 09
