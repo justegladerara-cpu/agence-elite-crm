@@ -15,6 +15,7 @@ alertes, clients, tableau de bord).
 Stack : React + Vite, Supabase (base de données + connexion), hébergé sur Cloudflare Pages.
 
 Repository officiel : [`justegladerara-cpu/agence-elite-crm`](https://github.com/justegladerara-cpu/agence-elite-crm).
+Rôle de chaque branche (principale, archives, branches fusionnées) : [`docs/BRANCHES.md`](docs/BRANCHES.md).
 
 ## Mise en ligne
 
