@@ -1,6 +1,43 @@
 /* Site vitrine Agence Elite : noir et rouge de la marque, grandes respirations blanches. */
+/* Polices auto-hébergées (variables, sous-ensemble latin utile au français, graisses 400-600 et 600-800 ;
+   licence OFL : assets/fonts/LICENCE-OFL.txt). Caractère hors sous-ensemble : police de secours. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(fonts/inter-latin.woff2) format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+0178, U+02C6, U+02DA, U+02DC, U+2009-200B, U+2010-2027, U+202F, U+2030-203A, U+2044, U+205F, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url(fonts/montserrat-latin.woff2) format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+0131, U+0152-0153, U+0178, U+02C6, U+02DA, U+02DC, U+2009-200B, U+2010-2027, U+202F, U+2030-203A, U+2044, U+205F, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Polices de secours aux mêmes métriques : le passage à la vraie police ne décale presque rien (CLS) */
+@font-face {
+  font-family: 'Inter repli';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22.5%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Montserrat repli';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 113%;
+  ascent-override: 86%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
 :root {
   --rouge: #e10600;
+  /* Rouge vif de la marque : réservé aux éléments graphiques (contraste insuffisant pour du texte courant) */
+  --rouge-vif: #fb0000;
   --rouge-fonce: #b30500;
   --rouge-pale: #fff1f0;
   --noir: #0b0b0f;
@@ -12,9 +49,26 @@
   --fond-doux: #f6f6f9;
   --rayon: 18px;
   --ombre: 0 1px 2px rgba(11, 11, 15, 0.04), 0 12px 32px -12px rgba(11, 11, 15, 0.14);
-  --titre: 'Montserrat', system-ui, sans-serif;
-  --corps: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --titre: 'Montserrat', 'Montserrat repli', system-ui, sans-serif;
+  --corps: 'Inter', 'Inter repli', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --largeur: 1200px;
+  /* Elite Motion System : jetons de mouvement (voir site/docs/motion/MOTION_DESIGN_SYSTEM.md) */
+  --mo-instant: 90ms;
+  --mo-rapide: 160ms;
+  --mo-base: 240ms;
+  --mo-lent: 420ms;
+  --mo-scene: 720ms;
+  --mo-decalage: 70ms;
+  --mo-distance: 22px;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-emphasized: cubic-bezier(0.2, 1.3, 0.35, 1);
+}
+:root[data-motion='equilibre'] {
+  --mo-scene: 560ms;
+  --mo-distance: 14px;
+  --mo-decalage: 50ms;
 }
 *,
 *::before,
@@ -119,7 +173,10 @@ p {
   font: 600 15px/1.2 var(--corps);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: background var(--mo-rapide) var(--ease-standard), color var(--mo-rapide) var(--ease-standard), border-color var(--mo-rapide) var(--ease-standard), box-shadow var(--mo-base) var(--ease-standard), transform var(--mo-base) var(--ease-emphasized);
 }
 .btn[hidden] {
   display: none;
@@ -642,7 +699,8 @@ body.menu-ouvert .burger .i-ouvrir {
   border-radius: var(--rayon);
   text-decoration: none;
   color: var(--texte);
-  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  position: relative;
+  transition: transform var(--mo-base) var(--ease-standard), box-shadow var(--mo-base) var(--ease-standard), border-color var(--mo-base) var(--ease-standard);
 }
 .carte-sol:hover {
   transform: translateY(-4px);
@@ -701,7 +759,8 @@ body.menu-ouvert .burger .i-ouvrir {
   text-decoration: none;
   color: var(--texte);
   font-size: 14.5px;
-  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+  transition: border-color var(--mo-base) var(--ease-standard), background var(--mo-base) var(--ease-standard), transform var(--mo-base) var(--ease-standard), box-shadow var(--mo-base) var(--ease-standard);
 }
 .carte-sect strong {
   color: var(--encre);
@@ -1772,16 +1831,522 @@ a.coord:hover strong {
   }
 }
 
-/* Apparition au défilement */
-.js .apparait {
+/* ==========================================================================
+   Elite Motion System (EMS) du site vitrine
+   - Tout le contenu est visible sans JavaScript : les états de départ des animations n'existent que sous
+     html.mo (posée avant le premier affichage par le script de tête) ou sous des classes ajoutées par motion.js.
+   - Niveaux : html[data-motion] = complet (.mo.mo-plein) | equilibre (.mo) | leger (aucune animation décorative).
+   - Uniquement transform / opacity pour ce qui bouge en continu ; animations continues en pause hors écran
+     (.hors-champ) et onglet masqué (html.onglet-cache).
+   ========================================================================== */
+@keyframes ems-monte {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--mo-distance), 0);
+  }
+}
+/* Sans opacité : une image candidate au LCP est peinte dès la première image */
+@keyframes ems-glisse {
+  from {
+    transform: translate3d(0, 18px, 0) scale(0.97);
+  }
+}
+@keyframes ems-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.9);
+  }
+}
+@keyframes ems-flotte {
+  to {
+    transform: translate3d(0, -8px, 0);
+  }
+}
+@keyframes ems-tourne {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ems-brille {
+  from {
+    transform: translateX(-120%);
+  }
+  to {
+    transform: translateX(120%);
+  }
+}
+@keyframes ems-souligne {
+  from {
+    background-size: 0% 0.26em;
+  }
+}
+@keyframes ems-onde {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+@keyframes ems-secoue {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+@keyframes ems-progres {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Héros : entrée en cascade (titre lisible dès la première image, aucune attente de JavaScript) */
+.mo .hero-txt > *,
+.mo .bandeau .conteneur > *,
+.mo .bandeau-grille > div > * {
+  animation: ems-monte var(--mo-scene) var(--ease-enter) both;
+  animation-delay: calc(var(--i, 0) * var(--mo-decalage));
+}
+/* Titre et chapô lisibles dès la première image : ils glissent sans fondu (LCP non retardé) */
+.mo .hero-txt > h1,
+.mo .hero-txt > .hero-lead,
+.mo .bandeau .conteneur > h1,
+.mo .bandeau .conteneur > .hero-lead,
+.mo .bandeau-grille > div > h1,
+.mo .bandeau-grille > div > .hero-lead {
+  animation-name: ems-glisse;
+}
+.mo .bandeau-grille > div:first-child {
+  animation: none;
+}
+.mo .bandeau .bandeau-grille > .bandeau-img {
+  animation: ems-glisse var(--mo-scene) var(--ease-enter) both;
+}
+.hero-txt > :nth-child(2),
+.bandeau .conteneur > :nth-child(2),
+.bandeau-grille > div > :nth-child(2) {
+  --i: 1;
+}
+.hero-txt > :nth-child(3),
+.bandeau .conteneur > :nth-child(3),
+.bandeau-grille > div > :nth-child(3) {
+  --i: 2;
+}
+.hero-txt > :nth-child(4),
+.bandeau .conteneur > :nth-child(4),
+.bandeau-grille > div > :nth-child(4) {
+  --i: 3;
+}
+.hero-txt > :nth-child(n + 5),
+.bandeau .conteneur > :nth-child(n + 5),
+.bandeau-grille > div > :nth-child(n + 5) {
+  --i: 4;
+}
+.mo .hero-visuel {
+  animation: ems-glisse var(--mo-scene) var(--ease-enter) both;
+}
+.hero h1 .rouge {
+  background: linear-gradient(rgba(251, 0, 0, 0.13), rgba(251, 0, 0, 0.13)) no-repeat 0 88% / 100% 0.26em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.mo .hero h1 .rouge {
+  animation: ems-souligne 900ms var(--ease-enter) 650ms both;
+}
+.mo .hero .boutons .btn-rouge::before {
+  animation: ems-brille 1100ms var(--ease-standard) 1300ms 1;
+}
+
+/* Élément graphique : orbites fines derrière la photo, parallaxe au pointeur (niveau complet, souris seulement) */
+.hero-orbite {
+  position: absolute;
+  inset: -14% -10%;
+  width: 120%;
+  height: 128%;
+  z-index: -1;
+  pointer-events: none;
+  fill: none;
+  overflow: visible;
+}
+.hero-visuel {
+  isolation: isolate;
+}
+.hero-orbite circle {
+  stroke: var(--rouge-vif);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.hero-orbite .o1 {
+  stroke-opacity: 0.18;
+  stroke-dasharray: 2 7;
+}
+.hero-orbite .o2 {
+  stroke: var(--encre);
+  stroke-opacity: 0.08;
+}
+.hero-orbite .o3 {
+  stroke-opacity: 0.12;
+  stroke-dasharray: 60 24;
+}
+.hero-orbite .n1,
+.hero-orbite .n2,
+.hero-orbite .n3 {
+  fill: var(--rouge-vif);
+  stroke: none;
+}
+.hero-orbite .n2 {
+  fill: var(--encre);
+}
+.mo-plein .hero-orbite {
+  transform-origin: 50% 50%;
+  animation: ems-tourne 90s linear infinite;
+}
+.mo-plein .hero-visuel img,
+.mo-plein .hero-orbite,
+.mo-plein .hero-badge {
+  transition: translate 700ms var(--ease-enter);
+}
+.mo-plein .hero-visuel img {
+  translate: calc(var(--px, 0) * -10px) calc(var(--py, 0) * -10px);
+}
+.mo-plein .hero-orbite {
+  translate: calc(var(--px, 0) * 8px) calc(var(--py, 0) * 8px);
+}
+.mo-plein .hero-badge {
+  translate: calc(var(--px, 0) * 20px) calc(var(--py, 0) * 20px);
+}
+.mo .hero-badge {
+  animation: ems-pop var(--mo-lent) var(--ease-emphasized) 700ms both;
+}
+.mo .hero-badge.b2 {
+  animation-delay: 850ms;
+}
+.mo-plein .hero-badge {
+  animation: ems-pop var(--mo-lent) var(--ease-emphasized) 700ms both, ems-flotte 4.5s ease-in-out 1.4s infinite alternate;
+}
+.mo-plein .hero-badge.b2 {
+  animation-delay: 850ms, 2.6s;
+}
+
+/* Pauses : hors écran et onglet masqué */
+.hors-champ .hero-orbite,
+.hors-champ .hero-badge,
+.onglet-cache .hero-orbite,
+.onglet-cache .hero-badge,
+.defile.hors-champ .defile-piste,
+.defile.en-pause .defile-piste,
+.defile:focus-within .defile-piste,
+.onglet-cache .defile-piste {
+  animation-play-state: paused;
+}
+.defile-pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  min-height: 36px;
+  border: 1px solid var(--ligne);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--doux);
+  font: 600 13px/1 var(--corps);
+  cursor: pointer;
+  transition: color var(--mo-rapide) var(--ease-standard), border-color var(--mo-rapide) var(--ease-standard);
+}
+.defile-pause[hidden] {
+  display: none;
+}
+.defile-pause:hover {
+  color: var(--encre);
+  border-color: var(--encre);
+}
+.defile-pause .ico {
+  width: 14px;
+  height: 14px;
+}
+.defile-pause .i-lecture,
+.defile-pause[aria-pressed='true'] .i-pause {
+  display: none;
+}
+.defile-pause[aria-pressed='true'] .i-lecture {
+  display: block;
+}
+
+/* En-tête : indicateur de rubrique active et barre de lecture liée au défilement (sans JavaScript) */
+.entete::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rouge), var(--rouge-vif));
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .mo .entete::after {
+    animation: ems-progres linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+@media (min-width: 1001px) {
+  .nav-btn:not(.btn) {
+    position: relative;
+  }
+  .nav-btn:not(.btn)::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--rouge);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    transition: transform var(--mo-base) var(--ease-enter);
+  }
+  .nav-btn:not(.btn):hover::after,
+  .nav-btn.actif::after,
+  .nav-item.ouvert > .nav-btn::after {
+    transform: scaleX(1);
+  }
+  .mm {
+    transition: opacity var(--mo-rapide) var(--ease-standard), transform var(--mo-base) var(--ease-enter), visibility var(--mo-rapide);
+  }
+}
+/* Menu mobile : entrée des rubriques en cascade */
+.mo body.menu-ouvert .nav > * {
+  animation: ems-monte var(--mo-lent) var(--ease-enter) both;
+}
+.mo body.menu-ouvert .nav > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.mo body.menu-ouvert .nav > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.mo body.menu-ouvert .nav > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.mo body.menu-ouvert .nav > :nth-child(n + 5) {
+  animation-delay: 160ms;
+}
+@media (min-width: 1001px) {
+  .mo body.menu-ouvert .nav > * {
+    animation: none;
+  }
+}
+
+/* Boutons : reflet au survol, flèche qui avance, appui */
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.btn-rouge:hover::before,
+.btn-blanc:hover::before {
+  transform: translateX(120%);
+  transition: transform 700ms var(--ease-standard);
+}
+.btn-blanc::before {
+  background: linear-gradient(110deg, transparent 30%, rgba(225, 6, 0, 0.12) 50%, transparent 70%);
+}
+.btn-rouge:hover {
+  box-shadow: 0 12px 26px -12px rgba(225, 6, 0, 0.65);
+}
+.btn > .ico:last-child:not(:first-child) {
+  transition: transform var(--mo-base) var(--ease-emphasized);
+}
+.btn:hover > .ico:last-child:not(:first-child) {
+  transform: translateX(3px);
+}
+.btn:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: var(--mo-instant);
+}
+
+/* Apparitions au défilement : classes posées par motion.js uniquement sous le pli (hors de vue).
+   Animation (et non transition) : les transitions de survol propres à chaque bloc restent intactes. */
+.mo .apparait:not(.vu) {
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
 }
-.js .apparait.vu {
+.mo .apparait.vu {
+  animation: ems-monte var(--mo-scene) var(--ease-enter) backwards;
+  animation-delay: calc(var(--i, 0) * var(--mo-decalage));
+}
+
+/* Cartes : élévation, inclinaison légère (souris, niveau complet) et halo qui suit le pointeur */
+.carte-sol::after,
+.carte-sect::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 0%), rgba(251, 0, 0, 0.07), transparent 45%);
+  opacity: 0;
+  transition: opacity var(--mo-base) var(--ease-standard);
+  pointer-events: none;
+}
+.carte-sol:hover::after,
+.carte-sect:hover::after {
   opacity: 1;
-  transform: none;
 }
+.carte-sect:hover {
+  transform: translateY(-3px);
+}
+.mo-plein .carte-sol:hover,
+.mo-plein .carte-sect:hover {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-4px);
+}
+.mosaique img,
+.galerie-photos img {
+  transition: transform 600ms var(--ease-standard);
+}
+.mosaique figure:hover img,
+.galerie-photos figure:hover img {
+  transform: scale(1.04);
+}
+
+/* Chiffres clés */
+.chiffres-section {
+  padding: 8px 0 0;
+}
+.chiffres {
+  list-style: none;
+  margin: 0;
+  padding: 28px 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--ligne);
+  border-bottom: 1px solid var(--ligne);
+}
+.chiffre {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 24px;
+  border-left: 1px solid var(--ligne);
+}
+.chiffre:first-child {
+  border-left: 0;
+}
+.chiffre strong {
+  font: 800 clamp(2.2rem, 4vw, 3rem) / 1 var(--titre);
+  color: var(--rouge);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.chiffre > span {
+  font-size: 15px;
+  color: var(--texte);
+  line-height: 1.4;
+}
+.compte {
+  display: inline-block;
+  min-width: 1ch;
+  contain: layout style;
+}
+
+@media (max-width: 900px) {
+  .chiffres {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 18px;
+  }
+  .chiffre:nth-child(3) {
+    border-left: 0;
+  }
+}
+@media (max-width: 600px) {
+  .chiffre {
+    padding: 6px 14px;
+  }
+}
+
+/* Contact, devis, WhatsApp : états et retours */
+.mo .champ[aria-invalid='true'] {
+  animation: ems-secoue 360ms var(--ease-standard);
+}
+.form-ok {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #e6f7ec;
+  color: #14632f;
+  font-weight: 600;
+  font-size: 14px;
+}
+.form-ok[hidden] {
+  display: none;
+}
+.mo .form-ok {
+  animation: ems-pop var(--mo-lent) var(--ease-emphasized) both;
+}
+.mo .wa-flottant {
+  animation: ems-pop var(--mo-lent) var(--ease-emphasized) 900ms both;
+}
+.wa-flottant::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid #25d366;
+  opacity: 0;
+  pointer-events: none;
+}
+.mo .wa-flottant::after {
+  animation: ems-onde 1600ms var(--ease-standard) 5s 2;
+}
+.wa-flottant:active {
+  transform: scale(0.94);
+}
+
+/* FAQ : ouverture fluide là où le navigateur sait animer la hauteur automatique */
+@supports (interpolate-size: allow-keywords) {
+  .mo .faq-item {
+    interpolate-size: allow-keywords;
+  }
+  .mo .faq-item::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition: block-size var(--mo-base) var(--ease-standard), content-visibility var(--mo-base) allow-discrete;
+  }
+  .mo .faq-item[open]::details-content {
+    block-size: auto;
+  }
+}
+
+/* Transitions entre pages (navigateurs compatibles, même origine) : fondu court, en-tête stable */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 220ms;
+    animation-timing-function: var(--ease-standard);
+  }
+  .entete {
+    view-transition-name: entete;
+  }
+}
+
+/* Réduire les animations : aucune animation ni transition, contenu affiché tel quel, défilement des logos figé */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -1792,9 +2357,23 @@ a.coord:hover strong {
     animation: none !important;
     transition: none !important;
   }
-  .js .apparait {
-    opacity: 1;
-    transform: none;
+  .apparait {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .defile {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .defile-piste {
+    flex-wrap: wrap;
+    justify-content: center;
+    flex: 1 1 auto;
+    gap: 20px 40px;
+  }
+  .defile-piste[aria-hidden='true'],
+  .defile-pause {
+    display: none !important;
   }
 }
 

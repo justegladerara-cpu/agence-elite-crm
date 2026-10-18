@@ -1,0 +1,868 @@
+{
+ "/404.html": {
+  "titre": "Page introuvable | Agence Elite",
+  "description": "Cette page est introuvable.",
+  "canonique": null,
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Cette page est introuvable"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/agence/index.html": {
+  "titre": "L'agence à Pointe-Noire | Agence Elite",
+  "description": "Histoire, mission, vision, valeurs et partenaires d'Agence Elite, agence de marketing 360 à Pointe-Noire.",
+  "canonique": "https://www.agence-elite.fr/agence/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/agence/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Bien plus qu'une agence de marketing",
+   "h2 Une vision audacieuse",
+   "h2 Notre mission",
+   "h2 Notre vision",
+   "h2 Créer, conseiller, accompagner",
+   "h2 Ce qui guide chacun de nos projets",
+   "h3 Créativité",
+   "h3 Engagement",
+   "h3 Satisfaction client",
+   "h3 Qualité",
+   "h2 Quelques-uns de nos partenaires",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Association SO.DI.OS",
+   "Créative au travail avec son casque",
+   "Développeurs travaillant ensemble",
+   "Easy Life",
+   "Excelis Services",
+   "Floyesh",
+   "Friedlander Industrie Congo",
+   "Levy Services",
+   "Ortec Group",
+   "Poignée de main entre un client et un conseiller",
+   "Professionnelle travaillant sur son ordinateur",
+   "SGSP",
+   "SLE Loango Environnement",
+   "STP2I",
+   "Sam Service Africa",
+   "Sihao Transit",
+   "Transport TM",
+   "Trois collègues travaillant ensemble",
+   "Winner Business Consulting",
+   "Zoko Village",
+   "Échange en visioconférence",
+   "Équipe en réunion autour d'une table"
+  ],
+  "photos": [
+   "agence-1",
+   "agence-2",
+   "agence-3",
+   "agence-4",
+   "agence-5",
+   "agence-6",
+   "contact"
+  ]
+ },
+ "/boutique/cgv/index.html": {
+  "titre": "Conditions générales de vente de la boutique Elite Store | Agence Elite",
+  "description": "Conditions générales de vente de la boutique Elite Store : le texte complet, à lire en ligne ou à télécharger en PDF.",
+  "canonique": "https://www.agence-elite.fr/boutique/cgv/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/boutique/cgv/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Conditions générales de vente de la boutique Elite Store",
+   "h2 Article 1. Vendeur",
+   "h2 Article 2. Champ d'application",
+   "h2 Article 3. Produits",
+   "h2 Article 4. Compte client",
+   "h2 Article 5. Commande en ligne",
+   "h3 5.1 Étapes de la commande",
+   "h3 5.2 Confirmation",
+   "h2 Article 6. Prix",
+   "h2 Article 7. Paiement",
+   "h3 7.1 Moyens de paiement",
+   "h3 7.2 Moment du paiement",
+   "h3 7.3 Propriété",
+   "h3 7.4 Facture",
+   "h2 Article 8. Livraison et retrait",
+   "h3 8.1 Livraison à Pointe-Noire",
+   "h3 8.2 Livraison ailleurs",
+   "h3 8.3 Retrait",
+   "h3 8.4 Réception et vérification",
+   "h3 8.5 Retard",
+   "h3 8.6 Transfert des risques",
+   "h2 Article 9. Retours et échanges",
+   "h3 9.1 Délai et conditions",
+   "h3 9.2 Produits exclus",
+   "h3 9.3 Procédure",
+   "h3 9.4 Échange ou remboursement",
+   "h3 9.5 Clients situés en France ou dans l'Union européenne",
+   "h2 Article 10. Garantie",
+   "h3 10.1 Produit défectueux ou non conforme",
+   "h3 10.2 Garantie du fabricant",
+   "h3 10.3 Exclusions",
+   "h2 Article 11. Responsabilité",
+   "h2 Article 12. Service client",
+   "h2 Article 13. Données personnelles",
+   "h2 Article 14. Propriété intellectuelle",
+   "h2 Article 15. Droit applicable et litiges",
+   "h2 Article 16. Modification des CGV"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/boutique/index.html": {
+  "titre": "Elite Store : licences et logiciels professionnels | Agence Elite",
+  "description": "Microsoft 365, Windows, Office, antivirus, Adobe, Canva, AutoCAD : licences officielles en FCFA, livrées et installées par Agence Elite à Pointe-Noire.",
+  "canonique": "https://www.agence-elite.fr/boutique/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/boutique/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Les logiciels de votre entreprise, en FCFA",
+   "h2 Plusieurs postes à équiper ?"
+  ],
+  "alts": [
+   "",
+   "",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact"
+  ]
+ },
+ "/boutique/panier/index.html": {
+  "titre": "Panier | Elite Store | Agence Elite",
+  "description": "Votre panier Elite Store.",
+  "canonique": null,
+  "robots": "noindex",
+  "ogUrl": "https://www.agence-elite.fr/boutique/panier/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Finaliser la commande",
+   "h2 Votre panier",
+   "h1 Commande enregistrée"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/boutique/produit/index.html": {
+  "titre": "Produit | Elite Store | Agence Elite",
+  "description": "Licence ou logiciel officiel, payé en FCFA, livré et installé par Agence Elite à Pointe-Noire. Commande en ligne sur Elite Store.",
+  "canonique": "https://www.agence-elite.fr/boutique/produit/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/boutique/produit/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/cgv/index.html": {
+  "titre": "Conditions générales de vente des prestations d'Agence Elite | Agence Elite",
+  "description": "Conditions générales de vente des prestations d'Agence Elite : le texte complet, à lire en ligne ou à télécharger en PDF.",
+  "canonique": "https://www.agence-elite.fr/cgv/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/cgv/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Conditions générales de vente des prestations d'Agence Elite",
+   "h2 Article 1. Objet et champ d'application",
+   "h2 Article 2. Devis",
+   "h2 Article 3. Commande",
+   "h2 Article 4. Prix",
+   "h2 Article 5. Acompte et modalités de paiement",
+   "h3 5.1 Acompte",
+   "h3 5.2 Prestations récurrentes",
+   "h3 5.3 Moyens de paiement",
+   "h3 5.4 Délai de paiement",
+   "h2 Article 6. Délais de réalisation",
+   "h2 Article 7. Livraison et recette",
+   "h3 7.1 Livraison",
+   "h3 7.2 Recette",
+   "h3 7.3 Bons à tirer et impression",
+   "h2 Article 8. Obligations du Client",
+   "h2 Article 9. Retards de paiement et pénalités",
+   "h2 Article 10. Propriété intellectuelle",
+   "h3 10.1 Transfert des droits au paiement complet",
+   "h3 10.2 Éléments exclus de la cession",
+   "h3 10.3 Références",
+   "h2 Article 11. Garantie",
+   "h2 Article 12. Responsabilité",
+   "h2 Article 13. Résiliation",
+   "h3 13.1 Annulation par le Client",
+   "h3 13.2 Prestations récurrentes",
+   "h3 13.3 Résiliation pour manquement",
+   "h3 13.4 Restitution",
+   "h2 Article 14. Force majeure",
+   "h2 Article 15. Confidentialité",
+   "h2 Article 16. Données personnelles",
+   "h2 Article 17. Non-sollicitation",
+   "h2 Article 18. Droit applicable et litiges",
+   "h2 Article 19. Dispositions diverses",
+   "h2 Article 20. Contact"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/confidentialite/index.html": {
+  "titre": "Politique de confidentialité du site Agence Elite | Agence Elite",
+  "description": "Politique de confidentialité du site Agence Elite : le texte complet, à lire en ligne ou à télécharger en PDF.",
+  "canonique": "https://www.agence-elite.fr/confidentialite/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/confidentialite/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Politique de confidentialité du site Agence Elite",
+   "h2 1. Responsable du traitement",
+   "h2 2. Cadre juridique",
+   "h2 3. Données que nous collectons",
+   "h3 3.1 Navigation sur le site vitrine",
+   "h3 3.2 Formulaires de contact et de demande de devis",
+   "h3 3.3 Boutique en ligne Elite Store",
+   "h3 3.4 Statistiques de visite",
+   "h3 3.5 Données que nous ne collectons pas",
+   "h2 4. Pourquoi nous utilisons vos données et sur quelle base",
+   "h2 5. Qui a accès à vos données",
+   "h2 6. Transferts hors de la République du Congo",
+   "h2 7. Durées de conservation",
+   "h2 8. Sécurité",
+   "h2 9. Vos droits",
+   "h3 Comment exercer vos droits",
+   "h3 Réclamation",
+   "h2 10. Cookies",
+   "h2 11. Liens vers d'autres sites",
+   "h2 12. Mineurs",
+   "h2 13. Modifications de la présente politique",
+   "h2 14. Contact"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/contact/index.html": {
+  "titre": "Contact à Pointe-Noire | Agence Elite",
+  "description": "Contactez Agence Elite à Pointe-Noire : +242 05 522 29 68, contact@agence-elite.fr. Devis gratuit et sans engagement.",
+  "canonique": "https://www.agence-elite.fr/contact/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/contact/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Parlez-nous de votre projet",
+   "h2 Nos coordonnées"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/cookies/index.html": {
+  "titre": "Politique cookies | Agence Elite",
+  "description": "Politique cookies : le texte complet, à lire en ligne ou à télécharger en PDF.",
+  "canonique": "https://www.agence-elite.fr/cookies/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/cookies/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Politique cookies",
+   "h2 1. Qu'est-ce qu'un cookie ?",
+   "h2 2. Notre principe : uniquement le strictement nécessaire",
+   "h2 3. Les cookies et le stockage local que nous utilisons",
+   "h2 4. Mesure d'audience",
+   "h2 5. Contenus de tiers",
+   "h2 6. Comment refuser ou supprimer les cookies",
+   "h3 Conséquences d'un refus",
+   "h2 7. Modifications",
+   "h2 8. Contact"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/index.html": {
+  "titre": "Agence Elite | Web, communication et IA à Pointe-Noire",
+  "description": "Agence de marketing 360 à Pointe-Noire : réseaux sociaux, sites internet, création graphique, impression, intelligence artificielle, Microsoft 365 et ERP.",
+  "canonique": "https://www.agence-elite.fr/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Communication, marketing digital et technologies au service de votre succès.",
+   "h2 L'IA dans vos outils, pour aller plus vite et décider mieux",
+   "h2 Toutes les expertises pour développer votre entreprise",
+   "h2 Des solutions adaptées à votre métier",
+   "h2 Au plus près des entrepreneurs d'ici",
+   "h2 Un accompagnement en quatre étapes",
+   "h2 Bien plus qu'une agence de marketing",
+   "h3 Vos données restent les vôtres",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Agence web",
+   "Association SO.DI.OS",
+   "Association SO.DI.OS",
+   "Associations et ONG",
+   "Barbier au travail dans son salon",
+   "Commerce et distribution",
+   "Commerçant dans sa boutique",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Easy Life",
+   "Easy Life",
+   "Excelis Services",
+   "Excelis Services",
+   "Femme travaillant sur une tablette au bureau",
+   "Floyesh",
+   "Floyesh",
+   "Friedlander Industrie Congo",
+   "Friedlander Industrie Congo",
+   "Immobilier et BTP",
+   "Impression tous supports",
+   "Industrie, pétrole et énergie",
+   "Intelligence artificielle",
+   "Levy Services",
+   "Levy Services",
+   "Microsoft 365",
+   "Ortec Group",
+   "Ortec Group",
+   "Poignée de main entre un client et un conseiller",
+   "Restauration et hôtellerie",
+   "SGSP",
+   "SGSP",
+   "SLE Loango Environnement",
+   "SLE Loango Environnement",
+   "STP2I",
+   "STP2I",
+   "Sam Service Africa",
+   "Sam Service Africa",
+   "Santé, beauté et bien-être",
+   "Services et cabinets conseil",
+   "Services informatiques",
+   "Sihao Transit",
+   "Sihao Transit",
+   "Solution de gestion intégrée",
+   "Transport TM",
+   "Transport TM",
+   "Transport et logistique",
+   "Vidéaste en tournage",
+   "Winner Business Consulting",
+   "Winner Business Consulting",
+   "Zoko Village",
+   "Zoko Village",
+   "Éducation et formation",
+   "Équipe réunie autour d'un ordinateur portable dans un bureau"
+  ],
+  "photos": [
+   "accueil",
+   "contact",
+   "secteur-associations-ong",
+   "secteur-commerce",
+   "secteur-education",
+   "secteur-immobilier-btp",
+   "secteur-industrie-energie",
+   "secteur-restauration",
+   "secteur-sante-beaute",
+   "secteur-services-conseil",
+   "secteur-transport-logistique",
+   "solution-agence-web",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique",
+   "solution-erp",
+   "solution-intelligence-artificielle",
+   "solution-microsoft-365",
+   "solution-services-informatiques",
+   "terrain-1",
+   "terrain-2",
+   "terrain-3",
+   "terrain-4"
+  ]
+ },
+ "/mentions-legales/index.html": {
+  "titre": "Mentions légales | Agence Elite",
+  "description": "Mentions légales : le texte complet, à lire en ligne ou à télécharger en PDF.",
+  "canonique": "https://www.agence-elite.fr/mentions-legales/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/mentions-legales/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Mentions légales",
+   "h2 Éditeur du site",
+   "h2 Cadre juridique",
+   "h2 Directeur de la publication",
+   "h2 Hébergement",
+   "h2 Activité",
+   "h2 Propriété intellectuelle",
+   "h2 Responsabilité",
+   "h2 Données personnelles et cookies",
+   "h2 Conditions applicables",
+   "h2 Droit applicable",
+   "h2 Contact",
+   "h2 Crédits photos"
+  ],
+  "alts": [
+   "",
+   ""
+  ],
+  "photos": []
+ },
+ "/secteurs/index.html": {
+  "titre": "Votre secteur à Pointe-Noire | Agence Elite",
+  "description": "Commerce, restauration, santé, immobilier, transport, industrie, conseil, associations, éducation : les solutions Agence Elite adaptées à votre métier.",
+  "canonique": "https://www.agence-elite.fr/secteurs/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/secteurs/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Des solutions adaptées à votre métier",
+   "h2 Commerce et distribution",
+   "h2 Restauration et hôtellerie",
+   "h2 Santé, beauté et bien-être",
+   "h2 Immobilier et BTP",
+   "h2 Transport et logistique",
+   "h2 Industrie, pétrole et énergie",
+   "h2 Services et cabinets conseil",
+   "h2 Associations et ONG",
+   "h2 Éducation et formation",
+   "h2 Votre secteur n'est pas dans la liste ?"
+  ],
+  "alts": [
+   "",
+   "",
+   "Associations et ONG",
+   "Commerce et distribution",
+   "Immobilier et BTP",
+   "Industrie, pétrole et énergie",
+   "Poignée de main entre un client et un conseiller",
+   "Restauration et hôtellerie",
+   "Santé, beauté et bien-être",
+   "Services et cabinets conseil",
+   "Transport et logistique",
+   "Éducation et formation"
+  ],
+  "photos": [
+   "contact",
+   "secteur-associations-ong",
+   "secteur-commerce",
+   "secteur-education",
+   "secteur-immobilier-btp",
+   "secteur-industrie-energie",
+   "secteur-restauration",
+   "secteur-sante-beaute",
+   "secteur-services-conseil",
+   "secteur-transport-logistique"
+  ]
+ },
+ "/solutions/agence-web/index.html": {
+  "titre": "Agence web à Pointe-Noire | Agence Elite",
+  "description": "Sites vitrines, sites dynamiques et boutiques en ligne, visibles sur Google et simples à mettre à jour.",
+  "canonique": "https://www.agence-elite.fr/solutions/agence-web/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/agence-web/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Des sites internet qui travaillent pour vous",
+   "h2 Nos prestations",
+   "h2 Un site pensé pour transformer les visiteurs en clients",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Agence web",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact",
+   "solution-agence-web",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique"
+  ]
+ },
+ "/solutions/communication-digitale/index.html": {
+  "titre": "Communication digitale | Agence Elite",
+  "description": "Audit, gestion et animation de vos réseaux sociaux, modération, publicité et analyse des résultats.",
+  "canonique": "https://www.agence-elite.fr/solutions/communication-digitale/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/communication-digitale/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Des réseaux sociaux qui font grandir votre marque",
+   "h2 Nos prestations",
+   "h2 Une présence régulière et mesurée sur les réseaux",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Impression tous supports",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique"
+  ]
+ },
+ "/solutions/creation-audiovisuelle/index.html": {
+  "titre": "Création audiovisuelle | Agence Elite",
+  "description": "Spots publicitaires, motion design, films corporatifs, interviews, reportages et documentaires.",
+  "canonique": "https://www.agence-elite.fr/solutions/creation-audiovisuelle/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/creation-audiovisuelle/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Des vidéos qui racontent votre histoire",
+   "h2 Nos prestations",
+   "h2 Des vidéos qui captent l'attention en quelques secondes",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Impression tous supports",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique"
+  ]
+ },
+ "/solutions/creation-graphique/index.html": {
+  "titre": "Création graphique | Agence Elite",
+  "description": "Logos, chartes graphiques, flyers, affiches, plaquettes, catalogues, kakemonos et GIFs animés.",
+  "canonique": "https://www.agence-elite.fr/solutions/creation-graphique/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/creation-graphique/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Une identité visuelle qui vous ressemble",
+   "h2 Nos prestations",
+   "h2 Une image professionnelle et cohérente sur tous vos supports",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Impression tous supports",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique"
+  ]
+ },
+ "/solutions/erp/index.html": {
+  "titre": "Solution de gestion intégrée | Agence Elite",
+  "description": "Comptabilité, ressources humaines, achats, stocks et ventes réunis dans un seul outil.",
+  "canonique": "https://www.agence-elite.fr/solutions/erp/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/erp/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Un ERP pour automatiser la gestion de votre entreprise",
+   "h2 Nos prestations",
+   "h2 Toute votre entreprise pilotée depuis un seul outil",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Gestion intégrée",
+   "Microsoft 365",
+   "Module RH",
+   "Module comptabilité",
+   "Poignée de main entre un client et un conseiller",
+   "Services informatiques",
+   "Solution de gestion intégrée"
+  ],
+  "photos": [
+   "contact",
+   "solution-erp",
+   "solution-microsoft-365",
+   "solution-services-informatiques"
+  ]
+ },
+ "/solutions/impression/index.html": {
+  "titre": "Impression tous supports | Agence Elite",
+  "description": "Cartes de visite, affiches, bâches, kakemonos, textiles, objets publicitaires : tout imprimer au même endroit.",
+  "canonique": "https://www.agence-elite.fr/solutions/impression/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/impression/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Impression de qualité, impact inoubliable",
+   "h2 Nos prestations",
+   "h2 Des supports imprimés qui vous démarquent",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Badges",
+   "Banderoles",
+   "Beach flags",
+   "Carnets",
+   "Cartes de visite",
+   "Casquettes",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Impression tous supports",
+   "Kakemonos",
+   "Mugs",
+   "Plaquettes",
+   "Poignée de main entre un client et un conseiller",
+   "Polos brodés"
+  ],
+  "photos": [
+   "contact",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique"
+  ]
+ },
+ "/solutions/index.html": {
+  "titre": "Nos solutions à Pointe-Noire | Agence Elite",
+  "description": "Communication digitale, création graphique et vidéo, impression, sites internet, intelligence artificielle, informatique, Microsoft 365 et ERP.",
+  "canonique": "https://www.agence-elite.fr/solutions/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Nos solutions",
+   "h2 Communication & marketing",
+   "h2 Web & intelligence artificielle",
+   "h2 Technologies & gestion",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Agence web",
+   "Communication digitale",
+   "Création audiovisuelle",
+   "Création graphique",
+   "Impression tous supports",
+   "Intelligence artificielle",
+   "Microsoft 365",
+   "Poignée de main entre un client et un conseiller",
+   "Services informatiques",
+   "Solution de gestion intégrée"
+  ],
+  "photos": [
+   "contact",
+   "solution-agence-web",
+   "solution-communication-digitale",
+   "solution-creation-audiovisuelle",
+   "solution-creation-graphique",
+   "solution-erp",
+   "solution-intelligence-artificielle",
+   "solution-microsoft-365",
+   "solution-services-informatiques"
+  ]
+ },
+ "/solutions/intelligence-artificielle/index.html": {
+  "titre": "Intelligence artificielle | Agence Elite",
+  "description": "Assistants WhatsApp et chatbots, automatisation des tâches répétitives et analyse de vos données.",
+  "canonique": "https://www.agence-elite.fr/solutions/intelligence-artificielle/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/intelligence-artificielle/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 L'intelligence artificielle au service de votre activité",
+   "h2 Nos prestations",
+   "h2 Répondre plus vite à vos clients, 24 h sur 24",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Agence web",
+   "Communication digitale",
+   "Création graphique",
+   "Intelligence artificielle",
+   "Poignée de main entre un client et un conseiller"
+  ],
+  "photos": [
+   "contact",
+   "solution-agence-web",
+   "solution-communication-digitale",
+   "solution-creation-graphique",
+   "solution-intelligence-artificielle"
+  ]
+ },
+ "/solutions/microsoft-365/index.html": {
+  "titre": "Microsoft 365 à Pointe-Noire | Agence Elite",
+  "description": "Intégration, migration et formation à Microsoft 365 : Outlook, Teams, SharePoint, OneDrive.",
+  "canonique": "https://www.agence-elite.fr/solutions/microsoft-365/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/microsoft-365/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Optimisez votre productivité avec Microsoft 365",
+   "h2 Nos prestations",
+   "h2 Microsoft 365 Business Standard : 77 000 FCFA par an",
+   "h2 Travailler ensemble, partout, en toute sécurité",
+   "h2 Une intégration réussie en quatre étapes",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Microsoft 365",
+   "Poignée de main entre un client et un conseiller",
+   "Services informatiques",
+   "Solution de gestion intégrée"
+  ],
+  "photos": [
+   "contact",
+   "solution-erp",
+   "solution-microsoft-365",
+   "solution-services-informatiques"
+  ]
+ },
+ "/solutions/services-informatiques/index.html": {
+  "titre": "Services informatiques | Agence Elite",
+  "description": "Applications sur mesure, bases de données, cybersécurité, cloud, big data et support technique.",
+  "canonique": "https://www.agence-elite.fr/solutions/services-informatiques/",
+  "robots": null,
+  "ogUrl": "https://www.agence-elite.fr/solutions/services-informatiques/",
+  "jsonld": [
+   "{\"@context\":\"https://schema.org\",\"@type\":\"ProfessionalService\",\"name\":\"Agence Elite\",\"slogan\":\"L'innovation au service de votre succès\",\"url\":\"https://www.agence-elite.fr\",\"logo\":\"https://www.agence-elite.fr/assets/img/logo.webp\",\"telephone\":\"+242 05 522 29 68\",\"email\":\"contact@agence-elite.fr\",\"address\":{\"@type\":\"PostalAddress\",\"streetAddress\":\"10 avenue Stéphane Tchitchelle, Centre-ville\",\"addressLocality\":\"Pointe-Noire\",\"addressCountry\":\"CG\",\"postOfficeBoxNumber\":\"761\"},\"areaServed\":\"République du Congo\",\"sameAs\":[\"https://www.instagram.com/agenceelitecg/\",\"https://www.facebook.com/agenceelitecg\",\"https://www.linkedin.com/company/agenceelitecg\"]}"
+  ],
+  "titres": [
+   "h1 Votre partenaire technologique",
+   "h2 Nos prestations",
+   "h2 Une informatique fiable qui ne vous freine plus",
+   "h2 Vous vous demandez peut-être",
+   "h2 Ces solutions peuvent aussi vous intéresser",
+   "h2 Parlez-nous de votre projet"
+  ],
+  "alts": [
+   "",
+   "",
+   "Business intelligence et big data",
+   "Cloud computing",
+   "Cybersécurité",
+   "Microsoft 365",
+   "Poignée de main entre un client et un conseiller",
+   "Services informatiques",
+   "Solution de gestion intégrée",
+   "Systèmes et réseaux"
+  ],
+  "photos": [
+   "contact",
+   "solution-erp",
+   "solution-microsoft-365",
+   "solution-services-informatiques"
+  ]
+ }
+}
