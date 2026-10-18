@@ -1045,7 +1045,7 @@ const OUTILS = [
   ['Adresses web', 'Adresses de connexion des clients', 'globe', 'editeur/adresses'],
   ['Sites clients', 'Sites publics des clients', 'folder', 'editeur/sites'],
   ['Copier des articles', 'D’un client à un autre, bibliothèque', 'copy', 'editeur/copie-articles'],
-  ['Tableau détaillé', 'Ancien tableau de bord de l’éditeur', 'chart', 'editeur'],
+  ['Tableau détaillé', 'Ancien tableau de bord de l’éditeur', 'chart', 'editeur/tableau'],
 ]
 export function OutilsPlateforme() {
   const p = usePlateforme()
