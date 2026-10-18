@@ -18,6 +18,8 @@ export const APPARENCE_DEFAUT = {
   afficherNom: true,
   logo: '',
   logoSombre: '',
+  // 'palantir' = interface sombre « salle de contrôle » (par défaut) ; 'classique' = l'ancienne interface claire
+  interface: 'palantir',
   theme: 'marine-or',
   principal: '#0c1833',
   accent: '#b8903f',
@@ -85,6 +87,13 @@ export function applyTheme(a) {
   const root = document.documentElement
   appliquees.forEach((k) => root.style.removeProperty(k))
   appliquees = []
+  if (a?.interface !== 'classique') {
+    // Salle de contrôle : sa palette est dans palantir-base.css, les couleurs du thème ne s'appliquent pas
+    root.dataset.ui = 'palantir'
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b0e12')
+    return
+  }
+  root.dataset.ui = 'classique'
   const c = couleursDe(a)
   const origine = !a || a.theme === 'marine-or' || !a.theme
   if (!origine) {

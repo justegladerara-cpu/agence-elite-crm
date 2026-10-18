@@ -229,7 +229,21 @@ function ApparenceCard({ s, change }) {
         menu (décoche si ton logo contient déjà le nom)
       </label>
 
-      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM</div>
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Interface</div>
+      <div className="theme-list">
+        {[
+          ['palantir', 'Salle de contrôle (sombre)'],
+          ['classique', 'Classique (claire)'],
+        ].map(([id, label]) => (
+          <button key={id} type="button" className={`theme-opt ${(a.interface || 'palantir') === id ? 'on' : ''}`} onClick={() => set({ interface: id })}>
+            <span className="theme-sw" style={{ background: id === 'palantir' ? '#111418' : '#f5f6f8' }}>
+              <i style={{ background: id === 'palantir' ? '#4c90f0' : '#b8903f' }} />
+            </span>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM{a.interface !== 'classique' && ' (interface classique seulement)'}</div>
       <div className="theme-list">
         {THEMES.map((t) => {
           const tc = t.id === 'perso' ? { principal: a.principal, accent: a.accent } : t

@@ -1,0 +1,100 @@
+/* Interface « salle de contrôle » (façon Palantir / Blueprint) : fond graphite, données au centre,
+   angles nets, chiffres alignés. Les couleurs claires écrites en dur dans index.css sont converties
+   dans palantir.css (généré). Ce fichier ne garde que la palette et la forme. */
+:root[data-ui="palantir"] {
+  color-scheme: dark;
+  --bg: #111418;
+  --card: #1c2127;
+  --text: #f6f7f9;
+  --muted: #abb3bf;
+  --line: #2f343c;
+  --line-2: #252a31;
+
+  --navy: #0b0e12;
+  --navy-2: #161a1f;
+  --navy-3: #252a31;
+  --navy-ink: #e5e8eb;
+  --navy-deep: #07090c;
+  --navy-rgb: 0, 0, 0;
+
+  --gold: #2a6bc7;
+  --gold-2: #8abbff;
+  --gold-3: #215db0;
+  --gold-soft: #16253a;
+  --gold-line: #215db0;
+  --gold-ink: #8abbff;
+  --gold-rgb: 42, 107, 199;
+  --gold-2-rgb: 138, 187, 255;
+  --on-dark: #abb3bf;
+  --on-dark-2: #8f99a8;
+  --on-accent: #ffffff;
+
+  --red: #e76a6e;
+  --red-soft: #3b1f22;
+  --orange: #ec9a3c;
+  --orange-soft: #3a2a14;
+  --green: #32a467;
+  --green-soft: #15301f;
+  --blue: #4c90f0;
+  --blue-soft: #16253a;
+
+  --radius: 4px;
+  --r-badge: 2px;
+  --r-btn: 3px;
+  --r-modal: 6px;
+  --shadow: none;
+  --shadow-lg: 0 0 0 1px #2f343c, 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  font-feature-settings: 'tnum' 1;
+}
+:root[data-ui="palantir"] body { background: var(--bg); color: var(--text); }
+:root[data-ui="palantir"] a { color: var(--gold-2); }
+:root[data-ui="palantir"] ::selection { background: #215db0; color: #fff; }
+
+/* Barre latérale : fine, très sombre, un liseré bleu sur la page ouverte */
+:root[data-ui="palantir"] .sidebar { border-right: 1px solid #1f242b; }
+:root[data-ui="palantir"] .nav-item { border-radius: 2px; }
+:root[data-ui="palantir"] .nav-item.active { background: rgba(76, 144, 240, 0.14); color: #fff; box-shadow: inset 2px 0 0 var(--gold); }
+:root[data-ui="palantir"] .nav-sep {
+  margin: 14px 10px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8f99a8;
+}
+
+/* Titres sobres, libellés en petites capitales */
+:root[data-ui="palantir"] .page-head h1 { font-weight: 600; letter-spacing: -0.01em; }
+:root[data-ui="palantir"] h2.section,
+:root[data-ui="palantir"] .kpi-label,
+:root[data-ui="palantir"] table.t th { text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; color: var(--muted); }
+:root[data-ui="palantir"] .kpi-value,
+:root[data-ui="palantir"] table.t td { font-variant-numeric: tabular-nums; }
+
+/* Panneaux : angles nets, filet fin, pas d'ombre */
+:root[data-ui="palantir"] .card,
+:root[data-ui="palantir"] .kpi,
+:root[data-ui="palantir"] .modal,
+:root[data-ui="palantir"] .search-box { box-shadow: none; border: 1px solid var(--line); }
+:root[data-ui="palantir"] .modal-bg,
+:root[data-ui="palantir"] .search-bg { background: rgba(5, 7, 10, 0.72); }
+
+/* Champs et boutons */
+:root[data-ui="palantir"] .input,
+:root[data-ui="palantir"] .field input,
+:root[data-ui="palantir"] .field select,
+:root[data-ui="palantir"] .field textarea { background: #111418; border-color: #383e47; color: var(--text); }
+:root[data-ui="palantir"] .input:focus,
+:root[data-ui="palantir"] .field input:focus,
+:root[data-ui="palantir"] .field select:focus,
+:root[data-ui="palantir"] .field textarea:focus { background: #111418; border-color: var(--gold); box-shadow: 0 0 0 2px rgba(76, 144, 240, 0.35); }
+:root[data-ui="palantir"] .btn.primary { background: var(--gold-3); border-color: var(--gold-3); color: #fff; }
+:root[data-ui="palantir"] .btn.primary:hover { background: #215db0; border-color: #215db0; }
+:root[data-ui="palantir"] input::placeholder,
+:root[data-ui="palantir"] textarea::placeholder { color: #738091; }
+:root[data-ui="palantir"] select option { background: #1c2127; color: var(--text); }
+
+/* Tableaux denses */
+:root[data-ui="palantir"] table.t td { border-bottom-color: #252a31; }
+:root[data-ui="palantir"] table.t tr:hover td { background: #252a31; }
+
+/* Contrastes (WCAG AA) des pastilles pleines sur fond sombre */
+:root[data-ui="palantir"] .score.hot { background: #b83232; color: #fff; }
+:root[data-ui="palantir"] .b-navy,
+:root[data-ui="palantir"] h2.section .count { background: var(--gold-3); color: #fff; }
+:root[data-ui="palantir"] .hr-avatar { color: color-mix(in srgb, var(--c) 50%, #fff); }

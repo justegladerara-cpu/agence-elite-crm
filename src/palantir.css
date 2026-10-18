@@ -1,0 +1,660 @@
+/* FICHIER GÉNÉRÉ par scripts/theme-palantir.mjs à partir de index.css : ne pas modifier à la main. */
+:root[data-ui="palantir"] .page-head h1 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] h2.section {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .sec-ic {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] h2.section .count {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .kpi-value {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .b-Nouveau {
+    background: hsl(220 9.6% 14.7%);
+    color: hsl(224 17.8% 70.7%)
+}
+:root[data-ui="palantir"] .b-Qualifié {
+    background: hsl(261 30.6% 14.5%);
+    color: hsl(259 41.6% 66%)
+}
+:root[data-ui="palantir"] .b-Audit\/Démo {
+    background: hsl(186 21.9% 15.8%);
+    color: hsl(189 70.3% 75.7%)
+}
+:root[data-ui="palantir"] .b-RDV {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .b-Proposition {
+    color: hsl(31 80.8% 72.2%)
+}
+:root[data-ui="palantir"] .b-Perdu {
+    background: #252a31;
+    color: #abb3bf
+}
+:root[data-ui="palantir"] .b-orange {
+    color: hsl(31 80.8% 72.2%)
+}
+:root[data-ui="palantir"] .b-navy {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .b-gold {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .score.warm {
+    color: hsl(31 80.8% 72.2%)
+}
+:root[data-ui="palantir"] .score.cold {
+    background: hsl(220 9.6% 14.7%);
+    color: hsl(224 17.8% 70.7%)
+}
+:root[data-ui="palantir"] .btn {
+    background: #1c2127;
+    color: var(--text)
+}
+:root[data-ui="palantir"] .btn:hover {
+    border-color: #383e47;
+    background: #252a31
+}
+:root[data-ui="palantir"] .btn.primary {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .icon-btn {
+    background: #1c2127;
+    color: var(--text)
+}
+:root[data-ui="palantir"] .icon-btn:hover {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .input,
+:root[data-ui="palantir"] .field input,
+:root[data-ui="palantir"] .field select,
+:root[data-ui="palantir"] .field textarea {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .input:focus,
+:root[data-ui="palantir"] .field input:focus,
+:root[data-ui="palantir"] .field select:focus,
+:root[data-ui="palantir"] .field textarea:focus {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .chip {
+    background: #1c2127;
+    color: var(--text)
+}
+:root[data-ui="palantir"] .chip:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .chip.on {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .form-label {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .toggle-link {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .combo-list {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .combo-item.new {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .list-item.click:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .li-title {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .empty {
+    background: #252a31
+}
+:root[data-ui="palantir"] table.t th {
+    background: #252a31
+}
+:root[data-ui="palantir"] table.t tr.total td {
+    border-top: 2px solid var(--gold);
+    color: var(--text)
+}
+:root[data-ui="palantir"] table.t tr.click:hover td {
+    background: #252a31
+}
+:root[data-ui="palantir"] .bar {
+    background: #252a31
+}
+:root[data-ui="palantir"] .bar.navy > span {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .funnel-bar {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .kanban-col {
+    background: #252a31
+}
+:root[data-ui="palantir"] .kanban-col h3 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .kcard {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .tl-item::before {
+    border: 2px solid #383e47
+}
+:root[data-ui="palantir"] .tl-item.lost::before {
+    background: #252a31
+}
+:root[data-ui="palantir"] .modal-head h2 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .banner {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] details.script summary {
+    color: var(--text)
+}
+:root[data-ui="palantir"] details.script summary::after {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .info-grid .v {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .tabs {
+    background: #252a31
+}
+:root[data-ui="palantir"] .tabs button.on {
+    background: #1c2127;
+    color: var(--text)
+}
+:root[data-ui="palantir"] .list-editor .le-row input,
+:root[data-ui="palantir"] .list-editor .le-row select {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .sync-banner {
+    color: hsl(34 73.9% 79%);
+    border: 1px solid hsl(35 36.1% 32%)
+}
+:root[data-ui="palantir"] .sync-banner.busy {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .doc-line {
+    border-bottom: 1px solid var(--line, #383e47)
+}
+:root[data-ui="palantir"] .doc-total span {
+    color: hsl(0 90% 69.9%)
+}
+:root[data-ui="palantir"] .doc-total b {
+    color: hsl(0 90% 69.9%)
+}
+:root[data-ui="palantir"] .todo-tag {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .heat-d {
+    background: #252a31
+}
+:root[data-ui="palantir"] .heat-d.low {
+    background: hsl(31 33.8% 19.1%);
+    color: hsl(34 59.6% 74%)
+}
+:root[data-ui="palantir"] .heat-d.mid {
+    background: hsl(41 35.1% 25.4%);
+    color: hsl(39 67% 80.4%)
+}
+:root[data-ui="palantir"] .heat-d.off {
+    background: #252a31
+}
+:root[data-ui="palantir"] .heat-d.today {
+    outline: 2px solid var(--gold)
+}
+:root[data-ui="palantir"] .logo-perso.chip {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .img-prev {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .theme-opt {
+    background: #1c2127
+}
+:root[data-ui="palantir"] input[type="color"] {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .act-legend button {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .funnel-alert {
+    color: hsl(1 49.2% 71.6%)
+}
+:root[data-ui="palantir"] .gauge .g-p {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .step {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .step.done {
+    border-color: hsl(152 19.6% 32%)
+}
+:root[data-ui="palantir"] .step.current .step-dot {
+    background: rgba(28, 33, 39, 0.55)
+}
+:root[data-ui="palantir"] .react-green {
+    border-color: hsl(152 19.6% 32%)
+}
+:root[data-ui="palantir"] .react-orange {
+    border-color: hsl(35 36.1% 32%)
+}
+:root[data-ui="palantir"] .react-red {
+    border-color: hsl(1 28.6% 32%)
+}
+:root[data-ui="palantir"] .ptabs button:hover {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ptabs button.on {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .pt-count {
+    background: #252a31
+}
+:root[data-ui="palantir"] .ptabs button.on .pt-count {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .list-tools {
+    background: #252a31
+}
+:root[data-ui="palantir"] .ml-title {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ml-item:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .ml-name {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .dot-e {
+    background: #252a31
+}
+:root[data-ui="palantir"] .dot-e.e-Perdu {
+    background: #252a31
+}
+:root[data-ui="palantir"] .fiche-head h1 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .set-menu button {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .set-menu button:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .set-menu button.on {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .set-menu button.on .ic {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .cs-n {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .sheet-grid button {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .sheet-grid button .ic {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .sheet-chips button {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .sheet-chips button svg {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .insta-check {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .search-grp {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .si-t {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .cal-day.past {
+    background: #252a31
+}
+:root[data-ui="palantir"] .cal-head b {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .cal-day.today .cal-head b {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .ci-t {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .cal-item.client {
+    background: hsl(261 30.6% 14.5%)
+}
+:root[data-ui="palantir"] .bilan-grid .v {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .conseil {
+    background: #252a31
+}
+:root[data-ui="palantir"] .rec-top h1 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .rec-avatar {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .rec-strip .v {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .stage.current {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .kv-row dd {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .kv-title {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .msg-grp {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .msg-item.on {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .gold-ink {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .bk-more {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .info-pick .v {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .drawer-head h2 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .drill-row .li-title {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .rlink {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .rlink:hover {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .ff-name label {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .ff-name input {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ff-t {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .inp:focus-within .inp-ico {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .seg button:hover {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .seg button.on {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .choix {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .choix.has {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .choix-item.on {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .choix-item.nouveau {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .choix-ok {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .pipe-row {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .hm-c.on {
+    outline: 2px solid var(--gold)
+}
+:root[data-ui="palantir"] .sec-ic {
+    background: hsl(216 9.8% 14.3%);
+    color: var(--text)
+}
+:root[data-ui="palantir"] .btn:hover {
+    border-color: #383e47;
+    background: #252a31
+}
+:root[data-ui="palantir"] .btn.primary:hover {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .btn.on {
+    border-color: var(--gold);
+    background: hsl(216 9.8% 14.3%)
+}
+:root[data-ui="palantir"] .icon-btn:hover {
+    background: hsl(216 9.8% 14.3%);
+    border-color: #383e47;
+    color: var(--text)
+}
+:root[data-ui="palantir"] .chip-n {
+    background: #252a31
+}
+:root[data-ui="palantir"] .tabs {
+    background: #252a31
+}
+:root[data-ui="palantir"] table.t tr:hover td {
+    background: #252a31
+}
+:root[data-ui="palantir"] .hub-card:hover {
+    border-color: #383e47
+}
+:root[data-ui="palantir"] .hub-card.on {
+    border: 2px solid var(--gold)
+}
+:root[data-ui="palantir"] .hc-ic {
+    background: color-mix(in srgb, var(--c) 12%, #1c2127)
+}
+:root[data-ui="palantir"] .hub-clear:hover {
+    background: hsl(216 9.8% 14.3%)
+}
+:root[data-ui="palantir"] .seg {
+    background: #252a31
+}
+:root[data-ui="palantir"] .seg button.on {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .hub-strip {
+    background: #252a31
+}
+:root[data-ui="palantir"] .hub-row:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .hr-avatar {
+    background: color-mix(in srgb, var(--c) 13%, #1c2127)
+}
+:root[data-ui="palantir"] .kanban-col {
+    background: hsl(216 9.8% 14.3%)
+}
+:root[data-ui="palantir"] .kanban-col.drop,
+:root[data-ui="palantir"] .kanban-drop.drop {
+    border: 1px dashed var(--gold)
+}
+:root[data-ui="palantir"] .kanban-drop {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .af-n {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .tile {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .tile:hover {
+    border-color: #383e47;
+    background: #252a31
+}
+:root[data-ui="palantir"] .tile-ic {
+    background: hsl(216 9.8% 14.3%);
+    color: var(--t, var(--text))
+}
+:root[data-ui="palantir"] .tile-ok {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .tile.on {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .tile.pos:not(.on) {
+    border-color: hsl(152 19.6% 32%)
+}
+:root[data-ui="palantir"] .tile.neg:not(.on) {
+    border-color: hsl(1 28.6% 32%)
+}
+:root[data-ui="palantir"] .af-quick button {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .af-quick button:hover {
+    border-color: #383e47
+}
+:root[data-ui="palantir"] .af-quick button.on {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .mini:hover {
+    background: #252a31
+}
+:root[data-ui="palantir"] .lanceur-tete h1 {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .appli {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .appli-ic {
+    background: linear-gradient(145deg, color-mix(in srgb, var(--c) 78%, #1c2127), var(--c) 55%, color-mix(in srgb, var(--c) 80%, #000))
+}
+:root[data-ui="palantir"] .appli-pastille {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .appli-nom {
+    color: var(--text)
+}
+@media (max-width: 860px) {
+    :root[data-ui="palantir"] .app-onglets button {
+        color: var(--text)
+    }
+}
+:root[data-ui="palantir"] .appel-btn:hover {
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .btn.wa {
+    color: hsl(150 75.1% 79.1%)
+}
+:root[data-ui="palantir"] .score.warm {
+    color: hsl(31 82.8% 76.6%)
+}
+:root[data-ui="palantir"] .hr-avatar {
+    color: color-mix(in srgb, var(--c) 78%, #f6f7f9)
+}
+:root[data-ui="palantir"] .lien-journee:hover {
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] button.at:hover {
+    border-color: var(--gold);
+    background: #252a31
+}
+:root[data-ui="palantir"] .at.net {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .mvt-titre {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .btn.primary:disabled,
+:root[data-ui="palantir"] .btn.primary:disabled:hover {
+    background: var(--gold-3);
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .aj-resume svg {
+    color: var(--gold-2)
+}
+:root[data-ui="palantir"] .seo-t {
+    color: hsl(245 77.3% 71.1%)
+}
+:root[data-ui="palantir"] .ck-seg {
+    background: hsl(220 9.6% 14.7%)
+}
+:root[data-ui="palantir"] .ck-seg button.on {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ck-empty {
+    background: #252a31
+}
+:root[data-ui="palantir"] .ck-kpi:hover {
+    border-color: #383e47
+}
+:root[data-ui="palantir"] .ck-kpi:first-child {
+    border-color: var(--gold)
+}
+:root[data-ui="palantir"] .ck-delta.flat {
+    background: hsl(220 9.6% 14.7%)
+}
+:root[data-ui="palantir"] .ck-obj-bar {
+    background: hsl(223 10.2% 15%)
+}
+:root[data-ui="palantir"] .ck-count {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .ck-alert {
+    background: #1c2127
+}
+:root[data-ui="palantir"] .ck-legend .lg-prev {
+    border-color: #383e47
+}
+:root[data-ui="palantir"] .ck-feed li button:hover {
+    background: hsl(225 11.2% 13.6%)
+}
+:root[data-ui="palantir"] .ck-feed-ic {
+    background: hsl(220 9.6% 14.7%);
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ck-pass b {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .ck-step-bar {
+    background: hsl(223 10.2% 15%)
+}
+:root[data-ui="palantir"] .ck-step-bar i {
+    background: var(--gold-3)
+}
+:root[data-ui="palantir"] .ck-frein-note {
+    color: hsl(29 81.6% 79.9%)
+}
+:root[data-ui="palantir"] .ck-etat > i {
+    background: #252a31
+}
+:root[data-ui="palantir"] .docs-recherche {
+    background: var(--card, #1c2127);
+    border: 1px solid var(--line, #383e47)
+}
+:root[data-ui="palantir"] .docs-titre {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .docs-ic {
+    color: hsl(0 90% 66%)
+}
+:root[data-ui="palantir"] .docs-nom {
+    color: var(--text)
+}
+:root[data-ui="palantir"] .docs-source {
+    border: 1px solid var(--line, #383e47)
+}
+:root[data-ui="palantir"] .md-champ {
+    background: hsl(51 45% 19.7%)
+}

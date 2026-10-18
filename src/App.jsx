@@ -148,21 +148,23 @@ const SECTIONS_DASH = [
   ['dashboard/finances', 'Finances'],
 ]
 const APPS = [
-  { id: 'analytics', nom: 'Tableau de bord', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'], entrees: SECTIONS_DASH },
+  // Menu court, façon salle de contrôle : 5 rubriques de travail, puis les outils
+  { id: 'jour', nom: "Aujourd'hui", desc: 'Objectifs, relances et alertes du jour', ico: 'sun', couleur: '#4c90f0', pages: ['journee'] },
   {
     id: 'commercial',
-    nom: 'Commercial',
-    desc: 'Ma journée, prospection et suivi des clients',
+    nom: 'Contacts',
+    desc: 'Prospects et clients',
     ico: 'briefcase',
     couleur: '#2f6fed',
-    pages: ['journee', 'acquisition', 'session', 'scripts', 'clients'],
+    pages: ['acquisition', 'clients', 'session', 'scripts'],
+    entrees: [['acquisition', 'Prospects'], ['clients', 'Clients']],
   },
-  { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures et paiements reçus', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements'] },
-  { id: 'charges', nom: 'Charges', desc: 'Dépenses, abonnements et charges fixes', ico: 'wallet', couleur: '#c2410c', pages: ['charges', 'depenses', 'abonnements'] },
-  { id: 'documents', nom: 'Documents', desc: 'Contrats, modèles, papier à en-tête et textes légaux', ico: 'folder', couleur: '#d90000', pages: ['documents'] },
+  { id: 'facturation', nom: 'Argent', desc: 'Factures, devis, paiements et dépenses', ico: 'coins', couleur: '#18a058', pages: ['factures', 'devis', 'paiements', 'charges', 'depenses', 'abonnements'] },
+  { id: 'analytics', nom: 'Analyse', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'], entrees: SECTIONS_DASH },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
-  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'site-photos', 'boutique'] },
-  { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]) },
+  { id: 'documents', nom: 'Documents', desc: 'Contrats, modèles, papier à en-tête et textes légaux', ico: 'folder', couleur: '#d90000', pages: ['documents'], outil: true },
+  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'site-photos', 'boutique'], outil: true },
+  { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]), outil: true },
 ].map((a) => ({ ...a, route: a.pages[0], entrees: (a.entrees || a.pages.map((x) => [x, ITEM[x].label])).map(([route, label]) => ({ route, label, badge: route.split('/')[0] === route ? route : null })) }))
 // Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
 const ONGLET_DASH = { vue: 'vue', acquisition: 'acquisition', conversion: 'conversion', finances: 'finances', prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
@@ -192,7 +194,7 @@ function ModuleInactif({ nom }) {
 }
 // Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
 const BOTTOM = [
-  { path: 'dashboard', short: 'Tableau', ico: 'chart' },
+  { path: 'dashboard', short: 'Analyse', ico: 'chart' },
   { path: 'journee', short: 'Journée', ico: 'sun' },
   { path: 'saisie', short: 'Noter', ico: 'plus', cta: true },
   { path: 'acquisition', short: 'Prospects', ico: 'target' },
@@ -714,7 +716,9 @@ function Crm() {
           </button>
           <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
             {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
-            {apps.map((a) => {
+            {apps.map((a, i) => [
+              a.outil && !apps[i - 1]?.outil ? <div className="nav-sep" key={`sep-${a.id}`}>Outils</div> : null,
+              (() => {
               const actif = appli?.id === a.id
               if (a.lien)
                 return (
@@ -752,7 +756,8 @@ function Crm() {
                   )}
                 </div>
               )
-            })}
+              })(),
+            ])}
           </nav>
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>

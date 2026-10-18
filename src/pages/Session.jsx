@@ -179,7 +179,7 @@ export default function Session() {
       <div className="card">
         <div className="row" style={{ alignItems: 'flex-start' }}>
           <div className="li-main">
-            <h2 style={{ margin: 0, color: 'var(--navy)', fontSize: 24 }}>{p.name}</h2>
+            <h2 style={{ margin: 0, color: 'var(--navy-ink)', fontSize: 24 }}>{p.name}</h2>
             <div className="muted" style={{ marginTop: 4 }}>
               {[f.contact && `${f.contact}${f.fonction ? ` (${f.fonction})` : ''}`, f.secteur, f.ville].filter(Boolean).join(' · ')}
             </div>

@@ -595,7 +595,7 @@ function CaMois({ series, year, om, best, choisirMois, canal }) {
       </div>
       <MonthChart series={series} objectif={Number(om.ca) || 0} onPick={choisirMois} />
       <details style={{ marginTop: 10 }}>
-        <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy)' }}>
+        <summary className="small bold" style={{ cursor: 'pointer', color: 'var(--navy-ink)' }}>
           Voir le tableau mois par mois
         </summary>
         <div className="table-wrap" tabIndex={0} role="region" aria-label="Tableau" style={{ marginTop: 8 }}>
