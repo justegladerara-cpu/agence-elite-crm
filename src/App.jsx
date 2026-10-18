@@ -26,6 +26,7 @@ const Depenses = lazy(() => import('./pages/Finances').then((m) => ({ default: m
 const ChargesVue = lazy(() => import('./pages/Charges').then((m) => ({ default: m.ChargesVue })))
 const Abonnements = lazy(() => import('./pages/Charges').then((m) => ({ default: m.Abonnements })))
 const Scripts = lazy(() => import('./pages/Scripts'))
+const Documents = lazy(() => import('./pages/Documents'))
 const Recherche = lazy(() => import('./pages/Recherche'))
 const Calendrier = lazy(() => import('./pages/Calendrier'))
 const Boutique = lazy(() => import('./pages/Boutique'))
@@ -81,6 +82,10 @@ const NAV = [
       { path: 'session', label: "Session d'appels", ico: 'phone' },
       { path: 'scripts', label: 'Scripts', ico: 'message' },
     ],
+  },
+  {
+    titre: 'Documents',
+    items: [{ path: 'documents', label: 'Documents et modèles', ico: 'folder' }],
   },
   {
     titre: 'Site web',
@@ -153,6 +158,7 @@ const APPS = [
   },
   { id: 'facturation', nom: 'Facturation', desc: 'Devis, factures et paiements reçus', ico: 'file', couleur: '#18a058', pages: ['factures', 'devis', 'paiements'] },
   { id: 'charges', nom: 'Charges', desc: 'Dépenses, abonnements et charges fixes', ico: 'wallet', couleur: '#c2410c', pages: ['charges', 'depenses', 'abonnements'] },
+  { id: 'documents', nom: 'Documents', desc: 'Contrats, modèles, papier à en-tête et textes légaux', ico: 'folder', couleur: '#d90000', pages: ['documents'] },
   { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
   { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'site-photos', 'boutique'] },
   { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]) },
@@ -630,6 +636,7 @@ function Crm() {
   else if (page === 'parametres') content = <Parametres section={arg} />
   else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
+  else if (page === 'documents') content = <Documents />
   else if (page === 'calendrier') content = <Calendrier />
   else if (page === 'factures' || page === 'devis') content = <Factures key={route} type={page === 'devis' ? 'devis' : 'facture'} filtre={q.get('filtre')} />
   else if (page === 'paiements') content = <Paiements />
