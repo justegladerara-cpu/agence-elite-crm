@@ -1,4 +1,4 @@
-// Menu, méga-menus, apparitions au défilement et formulaire de contact (WhatsApp ou e-mail).
+// Menu, méga-menus et formulaire de contact (WhatsApp ou e-mail). Les animations sont dans motion.js.
 ;(function () {
   document.documentElement.classList.add('js')
   var body = document.body
@@ -6,19 +6,47 @@
   var burger = document.getElementById('burger')
   var mobile = window.matchMedia('(max-width: 1000px)')
 
-  // Ombre de l'en-tête au défilement
-  var surDefile = function () {
-    entete.classList.toggle('defile-bas', window.scrollY > 8)
+  // Ombre de l'en-tête dès que la page défile : un repère invisible de 8 px en haut de page, observé
+  // (aucun code exécuté pendant le défilement) ; écouteur passif en secours pour les très vieux navigateurs
+  if ('IntersectionObserver' in window) {
+    var repere = document.createElement('div')
+    repere.setAttribute('aria-hidden', 'true')
+    repere.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:8px;pointer-events:none'
+    body.insertBefore(repere, body.firstChild)
+    new IntersectionObserver(function (e) {
+      entete.classList.toggle('defile-bas', !e[0].isIntersecting)
+    }).observe(repere)
+  } else {
+    var surDefile = function () {
+      entete.classList.toggle('defile-bas', window.scrollY > 8)
+    }
+    window.addEventListener('scroll', surDefile, { passive: true })
+    surDefile()
   }
-  window.addEventListener('scroll', surDefile, { passive: true })
-  surDefile()
 
-  // Menu mobile
+  // Menu mobile : le focus va dans le menu à l'ouverture et revient au bouton à la fermeture
   burger.addEventListener('click', function () {
     var ouvert = body.classList.toggle('menu-ouvert')
     burger.setAttribute('aria-expanded', ouvert ? 'true' : 'false')
     burger.setAttribute('aria-label', ouvert ? 'Fermer le menu' : 'Ouvrir le menu')
+    if (ouvert) {
+      var premier = document.querySelector('#nav .nav-btn')
+      if (premier)
+        setTimeout(function () {
+          premier.focus({ preventScroll: true })
+        }, 30)
+    }
   })
+  var fermerMenu = function (rendreFocus) {
+    if (!body.classList.contains('menu-ouvert')) return
+    burger.click()
+    if (rendreFocus) burger.focus()
+  }
+  // Retour sur grand écran : le menu mobile se referme (sinon le défilement resterait bloqué)
+  var surLargeur = function (e) {
+    if (!e.matches) fermerMenu(false)
+  }
+  if (mobile.addEventListener) mobile.addEventListener('change', surLargeur)
 
   // Méga-menus : survol sur ordinateur, clic partout, Échap pour fermer
   var items = Array.prototype.slice.call(document.querySelectorAll('.nav-item.has-mm'))
@@ -56,7 +84,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       fermerTout()
-      if (body.classList.contains('menu-ouvert')) burger.click()
+      fermerMenu(true)
     }
   })
   document.addEventListener('click', function (e) {
@@ -66,29 +94,9 @@
   document.querySelectorAll('.nav a').forEach(function (a) {
     a.addEventListener('click', function () {
       fermerTout()
-      if (body.classList.contains('menu-ouvert')) burger.click()
+      fermerMenu(false)
     })
   })
-
-  // Apparition douce des blocs
-  if ('IntersectionObserver' in window) {
-    var cibles = document.querySelectorAll('.carte-sol, .carte-sect, .etapes li, .benef, .presta, .valeur, .mv-carte, .sect, .ia, .cta, .securite')
-    var obs = new IntersectionObserver(
-      function (entrees) {
-        entrees.forEach(function (en) {
-          if (en.isIntersecting) {
-            en.target.classList.add('vu')
-            obs.unobserve(en.target)
-          }
-        })
-      },
-      { rootMargin: '0px 0px -40px 0px' },
-    )
-    cibles.forEach(function (c) {
-      c.classList.add('apparait')
-      obs.observe(c)
-    })
-  }
 
   // Nombre d'articles du panier Elite Store dans l'en-tête
   try {
@@ -254,6 +262,12 @@
         page: location.pathname,
       },
     })
+    // Retour visible : le message est prêt dans WhatsApp ou la messagerie
+    var ok = document.getElementById('form-ok')
+    if (ok) {
+      ok.hidden = false
+      ok.lastChild.textContent = canal === 'email' ? ' Votre message est prêt dans votre messagerie : il ne reste qu’à l’envoyer.' : ' Votre message est prêt dans WhatsApp : il ne reste qu’à l’envoyer.'
+    }
     if (canal === 'email') {
       var sujet = 'Demande de projet' + (sel.value ? ' : ' + sel.options[sel.selectedIndex].text : '')
       location.href = 'mailto:' + form.getAttribute('data-email') + '?subject=' + encodeURIComponent(sujet) + '&body=' + encodeURIComponent(texte)

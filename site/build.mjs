@@ -20,6 +20,35 @@ const srcset = (id, ws) => ws.map((w) => `${unsplash(id, w)} ${w}w`).join(', ')
 const photo = (id, alt, { w = 800, ws = [480, 800, 1200], sizes = '(max-width: 900px) 100vw, 50vw', cls = '', eager = false, cle = '' } = {}) =>
   `<img${cls ? ` class="${cls}"` : ''}${cle ? ` data-photo="${cle}"` : ''} src="${unsplash(id, w)}" srcset="${srcset(id, ws)}" sizes="${sizes}" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`
 const telHref = (t) => 'tel:' + t.replace(/[^+\d]/g, '')
+// Dimensions intrinsèques d'une image WebP locale (en-têtes VP8 / VP8L / VP8X) : width/height évitent les décalages de mise en page
+const dimsWebp = (fichier) => {
+  try {
+    const b = readFileSync(join(ici, 'assets', 'img', fichier)).subarray(0, 30)
+    const t = b.toString('latin1', 12, 16)
+    if (t === 'VP8X') return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3)]
+    if (t === 'VP8 ') return [b.readUInt16LE(26) & 0x3fff, b.readUInt16LE(28) & 0x3fff]
+    if (t === 'VP8L') {
+      const v = b.readUInt32LE(21)
+      return [(v & 0x3fff) + 1, ((v >> 14) & 0x3fff) + 1]
+    }
+  } catch {
+    /* fichier absent : pas de dimensions */
+  }
+  return null
+}
+const taille = (fichier) => {
+  const d = dimsWebp(fichier)
+  return d ? ` width="${d[0]}" height="${d[1]}"` : ''
+}
+// Elite Motion System : SITE.motion = false (data.mjs) ou AE_MOTION=off au build retire tout le mouvement
+// (script de tête et motion.js) ; le site reste complet et statique.
+const MOTION = SITE.motion !== false && process.env.AE_MOTION !== 'off'
+// Placé AVANT la feuille de style : un script en ligne situé après une feuille attend son chargement et retarde
+// la découverte des images (LCP mesuré +1 s en 3G). Il ne lit aucun style, seulement les préférences du visiteur.
+// Niveau de mouvement décidé avant le premier affichage (pas de clignotement) : léger si « réduire les animations »
+// ou « économiseur de données », équilibré sur écran tactile, complet avec souris ; ?motion=off|leger|equilibre|complet
+// force un niveau pour la session ; le plafond mesuré par motion.js (fluidité) est repris d'une page à l'autre.
+const MOTION_TETE = `<script>!function(d,w){var s,a,n=['leger','equilibre','complet'];try{var q=new URLSearchParams(location.search).get('motion');if(q)sessionStorage.setItem('ae-motion',q);s=sessionStorage.getItem('ae-motion');a=sessionStorage.getItem('ae-motion-auto')}catch(e){}d.classList.add('js');if(s==='off')return;var c=navigator.connection,m=n.indexOf(s)>=0?s:w.matchMedia('(prefers-reduced-motion: reduce)').matches||c&&c.saveData?'leger':w.matchMedia('(hover: hover) and (pointer: fine)').matches?'complet':'equilibre';if(n.indexOf(s)<0&&n.indexOf(a)>=0&&n.indexOf(a)<n.indexOf(m))m=a;d.setAttribute('data-motion',m);if(m!=='leger')d.classList.add('mo');if(m==='complet')d.classList.add('mo-plein')}(document.documentElement,window)</script>`
 
 // Icônes (trait 1.8, 24×24)
 const P = {
@@ -54,6 +83,11 @@ const P = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  pause: '<path d="M9 5v14M15 5v14"/>',
+  play: '<path d="M7 5l12 7-12 7z"/>',
+  box: '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/>',
+  invoice: '<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h5"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',
 }
 const ico = (n, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ''}</svg>`
 const SOCIAL = {
@@ -97,6 +131,7 @@ function page({ chemin, titre, description, corps, actif = '', robots = '', scri
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${MOTION ? MOTION_TETE : ''}
 <title>${esc(titre)}</title>
 <meta name="description" content="${esc(description)}">
 ${robots ? `<meta name="robots" content="${robots}">` : `<link rel="canonical" href="${canon}">`}
@@ -110,9 +145,6 @@ ${robots ? `<meta name="robots" content="${robots}">` : `<link rel="canonical" h
 <link rel="icon" type="image/png" href="${r('assets/img/favicon.png')}">
 <link rel="apple-touch-icon" href="${r('assets/img/apple-touch-icon.png')}">
 <link rel="preconnect" href="https://images.unsplash.com">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${r('assets/site.css')}?v=${VERSION}">
 <script type="application/ld+json">${JSON.stringify(jsonld)}</script>
 </head>
@@ -144,8 +176,8 @@ ${robots ? `<meta name="robots" content="${robots}">` : `<link rel="canonical" h
           <a class="mm-lien simple" href="${r('agence/#partenaires')}">${ico('hands')}<span><strong>Nos partenaires</strong></span></a>
         </div></div>
       </div>
-      <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}">Elite Store</a>
-      <a class="nav-btn nav-lien${actif === 'contact' ? ' actif' : ''}" href="${r('contact/')}">Contact</a>
+      <a class="nav-btn nav-lien${actif === 'boutique' ? ' actif' : ''}" href="${r('boutique/')}"${actif === 'boutique' ? ' aria-current="page"' : ''}>Elite Store</a>
+      <a class="nav-btn nav-lien${actif === 'contact' ? ' actif' : ''}" href="${r('contact/')}"${actif === 'contact' ? ' aria-current="page"' : ''}>Contact</a>
       <a class="btn btn-rouge nav-cta" href="${r('contact/')}">Demander un devis</a>
     </nav>
     <a class="panier-btn" href="${r('boutique/panier/')}" aria-label="Panier">${ico('bag')}<span class="panier-nb" id="panier-nb" hidden>0</span></a>
@@ -182,6 +214,7 @@ ${corps(r)}
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
 <script>window.AE_SITE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle })}</script>
 <script src="${r('assets/site.js')}?v=${VERSION}" defer></script>
+${MOTION ? `<script src="${r('assets/motion.js')}?v=${VERSION}" defer></script>` : ''}
 ${scripts ? scripts(r) : ''}
 </body>
 </html>
@@ -194,7 +227,7 @@ const carteSolution = (s, r) => `
   <span class="cs-img">${
     s.photo
       ? photo(s.photo, s.categorie, { cle: `solution-${s.slug}`, w: 640, ws: [400, 640, 900], sizes: '(max-width: 600px) 100vw, (max-width: 1080px) 50vw, 380px' })
-      : `<img src="${r('assets/img/' + s.image)}" alt="${esc(s.categorie)}" loading="lazy">`
+      : `<img src="${r('assets/img/' + s.image)}" alt="${esc(s.categorie)}"${taille(s.image)} loading="lazy" decoding="async">`
   }</span>
   <span class="cs-tete"><span class="pastille">${ico(s.icone)}</span><span class="cs-cat">${esc(s.categorie)}</span></span>
   <span class="cs-titre">${esc(s.titre)}</span>
@@ -204,8 +237,10 @@ const carteSolution = (s, r) => `
 </a>`
 
 const bandePartenaires = (r) => {
-  const logos = PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}" loading="lazy"></li>`).join('')
-  return `<div class="defile" aria-label="Quelques-uns de nos partenaires"><ul class="defile-piste">${logos}</ul><ul class="defile-piste" aria-hidden="true">${logos}</ul></div>`
+  const logos = PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}"${taille('partenaires/' + f + '.webp')} loading="lazy" decoding="async"></li>`).join('')
+  // Bouton pause (WCAG 2.2.2) affiché par motion.js ; la copie de la liste sert seulement à la boucle du défilement
+  return `<div class="defile" role="group" aria-label="Quelques-uns de nos partenaires"><ul class="defile-piste">${logos}</ul><ul class="defile-piste" aria-hidden="true">${logos}</ul></div>
+    <button class="defile-pause" type="button" aria-pressed="false" hidden>${ico('pause', 'i-pause')}${ico('play', 'i-lecture')}<span>Mettre en pause le défilement</span></button>`
 }
 
 const blocCta = (r, titre = 'Parlez-nous de votre projet', txt = "Un échange de 20 minutes suffit pour comprendre votre besoin et vous proposer la bonne solution. C'est gratuit et sans engagement.") => `
@@ -228,6 +263,146 @@ const blocCta = (r, titre = 'Parlez-nous de votre projet', txt = "Un échange de
 const faqBloc = (items) => `<div class="faq">${items
   .map(([q, a]) => `<details class="faq-item"><summary>${esc(q)}${ico('plus')}</summary><p>${esc(a)}</p></details>`)
   .join('')}</div>`
+
+
+// ---------- Elite Motion System : composants ----------
+// Séparateur de milliers français (espace fine insécable U+202F), sans Intl : identique côté navigateur (motion.js)
+const nombre = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
+// Chiffre animé : la valeur finale est dans le HTML (lecteurs d'écran, moteurs de recherche, sans JavaScript) ;
+// motion.js anime seulement la copie visuelle (aria-hidden).
+const compteur = (n, suffixe = '') => `<span class="sr-only">${nombre(n)}${suffixe}</span><span class="compte" aria-hidden="true" data-compte="${n}">${nombre(n)}</span>${suffixe ? `<span class="compte-suffixe" aria-hidden="true">${suffixe}</span>` : ''}`
+
+// Chiffres tirés du contenu du site (aucune donnée inventée)
+const bandeChiffres = () => `
+<section class="chiffres-section" aria-label="Agence Elite en chiffres">
+  <div class="conteneur">
+    <ul class="chiffres">
+      <li class="chiffre"><strong>${compteur(SOLUTIONS.length)}</strong><span>expertises réunies sous un même toit</span></li>
+      <li class="chiffre"><strong>${compteur(SECTEURS.length)}</strong><span>secteurs d'activité accompagnés</span></li>
+      <li class="chiffre"><strong>${compteur(PARTENAIRES.length)}</strong><span>partenaires qui nous font confiance</span></li>
+      <li class="chiffre"><strong>${compteur(1)}</strong><span>interlocuteur unique pour votre projet</span></li>
+    </ul>
+  </div>
+</section>`
+
+// Vitrine interactive de la solution de gestion : maquette HTML/CSS/SVG, données FICTIVES (aucune donnée client,
+// pas d'intégration de l'application réelle). Sans JavaScript, les cinq modules s'affichent les uns sous les autres.
+const VT_MOIS = [38, 42, 40, 47, 52, 49, 58, 61, 57, 66, 72, 79]
+const vtCourbe = () => {
+  const w = 800
+  const h = 200
+  const max = 90
+  const pts = VT_MOIS.map((v, i) => [Math.round((i / (VT_MOIS.length - 1)) * w), Math.round(h - (v / max) * h)])
+  const ligne = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(' ')
+  return `<svg class="vt-courbe" viewBox="-8 -8 ${w + 16} ${h + 18}" role="img" aria-label="Courbe fictive du chiffre d'affaires sur douze mois, en hausse régulière">
+    <defs><linearGradient id="vt-degrade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fb0000" stop-opacity=".22"/><stop offset="1" stop-color="#fb0000" stop-opacity="0"/></linearGradient></defs>
+    <g class="vt-grille" aria-hidden="true">${[0.25, 0.5, 0.75].map((k) => `<line x1="0" x2="${w}" y1="${Math.round(h * k)}" y2="${Math.round(h * k)}"/>`).join('')}</g>
+    <path class="vt-aire" d="${ligne} L${w} ${h + 10} L0 ${h + 10} Z" fill="url(#vt-degrade)"/>
+    <path class="vt-trait" d="${ligne}" pathLength="1" fill="none"/>
+    <circle class="vt-point" cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="6"/>
+  </svg>`
+}
+const vtKpi = (libelle, n, suffixe, delta, baisse = false) =>
+  `<div class="vt-kpi"><span class="vt-kpi-lib">${libelle}</span><strong>${compteur(n, suffixe)}</strong><span class="vt-delta${baisse ? ' baisse' : ''}">${delta}</span></div>`
+const vtBarres = (vals, etiquettes) =>
+  `<div class="vt-barres" role="img" aria-label="Histogramme fictif : ${etiquettes.map((e, i) => `${e} ${vals[i]} ventes`).join(', ')}">${vals
+    .map((v, i) => `<span class="vt-col" style="--i:${i}"><span class="vt-b" style="--v:${Math.round((v / Math.max(...vals)) * 100)}%"></span><small>${etiquettes[i]}</small></span>`)
+    .join('')}</div>`
+const VT_MODULES = [
+  {
+    id: 'bord',
+    icone: 'chart',
+    titre: 'Tableau de bord',
+    corps: () => `<div class="vt-kpis">${vtKpi("Chiffre d'affaires du mois", 4860000, ' FCFA', '+12 % sur un mois')}${vtKpi('Ventes', 312, '', '+8 %')}${vtKpi('Panier moyen', 15577, ' FCFA', '+3 %')}${vtKpi('Factures en retard', 4, '', '−2 cette semaine')}</div>
+      <div class="vt-carte"><div class="vt-carte-tete"><strong>Chiffre d'affaires, 12 mois</strong><span class="vt-tag">en hausse</span></div>${vtCourbe()}</div>`,
+  },
+  {
+    id: 'ventes',
+    icone: 'bag',
+    titre: 'Ventes',
+    corps: () => `<div class="vt-deux"><div class="vt-carte"><div class="vt-carte-tete"><strong>Ventes de la semaine</strong><span class="vt-tag">7 jours</span></div>${vtBarres([38, 52, 45, 61, 70, 88, 34], ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'])}</div>
+      <div class="vt-carte"><div class="vt-carte-tete"><strong>Dernières ventes</strong></div><ul class="vt-liste">${[
+        ['Ticket D-1042', 'Client comptoir', '18 500 FCFA'],
+        ['Ticket D-1041', 'Société Alpha (démo)', '146 000 FCFA'],
+        ['Ticket D-1040', 'Client comptoir', '7 250 FCFA'],
+        ['Ticket D-1039', 'Restaurant Exemple', '64 900 FCFA'],
+      ]
+        .map(([a, b, c], i) => `<li style="--i:${i}"><span><strong>${a}</strong><small>${b}</small></span><b>${c}</b></li>`)
+        .join('')}</ul></div></div>`,
+  },
+  {
+    id: 'stock',
+    icone: 'box',
+    titre: 'Stock',
+    corps: () => `<div class="vt-carte"><div class="vt-carte-tete"><strong>Niveaux de stock</strong><span class="vt-tag alerte">2 alertes</span></div><ul class="vt-stock">${[
+      ['Ramette papier A4', 82, 'OK'],
+      ['Cartouche d’encre noire', 14, 'Stock bas'],
+      ['Clé USB 32 Go', 56, 'OK'],
+      ['Câble HDMI 2 m', 9, 'Stock bas'],
+      ['Souris sans fil', 67, 'OK'],
+    ]
+      .map(([n, v, e], i) => `<li style="--i:${i}"><span class="vt-stock-nom">${n}</span><span class="vt-jauge"><span class="vt-b-h${v < 20 ? ' bas' : ''}" style="--v:${v}%"></span></span><span class="vt-etat${v < 20 ? ' bas' : ''}">${e}</span></li>`)
+      .join('')}</ul></div>`,
+  },
+  {
+    id: 'factures',
+    icone: 'invoice',
+    titre: 'Facturation',
+    corps: () => `<div class="vt-deux"><div class="vt-carte"><div class="vt-carte-tete"><strong>Factures récentes</strong></div><table class="vt-table"><caption class="sr-only">Factures fictives de démonstration</caption><thead><tr><th scope="col">N°</th><th scope="col">Client</th><th scope="col">Montant</th><th scope="col">Statut</th></tr></thead><tbody>${[
+      ['F-2031', 'Société Alpha (démo)', '146 000', 'Payée', 'ok'],
+      ['F-2030', 'Cabinet Démo', '320 000', 'En attente', 'attente'],
+      ['F-2029', 'Restaurant Exemple', '64 900', 'Payée', 'ok'],
+      ['F-2028', 'Entreprise Test', '98 500', 'En retard', 'retard'],
+    ]
+      .map(([a, b, c, d, k], i) => `<tr style="--i:${i}"><td>${a}</td><td>${b}</td><td>${c}</td><td><span class="vt-statut ${k}">${d}</span></td></tr>`)
+      .join('')}</tbody></table></div>
+      <div class="vt-carte vt-anneau-carte"><div class="vt-carte-tete"><strong>Encaissé ce mois</strong></div><svg class="vt-anneau" viewBox="0 0 120 120" role="img" aria-label="72 % des factures fictives du mois encaissées"><circle class="vt-anneau-fond" cx="60" cy="60" r="50" pathLength="100"/><circle class="vt-anneau-val" cx="60" cy="60" r="50" pathLength="100" style="--p:72"/></svg><p class="vt-anneau-txt"><strong>${compteur(72, ' %')}</strong><small>des montants facturés</small></p></div></div>`,
+  },
+  {
+    id: 'sites',
+    icone: 'building',
+    titre: 'Établissements',
+    corps: () => `<div class="vt-sites">${[
+      ['Site A · Boutique centre-ville', 2140000, 78],
+      ['Site B · Dépôt', 1580000, 58],
+      ['Site C · Point de vente 2', 1140000, 42],
+    ]
+      .map(([n, ca, k], i) => `<div class="vt-site" style="--i:${i}"><span class="vt-kpi-lib">${n}</span><strong>${compteur(ca, ' FCFA')}</strong><span class="vt-jauge"><span class="vt-b-h" style="--v:${k}%"></span></span><small>Chiffre d'affaires du mois</small></div>`)
+      .join('')}</div>
+      <div class="vt-carte vt-transfert"><span class="pastille">${ico('truck')}</span><span><strong>Transfert de stock en cours</strong><small>Site B → Site A : 40 ramettes, 12 cartouches (exemple)</small></span></div>`,
+  },
+]
+const vitrineSaas = (r, { surtitre = 'Aperçu interactif', titre = 'Ventes, stock et factures réunis dans un seul tableau de bord', lienErp = true } = {}) => `
+<link rel="stylesheet" href="${r('assets/vitrine.css')}?v=${VERSION}">
+<section class="section vitrine-section" id="apercu-gestion">
+  <div class="conteneur">
+    <div class="titre-section">
+      <p class="surtitre">${surtitre}</p>
+      <h2>${titre}</h2>
+      <p>Explorez une démonstration de la solution de gestion que nous installons et paramétrons pour nos clients : un module par onglet, au clavier comme au doigt.</p>
+    </div>
+    <div class="vitrine" data-vitrine>
+      <div class="vt-onglets" role="tablist" aria-label="Modules de la démonstration" hidden>${VT_MODULES.map(
+        (m, i) => `<button class="vt-onglet" type="button" role="tab" id="vt-onglet-${m.id}" aria-controls="vt-${m.id}" aria-selected="${i === 0}"${i ? ' tabindex="-1"' : ''}>${ico(m.icone)}<span>${m.titre}</span></button>`,
+      ).join('')}</div>
+      <div class="vt-fenetre">
+        <div class="vt-chrome" aria-hidden="true"><i></i><i></i><i></i><span>gestion.exemple · Entreprise Démo</span></div>
+        <p class="vt-demo">${ico('shield')}Démonstration : données fictives, interface simplifiée</p>
+        <div class="vt-panneaux">${VT_MODULES.map((m) => `<div class="vt-panneau joue" id="vt-${m.id}" aria-labelledby="vt-onglet-${m.id}"><h3 class="vt-titre">${ico(m.icone)}${m.titre}</h3>${m.corps()}</div>`).join('')}</div>
+      </div>
+    </div>
+    <div class="boutons centre">
+      ${lienErp ? `<a class="btn btn-rouge" href="${r('solutions/erp/')}">Découvrir la solution de gestion ${ico('arrow')}</a>` : ''}
+      <a class="btn ${lienErp ? 'btn-ligne' : 'btn-rouge'}" href="${r('contact/?solution=erp')}">Demander une démonstration${lienErp ? '' : ' ' + ico('arrow')}</a>
+    </div>
+  </div>
+</section>`
+
+// Élément graphique du héros : orbites fines en SVG (décoratif, léger, animé seulement au niveau « complet »)
+const heroOrbite = `<svg class="hero-orbite" viewBox="0 0 400 400" aria-hidden="true" focusable="false">
+  <circle cx="200" cy="200" r="196" class="o1"/><circle cx="200" cy="200" r="150" class="o2"/><circle cx="200" cy="200" r="104" class="o3"/>
+  <circle cx="200" cy="4" r="5" class="n1"/><circle cx="350" cy="200" r="4" class="n2"/><circle cx="200" cy="304" r="3.5" class="n3"/>
+</svg>`
 
 // ---------- Pages ----------
 const PAGES = []
@@ -256,6 +431,7 @@ PAGES.push({
       </ul>
     </div>
     <div class="hero-visuel">
+      ${heroOrbite}
       ${photo(PHOTOS.hero[0], PHOTOS.hero[1], { cle: 'accueil', w: 1200, ws: [600, 900, 1200, 1600], sizes: '(max-width: 900px) 100vw, 580px', eager: true })}
       <div class="hero-badge b1">${ico('megaphone')}<span><strong>Réseaux sociaux</strong><small>Gestion et publicité</small></span></div>
       <div class="hero-badge b2">${ico('spark')}<span><strong>Intelligence artificielle</strong><small>Chatbots et automatisation</small></span></div>
@@ -266,6 +442,7 @@ PAGES.push({
     ${bandePartenaires(r)}
   </div>
 </section>
+${bandeChiffres()}
 
 <section class="section">
   <div class="conteneur">
@@ -289,6 +466,8 @@ PAGES.push({
     </div>
   </div>
 </section>
+
+${vitrineSaas(r)}
 
 <section class="section section-douce" id="solutions">
   <div class="conteneur">
@@ -427,17 +606,18 @@ for (const s of SOLUTIONS) {
     <div class="grille-presta">${s.services.map(([t, d]) => `<div class="presta">${ico('check')}<div><strong>${esc(t)}</strong><p>${esc(d)}</p></div></div>`).join('')}</div>
     ${
       s.illustrations
-        ? `<div class="grille-illu">${s.illustrations.map(([f, t]) => `<figure><img src="${r('assets/img/' + f)}" alt="${esc(t)}" loading="lazy"><figcaption>${esc(t)}</figcaption></figure>`).join('')}</div>`
+        ? `<div class="grille-illu">${s.illustrations.map(([f, t]) => `<figure><img src="${r('assets/img/' + f)}" alt="${esc(t)}"${taille(f)} loading="lazy" decoding="async"><figcaption>${esc(t)}</figcaption></figure>`).join('')}</div>`
         : ''
     }
     ${
       s.galerie
-        ? `<div class="galerie">${s.galerie.map(([f, t]) => `<figure><img src="${r('assets/img/' + f)}" alt="${esc(t)}" loading="lazy"><figcaption>${esc(t)}</figcaption></figure>`).join('')}</div>`
+        ? `<div class="galerie">${s.galerie.map(([f, t]) => `<figure><img src="${r('assets/img/' + f)}" alt="${esc(t)}"${taille(f)} loading="lazy" decoding="async"><figcaption>${esc(t)}</figcaption></figure>`).join('')}</div>`
         : ''
     }
   </div>
 </section>
 
+${s.slug === 'erp' ? vitrineSaas(r, { surtitre: 'Démonstration', titre: 'À quoi ressemble votre gestion au quotidien', lienErp: false }) : ''}
 ${
   s.slug === 'microsoft-365'
     ? `<section class="section section-sombre"><div class="conteneur offre-phare"><div><p class="surtitre">Disponible sur Elite Store</p><h2>Microsoft 365 Business Standard : 77 000 FCFA par an</h2><p>Licence officielle, e-mail professionnel, installation et configuration par nos techniciens.</p></div>
@@ -554,7 +734,7 @@ PAGES.push({
 <section class="section section-douce" id="partenaires">
   <div class="conteneur">
     <div class="titre-section"><p class="surtitre">Nos partenaires</p><h2>Quelques-uns de nos partenaires</h2></div>
-    <ul class="grille-logos">${PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}" loading="lazy"></li>`).join('')}</ul>
+    <ul class="grille-logos">${PARTENAIRES.map(([f, n]) => `<li><img src="${r('assets/img/partenaires/' + f + '.webp')}" alt="${esc(n)}"${taille('partenaires/' + f + '.webp')} loading="lazy" decoding="async"></li>`).join('')}</ul>
   </div>
 </section>
 ${blocCta(r)}`,
@@ -707,6 +887,7 @@ PAGES.push({
       </label>
       <label>Votre projet *<textarea class="champ" name="message" rows="5" required placeholder="Votre activité, votre objectif, votre délai…"></textarea></label>
       <p class="form-erreur" id="form-erreur" role="alert" hidden>Merci d'indiquer votre nom, votre téléphone et quelques mots sur votre projet.</p>
+      <p class="form-ok" id="form-ok" role="status" hidden>${ico('check')}<span> Votre message est prêt : il ne reste qu’à l’envoyer.</span></p>
       <div class="boutons">
         <button class="btn btn-rouge" type="submit" data-canal="whatsapp">${SOCIAL.whatsapp} Envoyer sur WhatsApp</button>
         <button class="btn btn-ligne" type="submit" data-canal="email">${ico('mail')} Envoyer par e-mail</button>

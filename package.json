@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:site": "playwright test -c site/playwright.config.mjs",
+    "mesure:site": "node site/build.mjs site-dist && node site/scripts/mesure.cjs --dir site-dist",
     "check": "oxlint && vitest run && vite build"
   },
   "dependencies": {
