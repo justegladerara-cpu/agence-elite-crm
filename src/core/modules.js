@@ -90,6 +90,17 @@ export const MODULES = [
     dependances: { requis: ['site'], optionnels: ['commercial', 'facturation'] },
   },
   {
+    id: 'plateforme',
+    nom: 'Plateforme',
+    version: '1.0',
+    desc: 'Centre d’administration du SaaS : tour de contrôle, clients, licences, comptes, messages',
+    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils'],
+    permissions: ['plateforme.view', 'plateforme.edit'],
+    entites: [],
+    evenements: { produits: ['payment.received'], consommes: [] },
+    dependances: { requis: [], optionnels: ['commercial', 'facturation'] },
+  },
+  {
     id: 'parametres',
     nom: 'Paramètres',
     version: '1.0',

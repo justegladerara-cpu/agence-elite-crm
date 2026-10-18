@@ -7,7 +7,9 @@ import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './m
 import { setBrand } from './lib/theme'
 import { buildSeed, isExample, TAG } from './lib/seed'
 import Login from './pages/Login'
-import { ADRESSE_SUPER_ADMIN, extraireJeton, porteOuverte, verifierJeton } from './lib/porte'
+import { extraireJeton, ouvrirPorte, porteOuverte, verifierJeton } from './lib/porte'
+import { sessionValide } from './modules/plateforme'
+import { ConnexionPlateforme } from './modules/plateforme/ui'
 import Journee from './pages/Journee'
 import Saisie, { ActionForm } from './pages/Saisie'
 import { MiniListe } from './pages/Prospects'
@@ -35,6 +37,10 @@ const SiteVue = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.S
 const SiteDemandes = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SiteDemandes })))
 const SitePages = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePages })))
 const SitePhotos = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePhotos })))
+const Controle = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.Controle })))
+const ClientsPlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.ClientsPlateforme })))
+const FichePlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.FichePlateforme })))
+const OutilsPlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.OutilsPlateforme })))
 import Applications from './pages/Applications'
 import { syncRappels } from './lib/rappels'
 import { QuickForm, AppelSheet } from './pages/Rapide'
@@ -137,6 +143,10 @@ const PARAMETRES = {
   sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/modules', 'Modules'], ['/membres', 'Membres'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
 }
 PAGES.saisie = 'Nouvelle action'
+PAGES.controle = 'Tour de contrôle'
+PAGES.plateforme = 'Clients de la plateforme'
+PAGES['plateforme-client'] = 'Fiche client'
+PAGES['plateforme-outils'] = 'Boîte à outils'
 PAGES.apps = 'Applications'
 
 // Applications (façon Odoo / Zoho One) : chaque module a son icône, sa couleur et ses propres pages
@@ -148,7 +158,20 @@ const SECTIONS_DASH = [
   ['dashboard/finances', 'Finances'],
 ]
 const APPS = [
-  // Menu court, façon salle de contrôle : 5 rubriques de travail, puis les outils
+  // Menu court, façon salle de contrôle : la plateforme d'abord, puis 5 rubriques de travail, puis les outils
+  {
+    id: 'plateforme',
+    nom: 'Plateforme',
+    desc: 'Tour de contrôle, clients du SaaS, actions et boîte à outils',
+    ico: 'radio',
+    couleur: '#8a6620',
+    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils'],
+    entrees: [
+      ['controle', 'Tour de contrôle'],
+      ['plateforme', 'Clients'],
+      ['plateforme-outils', 'Boîte à outils'],
+    ],
+  },
   { id: 'jour', nom: "Aujourd'hui", desc: 'Objectifs, relances et alertes du jour', ico: 'sun', couleur: '#4c90f0', pages: ['journee'] },
   {
     id: 'commercial',
@@ -217,7 +240,7 @@ function Attente() {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || 'dashboard'
+  const get = () => window.location.hash.replace(/^#\/?/, '') || (isLocal ? 'dashboard' : 'controle')
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -230,18 +253,22 @@ function useRoute() {
   return route
 }
 
-// Porte unique fermée : le CRM s'ouvre seulement depuis l'espace super admin de la plateforme
-function PorteFermee() {
+// Porte unique : le CRM s'ouvre avec le compte super admin de la plateforme (centre d'administration Agence Elite).
+// La connexion reste active sur cet appareil ; la porte se rouvre seule tant que cette connexion est valable.
+function PorteFermee({ onOuverte }) {
   return (
     <div className="login">
-      <div className="card stack">
-        <Logo full />
-        <p className="login-tag">
-          Accès réservé. Le CRM s'ouvre depuis l'espace super admin de la plateforme Agence Elite, avec le bouton « CRM Agence Elite ».
-        </p>
-        <a className="btn primary block" href={ADRESSE_SUPER_ADMIN}>
-          Aller à l'espace super admin
-        </a>
+      <div className="stack" style={{ width: 'min(420px, 100%)' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Logo full />
+        </div>
+        <ConnexionPlateforme
+          titre="Centre d'administration Agence Elite"
+          onConnecte={() => {
+            ouvrirPorte()
+            onOuverte()
+          }}
+        />
       </div>
     </div>
   )
@@ -250,7 +277,7 @@ function PorteFermee() {
 const etatPorteInitial = () => {
   if (isLocal) return 'ok'
   if (/^#porte=/.test(window.location.hash)) return 'verif'
-  return porteOuverte() ? 'ok' : 'ferme'
+  return porteOuverte() ? 'ok' : 'session'
 }
 
 export default function App() {
@@ -261,6 +288,14 @@ export default function App() {
     if (!jeton) return
     verifierJeton(jeton).then((ok) => setPorte(ok || porteOuverte() ? 'ok' : 'ferme'))
   }, [])
+  // Connexion plateforme encore valable sur cet appareil : la porte se rouvre sans rien demander
+  useEffect(() => {
+    if (porte !== 'session') return
+    sessionValide().then((ok) => {
+      if (ok) ouvrirPorte()
+      setPorte(ok ? 'ok' : 'ferme')
+    })
+  }, [porte])
   const [session, setSession] = useState(isLocal ? 'local' : undefined)
   useEffect(() => {
     if (!supabase) return
@@ -282,8 +317,8 @@ export default function App() {
       () => setAal('ok'),
     )
   }, [session])
-  if (porte === 'verif') return <Attente />
-  if (porte === 'ferme') return <PorteFermee />
+  if (porte === 'verif' || porte === 'session') return <Attente />
+  if (porte === 'ferme') return <PorteFermee onOuverte={() => setPorte('ok')} />
   if (session === undefined) return <Attente />
   if (!session) return <Login />
   if (typeof session === 'object' && aal === null) return <Attente />
@@ -684,6 +719,10 @@ function Crm() {
   else if (page === 'site-pages') content = <SitePages />
   else if (page === 'site-photos') content = <SitePhotos />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
+  else if (page === 'controle') content = <Controle />
+  else if (page === 'plateforme') content = <ClientsPlateforme key={route} filtre={q.get('filtre')} />
+  else if (page === 'plateforme-client') content = <FichePlateforme key={route} id={arg} faire={q.get('faire')} />
+  else if (page === 'plateforme-outils') content = <OutilsPlateforme />
   else if (page === 'apps') content = <Applications apps={apps} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
   const pastille = (path) => {
