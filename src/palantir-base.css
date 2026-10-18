@@ -17,13 +17,13 @@
   --navy-deep: #07090c;
   --navy-rgb: 0, 0, 0;
 
-  --gold: #4c90f0;
+  --gold: #2a6bc7;
   --gold-2: #8abbff;
-  --gold-3: #2d72d2;
+  --gold-3: #215db0;
   --gold-soft: #16253a;
   --gold-line: #215db0;
   --gold-ink: #8abbff;
-  --gold-rgb: 76, 144, 240;
+  --gold-rgb: 42, 107, 199;
   --gold-2-rgb: 138, 187, 255;
   --on-dark: #abb3bf;
   --on-dark-2: #8f99a8;
@@ -55,7 +55,7 @@
 :root[data-ui="palantir"] .nav-item { border-radius: 2px; }
 :root[data-ui="palantir"] .nav-item.active { background: rgba(76, 144, 240, 0.14); color: #fff; box-shadow: inset 2px 0 0 var(--gold); }
 :root[data-ui="palantir"] .nav-sep {
-  margin: 14px 10px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #5f6b7c;
+  margin: 14px 10px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #8f99a8;
 }
 
 /* Titres sobres, libellés en petites capitales */
@@ -92,3 +92,9 @@
 /* Tableaux denses */
 :root[data-ui="palantir"] table.t td { border-bottom-color: #252a31; }
 :root[data-ui="palantir"] table.t tr:hover td { background: #252a31; }
+
+/* Contrastes (WCAG AA) des pastilles pleines sur fond sombre */
+:root[data-ui="palantir"] .score.hot { background: #b83232; color: #fff; }
+:root[data-ui="palantir"] .b-navy,
+:root[data-ui="palantir"] h2.section .count { background: var(--gold-3); color: #fff; }
+:root[data-ui="palantir"] .hr-avatar { color: color-mix(in srgb, var(--c) 50%, #fff); }

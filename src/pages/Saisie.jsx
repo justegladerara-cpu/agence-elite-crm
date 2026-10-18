@@ -485,7 +485,7 @@ export function ActionLine({ a, showProspect = true, onEdit }) {
             <a
               href={`#/prospect/${p.id}`}
               onClick={(e) => e.stopPropagation()}
-              style={{ color: 'var(--navy)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+              style={{ color: 'var(--navy-ink)', textDecoration: 'underline', textUnderlineOffset: 2 }}
             >
               {p.name}
             </a>
