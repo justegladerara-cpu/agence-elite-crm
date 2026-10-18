@@ -23,6 +23,15 @@ export function porteOuverte(stockage = globalThis.localStorage, maintenant = Da
   return lire(stockage) > maintenant
 }
 
+// Ouvre la porte pour DUREE_MS (connexion super admin vérifiée par la plateforme)
+export function ouvrirPorte(stockage = globalThis.localStorage, maintenant = Date.now()) {
+  try {
+    stockage.setItem(CLE, String(maintenant + DUREE_MS))
+  } catch {
+    /* stockage indisponible : la porte se rouvrira à la prochaine connexion */
+  }
+}
+
 export function fermerPorte(stockage = globalThis.localStorage) {
   try {
     stockage.removeItem(CLE)

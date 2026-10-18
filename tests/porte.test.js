@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DUREE_MS, extraireJeton, fermerPorte, porteOuverte, verifierJeton } from '../src/lib/porte.js'
+import { DUREE_MS, extraireJeton, fermerPorte, ouvrirPorte, porteOuverte, verifierJeton } from '../src/lib/porte.js'
 
 const memoire = () => {
   const m = new Map()
@@ -43,5 +43,12 @@ describe('porte unique du CRM', () => {
     expect(extraireJeton({ hash: '#porte=a%2Eb', pathname: '/', search: '' }, hist)).toBe('a.b')
     expect(remplace).toBe('/#/')
     expect(extraireJeton({ hash: '#/clients', pathname: '/', search: '' }, hist)).toBe(null)
+  })
+
+  it('s’ouvre aussi après une connexion super admin faite dans le CRM, pour 12 h', () => {
+    const s = memoire()
+    ouvrirPorte(s, 5000)
+    expect(porteOuverte(s, 5000 + DUREE_MS - 1)).toBe(true)
+    expect(porteOuverte(s, 5000 + DUREE_MS + 1)).toBe(false)
   })
 })
