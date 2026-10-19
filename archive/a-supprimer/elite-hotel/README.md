@@ -8,7 +8,7 @@ Elite Hôtel n'est plus un projet actif depuis le 1er octobre 2026, sur décisio
 | Base | Supabase kangourou-gestion, schéma `archive_elite_hotel_a_supprimer` (tables `h_*`) | Hors API, aucun droit |
 | Fonctions | `public.archive_elite_hotel_a_supprimer_*` | Neutralisées (aucun accès). Gardées tant que la règle de stockage `h espace recus` existe. |
 | Fichiers | bucket `h-recus` | Vide, bloqué |
-| Comptes | `pdg@kangou.com`, `demo@kangourou.com` | Désactivés |
+| Comptes | `(adresse client retirée, @kangou.com)`, `(adresse client retirée, @kangourou.com)` | Désactivés |
 | Sauvegardes | dossier projet `archive/a-supprimer/elite-hotel/` (bundle Git, `hotel.sql`, données JSON, captures) et schéma `sauvegarde_20261001` | Conservées |
 
 La suppression définitive se fera plus tard avec le script `suppression-definitive-plus-tard.sql` du dossier projet. Il faut une validation humaine dans Supabase et la suppression de la branche sur GitHub.

@@ -156,7 +156,7 @@ Juste ne veut plus d'Elite Hôtel comme projet actif. Il faut l'archiver, le ren
 - `compte_unique()` (inscription) remise à la version Kangourou d'origine, sans `h_membres`.
 - Tables `h_*` déplacées dans le schéma `archive_elite_hotel_a_supprimer`, tous droits retirés (hors API).
 - Fonctions `h_*` neutralisées (null ou false) et renommées `archive_elite_hotel_a_supprimer_*`. Elles restent parce que la règle de stockage `h espace recus` y fait référence.
-- Bucket `h-recus` (vide) bloqué. Comptes `pdg@kangou.com` et `demo@kangourou.com` désactivés (bannis).
+- Bucket `h-recus` (vide) bloqué. Comptes `(adresse client retirée, @kangou.com)` et `(adresse client retirée, @kangourou.com)` désactivés (bannis).
 - Restent en place : la règle `h espace recus`, désormais toujours fausse ; le bucket vide ; 84 anciennes fiches de démo hôtel (types chambre, table, plat, sejour, commande) dans l'espace `demo` du Kangourou, que le code Kangourou n'utilise pas. Le script de suppression définitive est dans le dossier projet.
 
 ### GitHub
@@ -166,8 +166,8 @@ Juste ne veut plus d'Elite Hôtel comme projet actif. Il faut l'archiver, le ren
 
 ### Vérifications Kangourou
 - Empreintes md5 identiques avant et après : documents (hors fiches hôtel), actions, membres, réglages, prospects.
-- Simulation en tant que `pdg@lekangourou.com` : rôle pdg, espace kangourou, 25 documents visibles.
-- Simulation en tant que `narcie@lekangourou.com` (caisse) : écriture d'un reçu dans le bucket `recus` acceptée (transaction annulée).
+- Simulation en tant que `(adresse client retirée, @lekangourou.com)` : rôle pdg, espace kangourou, 25 documents visibles.
+- Simulation en tant que `(adresse client retirée, @lekangourou.com)` (caisse) : écriture d'un reçu dans le bucket `recus` acceptée (transaction annulée).
 - Écriture dans `h-recus` refusée.
 
 ### Plateforme
