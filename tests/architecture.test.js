@@ -35,7 +35,7 @@ const PAGES = {
   agenda: ['Calendrier'],
   site: ['SiteWeb'],
   store: ['Boutique'],
-  plateforme: ['Plateforme'],
+  plateforme: ['Plateforme', 'AdminSaaS'],
   coeur: ['Documents', 'Parametres', 'Modules', 'Membres', 'Securite', 'Applications', 'Recherche', 'Raccourcis', 'Login'],
 }
 const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.map((p) => [`pages/${p}.jsx`, m])))

@@ -1,0 +1,15 @@
+/* Barre d'onglets de l'administration de la plateforme dans le CRM (écrit à la main, pas généré). */
+.saas-admin .saas-onglets { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0 12px; border-bottom: 1px solid var(--bordure); margin-bottom: 4px; }
+.saas-admin .saas-onglets a { padding: 6px 10px; border-radius: 6px; color: var(--texte-doux); text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.saas-admin .saas-onglets a:hover { background: var(--surface-douce); color: var(--texte); }
+.saas-admin .saas-onglets a.actif { background: var(--accent-doux); color: var(--texte); box-shadow: inset 0 -2px 0 var(--accent); }
+.saas-admin .saas-onglets a:first-child { color: var(--accent); }
+.saas-admin.sombre .saas-onglets a:first-child { color: #8abbff; }
+/* La plateforme garde un fond clair codé en dur sous ses onglets : en sombre, on le remplace */
+.saas-admin.sombre .onglets { background: var(--surface-douce); }
+.saas-admin.sombre .tableau tr.cliquable:hover td { background: var(--surface-douce); }
+.saas-admin.sombre .squelette span { background: linear-gradient(90deg, #1c2431 0%, #252f3f 50%, #1c2431 100%); background-size: 200% 100%; }
+.saas-admin.sombre .bandeau.attention { background: #3a2f12; color: #f5d27a; }
+@media (max-width: 700px) {
+  .saas-admin .saas-onglets { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; }
+}
