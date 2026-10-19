@@ -1,2 +1,16 @@
 /sw.js
   Cache-Control: no-cache
+
+# En-têtes de sécurité (audit du 19/10/2026, SEC-02, BK-03). Tous les hôtes du projet (CRM, site vitrine, Elite Emploi).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
+
+# CRM (console d'administration) : pas d'affichage dans un cadre d'un autre site, et CSP stricte (aucun script
+# hors du site, aucune connexion hors Supabase). Testée le 19/10/2026 sur 13 écrans et /recrutement/ : 0 violation.
+# Retour arrière : retirer ce bloc et redéployer.
+https://crm.agence-elite.fr/*
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'self' blob: data:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

@@ -40,7 +40,69 @@ function Code({ onCode }) {
   )
 }
 
-export default function Login({ code, onCode }) {
+// Double authentification obligatoire (mode activé par le propriétaire) et aucun téléphone enrôlé :
+// l'enrôlement se fait ici, avant d'ouvrir le CRM (la base refuse déjà les données sans lui).
+function Enrolement({ onActive }) {
+  const [enrol, setEnrol] = useState(null)
+  const [code, setCode] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const commencer = async () => {
+    setBusy(true)
+    setErr('')
+    const { data: l } = await supabase.auth.mfa.listFactors()
+    for (const f of (l?.all || []).filter((x) => x.status !== 'verified')) await supabase.auth.mfa.unenroll({ factorId: f.id })
+    const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: `Téléphone ${new Date().toISOString().slice(0, 10)}` })
+    setBusy(false)
+    if (error) return setErr('Activation impossible pour le moment. Réessaie dans quelques minutes.')
+    setEnrol(data)
+  }
+  const valider = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    setErr('')
+    const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId: enrol.id, code: code.replace(/\s/g, '') })
+    setBusy(false)
+    if (error) return setErr('Code incorrect. Vérifie l’heure de ton téléphone et réessaie.')
+    // Les sessions ouvertes ailleurs avant l'activation sont fermées.
+    await supabase.auth.signOut({ scope: 'others' }).catch(() => {})
+    onActive()
+  }
+  return (
+    <div className="login">
+      <form className="card stack" onSubmit={valider}>
+        <Logo full />
+        <p className="login-tag">La double authentification est obligatoire pour l’équipe. Installe Google Authenticator ou Microsoft Authenticator, puis active-la.</p>
+        {enrol ? (
+          <>
+            <img src={enrol.totp.qr_code} alt="QR code à scanner avec l'application d'authentification" width="180" height="180" style={{ background: '#fff', borderRadius: 8, alignSelf: 'center' }} />
+            <div className="small">
+              Clé : <code style={{ userSelect: 'all', wordBreak: 'break-all' }}>{enrol.totp.secret}</code>
+            </div>
+            <div className="field">
+              <label htmlFor="code-enrol">Code à 6 chiffres</label>
+              <input id="code-enrol" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={7} value={code} onChange={(e) => setCode(e.target.value)} required />
+            </div>
+            <button className="btn primary block" disabled={busy}>
+              {busy ? 'Vérification…' : 'Activer'}
+            </button>
+          </>
+        ) : (
+          <button type="button" className="btn primary block" disabled={busy} onClick={commencer}>
+            Activer la double authentification
+          </button>
+        )}
+        {err && <div className="red small" role="alert">{err}</div>}
+        <button type="button" className="toggle-link" onClick={() => supabase.auth.signOut()}>
+          Changer de compte
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export default function Login({ code, onCode, enrolement, onActive }) {
+  if (enrolement) return <Enrolement onActive={onActive} />
   if (code) return <Code onCode={onCode} />
   return <Connexion />
 }

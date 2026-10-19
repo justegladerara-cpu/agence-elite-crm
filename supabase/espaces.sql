@@ -46,7 +46,7 @@ create policy "double authentification" on public.workspace_members as restricti
 
 -- Un espace par compte existant ; celui du propriétaire historique publie le site
 insert into public.workspaces (nom, owner_id, site_public)
-select case when lower(u.email) = 'demo@agence-elite.fr' then 'Démo' else 'Agence Elite' end, u.id, lower(u.email) = 'justegladerara@gmail.com'
+select case when lower(u.email) = 'demo@agence-elite.fr' then 'Démo' else 'Agence Elite' end, u.id, lower(u.email) = lower(current_setting('app.proprietaire_email', true))
 from auth.users u
 where not exists (select 1 from public.workspaces w where w.owner_id = u.id);
 insert into public.workspace_members (workspace_id, user_id, role)
@@ -78,7 +78,9 @@ create policy "catalogue public" on public.store_produits for select to anon, au
 -- Inscriptions : liste d'e-mails autorisés (table hors API) au lieu d'e-mails écrits dans le code
 create table if not exists private.inscriptions_autorisees (email text primary key check (email = lower(email)));
 revoke all on private.inscriptions_autorisees from public, anon, authenticated;
-insert into private.inscriptions_autorisees values ('justegladerara@gmail.com'), ('demo@agence-elite.fr') on conflict do nothing;
+-- Adresse du propriétaire : fournie au lancement (set app.proprietaire_email = '…';), jamais écrite dans le dépôt (audit SEC-05).
+insert into private.inscriptions_autorisees select lower(current_setting('app.proprietaire_email', true)) where current_setting('app.proprietaire_email', true) is not null on conflict do nothing;
+insert into private.inscriptions_autorisees values ('demo@agence-elite.fr') on conflict do nothing;
 
 create or replace function public.crm_single_owner()
 returns trigger language plpgsql security definer set search_path = '' as $$

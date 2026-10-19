@@ -309,10 +309,11 @@ async function avecPlateforme(page) {
     appels.push({ nom, corps: route.request().postDataJSON() })
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FICTIF[nom] ?? null) })
   })
+  // Session de la plateforme gardée pour l'onglet seulement (sessionStorage) depuis le 19/10/2026 (audit SEC-02)
   await page.addInitScript(() => {
     const exp = Math.floor(Date.now() / 1000) + 3600
     const session = { access_token: 'jeton-fictif', refresh_token: 'fictif', token_type: 'bearer', expires_in: 3600, expires_at: exp, user: { id: 'u-admin', aud: 'authenticated', role: 'authenticated', email: 'admin@exemple.test' } }
-    localStorage.setItem('aecrm-plateforme', JSON.stringify(session))
+    sessionStorage.setItem('aecrm-plateforme', JSON.stringify(session))
   })
   return appels
 }

@@ -254,7 +254,7 @@ function useRoute() {
 }
 
 // Porte unique : le CRM s'ouvre avec le compte super admin de la plateforme (centre d'administration Agence Elite).
-// La connexion reste active sur cet appareil ; la porte se rouvre seule tant que cette connexion est valable.
+// La connexion reste active dans cet onglet ; la porte se rouvre seule tant que cette connexion est valable (et validée par le code si besoin).
 function PorteFermee({ onOuverte }) {
   return (
     <div className="login">
@@ -317,12 +317,27 @@ export default function App() {
       () => setAal('ok'),
     )
   }, [session])
+  // Double authentification obligatoire pour l'équipe (décidée par la base) : enrôlement avant d'ouvrir le CRM.
+  // null = en cours de lecture ; {} = base pas encore migrée ou hors ligne (ancien comportement).
+  // L'état lu est rattaché au compte : un autre compte connecté le fait relire.
+  const uid = session && typeof session === 'object' ? session.user?.id : null
+  const [securiteLue, setSecuriteLue] = useState({ uid: null, etat: null })
+  const securite = securiteLue.uid === uid ? securiteLue.etat : null
+  useEffect(() => {
+    if (!supabase || !uid || aal !== 'ok' || securite !== null) return
+    supabase.rpc('crm_etat_securite').then(
+      ({ data, error }) => setSecuriteLue({ uid, etat: error || !data ? {} : data }),
+      () => setSecuriteLue({ uid, etat: {} }),
+    )
+  }, [uid, aal, securite])
   if (porte === 'verif' || porte === 'session') return <Attente />
   if (porte === 'ferme') return <PorteFermee onOuverte={() => setPorte('ok')} />
   if (session === undefined) return <Attente />
   if (!session) return <Login />
   if (typeof session === 'object' && aal === null) return <Attente />
   if (typeof session === 'object' && aal === 'code') return <Login code onCode={() => setAal('ok')} />
+  if (typeof session === 'object' && securite === null) return <Attente />
+  if (typeof session === 'object' && securite?.enrolement_requis) return <Login enrolement onActive={() => setSecuriteLue({ uid: null, etat: null })} />
   return <Crm />
 }
 
