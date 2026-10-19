@@ -19,6 +19,7 @@ const Fiche = lazy(() => import('./pages/Fiche'))
 const SaisieArgent = lazy(() => import('./pages/Finances').then((m) => ({ default: m.SaisieArgent })))
 const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const AdminSaaS = lazy(() => import('./pages/AdminSaaS'))
 const Parametres = lazy(() => import('./pages/Parametres'))
 const Session = lazy(() => import('./pages/Session'))
 import { statutDe, pastillesFacturation } from './modules/facturation'
@@ -147,6 +148,7 @@ PAGES.controle = 'Tour de contrôle'
 PAGES.plateforme = 'Clients de la plateforme'
 PAGES['plateforme-client'] = 'Fiche client'
 PAGES['plateforme-outils'] = 'Boîte à outils'
+PAGES.editeur = 'Administration de la plateforme'
 PAGES.apps = 'Applications'
 
 // Applications (façon Odoo / Zoho One) : chaque module a son icône, sa couleur et ses propres pages
@@ -165,7 +167,7 @@ const APPS = [
     desc: 'Tour de contrôle, clients du SaaS, actions et boîte à outils',
     ico: 'radio',
     couleur: '#8a6620',
-    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils'],
+    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils', 'editeur'],
     entrees: [
       ['controle', 'Tour de contrôle'],
       ['plateforme', 'Clients'],
@@ -723,6 +725,7 @@ function Crm() {
   else if (page === 'plateforme') content = <ClientsPlateforme key={route} filtre={q.get('filtre')} />
   else if (page === 'plateforme-client') content = <FichePlateforme key={route} id={arg} faire={q.get('faire')} />
   else if (page === 'plateforme-outils') content = <OutilsPlateforme />
+  else if (page === 'editeur') content = <AdminSaaS route={chemin} />
   else if (page === 'apps') content = <Applications apps={apps} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
   const pastille = (path) => {

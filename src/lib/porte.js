@@ -1,13 +1,12 @@
-// Porte unique : le CRM ne s'ouvre que depuis l'espace super admin de la plateforme (saas.agence-elite.fr).
-// Le bouton « CRM Agence Elite » de la plateforme ouvre crm.agence-elite.fr/#porte=<jeton de session plateforme>.
-// Le CRM demande alors à la base de la plateforme si ce jeton appartient à un super admin (fonction est_super_admin).
+// Porte unique : le CRM ne s'ouvre qu'avec le compte super admin de la plateforme (saas.agence-elite.fr), saisi
+// sur l'écran d'entrée du CRM. Un ancien lien crm.agence-elite.fr/#porte=<jeton de session plateforme> marche encore :
+// le CRM demande alors à la base de la plateforme si ce jeton appartient à un super admin (fonction est_super_admin).
 // Si oui, l'appareil est autorisé pendant DUREE_MS ; ensuite il faut repasser par la plateforme.
 // Le jeton n'est jamais gardé : seule la date d'expiration de l'autorisation est enregistrée.
 // Les données du CRM restent protégées par sa propre connexion (Supabase du CRM) : la porte s'ajoute, elle ne remplace rien.
 
 export const PLATEFORME_URL = import.meta.env.VITE_PLATEFORME_URL || 'https://xrlfedosaqtffraadmgk.supabase.co'
 export const PLATEFORME_CLE = import.meta.env.VITE_PLATEFORME_CLE || 'sb_publishable_fpHQmPBtF_4pFMaOnBIKXQ_7KcmvjeX'
-export const ADRESSE_SUPER_ADMIN = 'https://saas.agence-elite.fr/#/editeur/crm'
 export const DUREE_MS = 12 * 60 * 60 * 1000
 const CLE = 'aecrm-porte'
 

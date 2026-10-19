@@ -94,7 +94,7 @@ export const MODULES = [
     nom: 'Plateforme',
     version: '1.0',
     desc: 'Centre d’administration du SaaS : tour de contrôle, clients, licences, comptes, messages',
-    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils'],
+    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils', 'editeur'],
     permissions: ['plateforme.view', 'plateforme.edit'],
     entites: [],
     evenements: { produits: ['payment.received'], consommes: [] },

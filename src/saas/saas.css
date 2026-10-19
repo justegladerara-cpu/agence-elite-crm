@@ -1,0 +1,3220 @@
+/* FICHIER GÉNÉRÉ par scripts/admin-saas-css.mjs : ne pas modifier à la main. */
+/* Solution Commerce — système visuel (inspiré de Zoho Books et de la caisse Odoo). */
+
+.saas-admin {
+  --fond: #f4f6f9;
+  --surface: #ffffff;
+  --surface-douce: #f8fafc;
+  --bordure: #e3e8ef;
+  --bordure-forte: #cbd3df;
+  --texte: #18202f;
+  --texte-doux: #5b6577;
+  --texte-faible: #8a93a3;
+  --accent: #2563eb;
+  --accent-fort: #1d4ed8;
+  --accent-doux: #e8f0fe;
+  --vert: #0e9f6e;
+  --vert-doux: #e3f6ee;
+  --orange: #c2410c;
+  --orange-doux: #fff1e6;
+  --rouge: #c81e1e;
+  --rouge-doux: #fdecec;
+  --bleu-doux: #e8f0fe;
+  --menu: #18202f;
+  --menu-texte: #c4cad6;
+  --menu-actif: #2a3446;
+  --ombre: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --ombre-forte: 0 12px 32px rgba(16, 24, 40, 0.18);
+  --rayon: 10px;
+  --police: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+}
+
+.saas-admin * {
+  box-sizing: border-box;
+}
+
+.saas-admin {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font-family: var(--police);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+.saas-admin button,
+.saas-admin input,
+.saas-admin select,
+.saas-admin textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.saas-admin h1,
+.saas-admin h2,
+.saas-admin h3 {
+  margin: 0;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.saas-admin h1 {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.saas-admin h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.saas-admin h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+.saas-admin input,
+.saas-admin select,
+.saas-admin textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.saas-admin input:focus,
+.saas-admin select:focus,
+.saas-admin textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-doux);
+}
+
+.saas-admin input[type='checkbox'] {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--accent);
+}
+
+.saas-admin fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.saas-admin .icone {
+  flex: none;
+}
+
+.saas-admin .texte-doux {
+  color: var(--texte-doux);
+}
+
+.saas-admin .texte-alerte {
+  color: var(--rouge);
+  font-weight: 600;
+}
+
+.saas-admin .texte-vert {
+  color: var(--vert);
+  font-weight: 600;
+}
+
+.saas-admin .bloc {
+  display: block;
+}
+
+/* Boutons --------------------------------------------------------------- */
+
+.saas-admin .bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  background: var(--surface);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.saas-admin .bouton:hover:not(:disabled) {
+  background: var(--surface-douce);
+  border-color: var(--texte-faible);
+}
+
+.saas-admin .bouton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.saas-admin .bouton.principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.saas-admin .bouton.principal:hover:not(:disabled) {
+  background: var(--accent-fort);
+  border-color: var(--accent-fort);
+}
+
+.saas-admin .bouton.danger {
+  background: var(--rouge);
+  border-color: var(--rouge);
+  color: #fff;
+}
+
+.saas-admin .bouton.grand {
+  width: 100%;
+  min-height: 52px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.saas-admin .lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.saas-admin .lien.danger {
+  color: var(--rouge);
+}
+
+.saas-admin .icone-bouton {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--texte-doux);
+  cursor: pointer;
+}
+
+.saas-admin .icone-bouton:hover {
+  background: var(--surface-douce);
+  color: var(--texte);
+}
+
+/* Badges et messages ------------------------------------------------------ */
+
+.saas-admin .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-douce);
+  border: 1px solid var(--bordure);
+  color: var(--texte-doux);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.saas-admin .badge.vert {
+  background: var(--vert-doux);
+  border-color: transparent;
+  color: var(--vert);
+}
+
+.saas-admin .badge.orange {
+  background: var(--orange-doux);
+  border-color: transparent;
+  color: var(--orange);
+}
+
+.saas-admin .badge.rouge {
+  background: var(--rouge-doux);
+  border-color: transparent;
+  color: var(--rouge);
+}
+
+.saas-admin .badge.bleu {
+  background: var(--bleu-doux);
+  border-color: transparent;
+  color: var(--accent);
+}
+
+.saas-admin .erreur {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--rouge-doux);
+  color: var(--rouge);
+  font-weight: 500;
+}
+
+.saas-admin .encart {
+  padding: 12px 14px;
+  border-radius: var(--rayon);
+  background: var(--surface);
+  border: 1px dashed var(--bordure-forte);
+  color: var(--texte-doux);
+}
+
+.saas-admin .encart.rouge {
+  border: 0;
+  background: var(--rouge-doux);
+  color: var(--rouge);
+}
+
+.saas-admin .bandeau {
+  padding: 10px 24px;
+  background: var(--orange-doux);
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.saas-admin .vide {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--texte-doux);
+}
+
+.saas-admin .vide strong {
+  color: var(--texte);
+  font-size: 15px;
+}
+
+.saas-admin .vide p {
+  margin: 0;
+}
+
+.saas-admin .chargement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px;
+  color: var(--texte-doux);
+}
+
+.saas-admin .rouet {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bordure-forte);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: tourner 0.8s linear infinite;
+}
+
+@keyframes tourner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.saas-admin .ecran-centre {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+}
+
+.saas-admin .notifications {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: grid;
+  gap: 8px;
+}
+
+.saas-admin .notification {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--menu);
+  color: #fff;
+  box-shadow: var(--ombre-forte);
+  font-weight: 500;
+  animation: apparaitre 0.2s ease-out;
+}
+
+.saas-admin .notification.erreur {
+  background: var(--rouge);
+}
+
+@keyframes apparaitre {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+/* Coquille --------------------------------------------------------------- */
+
+.saas-admin .coquille {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  height: 100%;
+}
+
+.saas-admin .menu {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 12px;
+  background: var(--menu);
+  color: var(--menu-texte);
+  overflow-y: auto;
+}
+
+.saas-admin .marque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.saas-admin .marque-logo {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.saas-admin .choix-etablissement {
+  min-height: 38px;
+  border: 1px solid #364156;
+  background: #222b3b;
+  color: #fff;
+  font-weight: 500;
+}
+
+.saas-admin .choix-etablissement.seul {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.saas-admin .menu nav {
+  display: grid;
+  gap: 2px;
+}
+
+.saas-admin .menu nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--menu-texte);
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.saas-admin .menu nav button:hover {
+  background: #222b3b;
+  color: #fff;
+}
+
+.saas-admin .menu nav button.menu-plus {
+  margin-top: 6px;
+  color: var(--menu-texte);
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.saas-admin .menu nav button.actif {
+  background: var(--menu-actif);
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.saas-admin .menu-pied {
+  margin-top: auto;
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #2a3446;
+}
+
+.saas-admin .menu-pied .lien {
+  color: var(--menu-texte);
+}
+
+.saas-admin .utilisateur {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.saas-admin .utilisateur strong,
+.saas-admin .profil strong {
+  display: block;
+  color: inherit;
+}
+
+.saas-admin .utilisateur strong {
+  color: #fff;
+}
+
+.saas-admin .utilisateur small,
+.saas-admin .profil small {
+  display: block;
+  color: var(--texte-faible);
+}
+
+.saas-admin .avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.saas-admin .contenu {
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.saas-admin .barre-mobile {
+  display: none;
+}
+
+.saas-admin .voile-menu {
+  display: none;
+}
+
+.saas-admin .page {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  max-width: 1280px;
+}
+
+.saas-admin .entete-page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saas-admin .entete-page p {
+  margin: 4px 0 0;
+  color: var(--texte-doux);
+}
+
+.saas-admin .entete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saas-admin .sous-titre {
+  margin-top: 8px;
+}
+
+.saas-admin .filtres {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.saas-admin .onglets {
+  display: inline-flex;
+  flex-wrap: wrap;
+  padding: 3px;
+  border-radius: 9px;
+  background: #e9edf3;
+}
+
+.saas-admin .onglets button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--texte-doux);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.saas-admin .onglets button.actif {
+  background: var(--surface);
+  color: var(--texte);
+  box-shadow: var(--ombre);
+}
+
+.saas-admin .recherche {
+  position: relative;
+  flex: 1 1 220px;
+  max-width: 420px;
+}
+
+.saas-admin .recherche .icone {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texte-faible);
+}
+
+.saas-admin .recherche input {
+  padding-left: 36px;
+}
+
+.saas-admin .carte {
+  padding: 18px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.saas-admin .titre-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saas-admin .deux-colonnes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.saas-admin .pile {
+  display: grid;
+  gap: 16px;
+}
+
+/* Indicateurs -------------------------------------------------------------- */
+
+.saas-admin .grille-indicateurs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.saas-admin .indicateur {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+}
+
+.saas-admin .indicateur-libelle {
+  color: var(--texte-doux);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.saas-admin .indicateur strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .indicateur small {
+  color: var(--texte-doux);
+}
+
+.saas-admin .indicateur.fort {
+  background: var(--menu);
+  border-color: var(--menu);
+  color: #fff;
+}
+
+.saas-admin .indicateur.fort .indicateur-libelle,
+.saas-admin .indicateur.fort small {
+  color: var(--menu-texte);
+}
+
+.saas-admin .indicateur.positif strong {
+  color: var(--vert);
+}
+
+.saas-admin .indicateur.alerte strong,
+.saas-admin .indicateur.attention strong {
+  color: var(--orange);
+}
+
+.saas-admin .graphique {
+  width: 100%;
+  height: auto;
+}
+
+.saas-admin .graphique-grille {
+  stroke: var(--bordure);
+}
+
+.saas-admin .graphique-texte {
+  fill: var(--texte-faible);
+  font-size: 11px;
+  font-family: var(--police);
+}
+
+.saas-admin .graphique-barre {
+  fill: var(--accent);
+}
+
+.saas-admin .graphique-barre:hover {
+  fill: var(--accent-fort);
+}
+
+/* Tableaux et listes ------------------------------------------------------ */
+
+.saas-admin .tableau-conteneur {
+  overflow-x: auto;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  box-shadow: var(--ombre);
+}
+
+.saas-admin .tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .tableau th {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bordure);
+  background: var(--surface-douce);
+  color: var(--texte-doux);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.saas-admin .tableau td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bordure);
+  vertical-align: middle;
+}
+
+.saas-admin .tableau tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.saas-admin .tableau tfoot td {
+  border-bottom: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.saas-admin .tableau .nombre {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.saas-admin .tableau.cliquable tbody tr {
+  cursor: pointer;
+}
+
+.saas-admin .tableau.cliquable tbody tr:hover {
+  background: var(--surface-douce);
+}
+
+.saas-admin .tableau tr.barre td,
+.saas-admin .liste-ligne.barre {
+  color: var(--texte-faible);
+  text-decoration: line-through;
+}
+
+.saas-admin .tableau tr.inactif td {
+  color: var(--texte-faible);
+}
+
+.saas-admin .tableau tr.orange td {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.saas-admin .cellule-vignette {
+  width: 52px;
+}
+
+.saas-admin .actions-ligne {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.saas-admin .liste-simple {
+  display: grid;
+}
+
+.saas-admin .liste-ligne {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.saas-admin .liste-ligne:last-child {
+  border-bottom: 0;
+}
+
+.saas-admin .liste-ligne > span:first-child,
+.saas-admin .liste-ligne > .rang + span {
+  flex: 1;
+}
+
+.saas-admin .rang {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-doux);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.saas-admin .puces {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.saas-admin .puces button,
+.saas-admin .puces span {
+  flex: none;
+  padding: 6px 12px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.saas-admin .puces.statiques span {
+  cursor: default;
+  color: var(--texte-doux);
+}
+
+.saas-admin .puces button.actif {
+  background: var(--texte);
+  border-color: var(--texte);
+  color: #fff;
+}
+
+/* Formulaires ---------------------------------------------------------------- */
+
+.saas-admin .formulaire {
+  display: grid;
+  gap: 14px;
+}
+
+.saas-admin .champ {
+  display: grid;
+  gap: 6px;
+}
+
+.saas-admin .champ-libelle {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.saas-admin .champ-aide {
+  color: var(--texte-faible);
+}
+
+.saas-admin .grille-champs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.saas-admin .grille-champs .large {
+  grid-column: 1 / -1;
+}
+
+.saas-admin .case {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.saas-admin .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.saas-admin .ligne-formulaire {
+  display: flex;
+  gap: 8px;
+}
+
+.saas-admin .article-photo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.saas-admin .article-photo > div {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.saas-admin .vide-logo {
+  background: var(--surface-douce) !important;
+  color: var(--texte-faible) !important;
+  border: 1px dashed var(--bordure-forte);
+  font-size: 12px !important;
+}
+
+.saas-admin .justificatif {
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Modales ------------------------------------------------------------------- */
+
+.saas-admin .voile {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.45);
+  animation: apparaitre 0.15s ease-out;
+}
+
+.saas-admin .modale {
+  display: flex;
+  flex-direction: column;
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 32px);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--ombre-forte);
+}
+
+.saas-admin .modale.large {
+  width: min(760px, 100%);
+}
+
+.saas-admin .modale header,
+.saas-admin .modale footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 18px;
+}
+
+.saas-admin .modale header {
+  border-bottom: 1px solid var(--bordure);
+}
+
+.saas-admin .modale footer {
+  justify-content: flex-end;
+  border-top: 1px solid var(--bordure);
+}
+
+.saas-admin .modale-corps {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+.saas-admin .detail {
+  display: grid;
+  gap: 14px;
+}
+
+.saas-admin .detail-tete {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saas-admin .detail-tete p {
+  margin: 6px 0 0;
+}
+
+.saas-admin .detail-total {
+  display: grid;
+  justify-items: end;
+}
+
+.saas-admin .detail-total span {
+  color: var(--texte-doux);
+}
+
+.saas-admin .detail-total strong {
+  font-size: 22px;
+}
+
+.saas-admin .fiche {
+  display: grid;
+  gap: 12px;
+}
+
+.saas-admin .fiche-infos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  color: var(--texte-doux);
+}
+
+/* Connexion ---------------------------------------------------------------- */
+
+.saas-admin .connexion {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px 16px;
+  background: linear-gradient(160deg, var(--menu) 0 42%, var(--fond) 42%);
+}
+
+.saas-admin .connexion-carte {
+  display: grid;
+  gap: 16px;
+  width: min(460px, 100%);
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--ombre-forte);
+}
+
+.saas-admin .connexion-carte .marque {
+  color: var(--texte);
+  padding: 0;
+}
+
+.saas-admin .connexion-carte p {
+  margin: 0;
+}
+
+.saas-admin .profils {
+  display: grid;
+  gap: 8px;
+}
+
+.saas-admin .profil {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.saas-admin .profil:hover {
+  border-color: var(--accent);
+  background: var(--accent-doux);
+}
+
+/* Caisse --------------------------------------------------------------------- */
+
+.saas-admin .coquille.plein-ecran .contenu {
+  overflow: hidden;
+}
+
+.saas-admin .caisse {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  height: 100%;
+}
+
+.saas-admin .caisse-catalogue {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.saas-admin .caisse-barre {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.saas-admin .caisse-session {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--texte-doux);
+}
+
+.saas-admin .caisse-session select {
+  width: auto;
+  min-height: 32px;
+  padding: 4px 8px;
+}
+
+.saas-admin .grille-articles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.saas-admin .tuile-article {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  justify-items: start;
+  padding: 10px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--ombre);
+  transition: transform 0.08s, border-color 0.15s;
+}
+
+.saas-admin .tuile-article:hover {
+  border-color: var(--accent);
+}
+
+.saas-admin .tuile-article:active {
+  transform: scale(0.97);
+}
+
+.saas-admin .tuile-article.epuise {
+  opacity: 0.55;
+}
+
+.saas-admin .tuile-article .vignette {
+  width: 100%;
+  height: 88px;
+  font-size: 22px;
+}
+
+.saas-admin .tuile-nom {
+  font-weight: 600;
+  line-height: 1.25;
+  min-height: 2.5em;
+}
+
+.saas-admin .tuile-prix {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .tuile-stock {
+  color: var(--texte-faible);
+  font-size: 12px;
+}
+
+.saas-admin .tuile-stock.bas {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.saas-admin .tuile-compte {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.saas-admin .vignette {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  color: #fff;
+  font-weight: 700;
+  background: var(--bordure);
+}
+
+.saas-admin .vignette.petite {
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+}
+
+.saas-admin .vignette.grande {
+  width: 96px;
+  height: 96px;
+  font-size: 28px;
+}
+
+.saas-admin .panier-conteneur {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--bordure);
+  background: var(--surface);
+}
+
+.saas-admin .panier {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.saas-admin .panier-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.saas-admin .panier-tete h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saas-admin .panier-lignes {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 16px;
+}
+
+.saas-admin .panier-ligne {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'libelle retirer'
+    'quantite montant';
+  gap: 6px 10px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.saas-admin .panier-libelle {
+  grid-area: libelle;
+  min-width: 0;
+}
+
+.saas-admin .panier-libelle strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saas-admin .panier-libelle small {
+  color: var(--texte-doux);
+}
+
+.saas-admin .panier-ligne .icone-bouton {
+  grid-area: retirer;
+  width: 28px;
+  height: 28px;
+}
+
+.saas-admin .quantite {
+  grid-area: quantite;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  overflow: hidden;
+  width: max-content;
+}
+
+.saas-admin .quantite button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: var(--surface-douce);
+  cursor: pointer;
+}
+
+.saas-admin .quantite input {
+  width: 58px;
+  min-height: 34px;
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  text-align: center;
+  font-weight: 600;
+  -moz-appearance: textfield;
+}
+
+.saas-admin .quantite input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.saas-admin .panier-montant {
+  grid-area: montant;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.saas-admin .panier-pied {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--bordure);
+  background: var(--surface-douce);
+}
+
+.saas-admin .panier-totaux {
+  display: grid;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .panier-totaux > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.saas-admin .panier-totaux .remise input {
+  width: 130px;
+  min-height: 32px;
+  padding: 4px 8px;
+  text-align: right;
+}
+
+.saas-admin .panier-total {
+  padding-top: 6px;
+  border-top: 1px solid var(--bordure);
+  font-size: 18px;
+}
+
+.saas-admin .panier-mobile,
+.saas-admin .panier-fermer-mobile {
+  display: none;
+}
+
+.saas-admin .ouverture-caisse {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px 16px;
+}
+
+.saas-admin .ouverture-caisse .carte {
+  width: min(420px, 100%);
+}
+
+.saas-admin .ouverture-caisse p {
+  margin: 0;
+}
+
+.saas-admin .paiement-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 14px 16px;
+  border-radius: var(--rayon);
+  background: var(--menu);
+  color: #fff;
+}
+
+.saas-admin .paiement-total strong {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .paiements-liste {
+  display: grid;
+  gap: 8px;
+}
+
+.saas-admin .paiement-ligne {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.saas-admin .paiement-ligne select {
+  flex: 0 0 150px;
+}
+
+.saas-admin .billets,
+.saas-admin .modes-rapides {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saas-admin .billets button,
+.saas-admin .modes-rapides button {
+  padding: 8px 12px;
+  border: 1px solid var(--bordure-forte);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.saas-admin .billets button:hover,
+.saas-admin .modes-rapides button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.saas-admin .modes-rapides button {
+  border-style: dashed;
+  color: var(--texte-doux);
+}
+
+.saas-admin .paiement-resume {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--rayon);
+  background: var(--surface-douce);
+  font-variant-numeric: tabular-nums;
+}
+
+.saas-admin .paiement-resume > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.saas-admin .paiement-resume .vert {
+  color: var(--vert);
+  font-size: 16px;
+}
+
+.saas-admin .paiement-resume .orange {
+  color: var(--orange);
+}
+
+.saas-admin .monnaie {
+  padding: 12px 14px;
+  border-radius: var(--rayon);
+  background: var(--vert-doux);
+  color: var(--vert);
+  font-size: 16px;
+}
+
+.saas-admin .session-ouverte .cloture-formulaire {
+  max-width: 420px;
+}
+
+.saas-admin .session-ouverte p {
+  margin: 0;
+}
+
+/* Caisse oubliée fermée sans compter (ticket Z « espèces à compter »). */
+.saas-admin .fermer-sans-compter {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bordure);
+}
+
+/* Ticket 80 mm ------------------------------------------------------------- */
+
+.saas-admin .ticket-apercu {
+  display: grid;
+  justify-items: center;
+  padding: 12px;
+  border-radius: var(--rayon);
+  background: #eef1f5;
+}
+
+.saas-admin .ticket {
+  width: 300px;
+  max-width: 100%;
+  padding: 14px;
+  background: #fff;
+  color: #000;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  box-shadow: var(--ombre);
+}
+
+.saas-admin .ticket > * + * {
+  margin-top: 2px;
+}
+
+.saas-admin .ticket-logo {
+  display: block;
+  max-width: 120px;
+  max-height: 60px;
+  margin: 0 auto 6px;
+}
+
+.saas-admin .ticket-nom,
+.saas-admin .ticket-titre {
+  display: block;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.saas-admin .ticket > div:not(.ticket-ligne):not(.ticket-sep):not(.ticket-article) {
+  text-align: center;
+}
+
+.saas-admin .ticket-petit {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+}
+
+.saas-admin .ticket-sep {
+  margin: 8px 0;
+  border-top: 1px dashed #000;
+}
+
+.saas-admin .ticket-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.saas-admin .ticket-ligne span:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.saas-admin .ticket-total {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.saas-admin .ticket-annule {
+  margin: 6px 0;
+  padding: 4px;
+  border: 2px solid #000;
+  font-weight: 700;
+  text-align: center;
+}
+
+.saas-admin .ticket-pied {
+  font-size: 11px;
+}
+
+.saas-admin .zone-impression {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 4mm;
+  }
+
+  .saas-admin.impression-ticket > *:not(.zone-impression) {
+    display: none !important;
+  }
+
+  .saas-admin.impression-ticket .zone-impression {
+    display: block;
+  }
+
+  .saas-admin.impression-ticket .zone-impression .ticket {
+    width: 72mm;
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+/* Petits écrans ------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+  .saas-admin .caisse {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
+}
+
+@media (max-width: 860px) {
+  .saas-admin .coquille {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .saas-admin .menu {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: 270px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out;
+  }
+
+  .saas-admin .menu.ouvert {
+    transform: none;
+  }
+
+  .saas-admin .voile-menu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(15, 23, 42, 0.45);
+  }
+
+  .saas-admin .contenu {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .saas-admin .barre-mobile {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--bordure);
+    background: var(--surface);
+  }
+
+  .saas-admin .barre-mobile .texte-doux {
+    margin-left: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 45%;
+    font-size: 12px;
+  }
+
+  .saas-admin .page {
+    padding: 16px;
+  }
+
+  .saas-admin .deux-colonnes,
+  .saas-admin .grille-champs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .saas-admin .coquille.plein-ecran .contenu {
+    overflow-y: auto;
+  }
+
+  .saas-admin .caisse {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    flex: 1;
+  }
+
+  .saas-admin .caisse-catalogue {
+    padding-bottom: 88px;
+    overflow: visible;
+  }
+
+  .saas-admin .grille-articles {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+
+  .saas-admin .panier-conteneur {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border: 0;
+    transform: translateY(100%);
+    transition: transform 0.2s ease-out;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .saas-admin .panier-conteneur.ouvert {
+    transform: none;
+  }
+
+  .saas-admin .panier-fermer-mobile {
+    display: block;
+    margin: 0 16px 12px;
+    padding: 10px;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font-weight: 600;
+    order: -1;
+    text-align: left;
+  }
+
+  .saas-admin .panier-mobile {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: var(--ombre-forte);
+  }
+
+  .saas-admin .modale {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .saas-admin .voile {
+    padding: 8px;
+  }
+
+  .saas-admin .paiement-ligne {
+    flex-wrap: wrap;
+  }
+
+  .saas-admin .paiement-ligne select {
+    flex: 1 1 100%;
+  }
+
+  .saas-admin .detail-tete {
+    flex-direction: column;
+  }
+
+  .saas-admin .detail-total {
+    justify-items: start;
+  }
+
+  .saas-admin .actions-ligne {
+    flex-wrap: wrap;
+  }
+}
+
+/* Espace Agence Elite, équipe, licences, mise en service ------------------ */
+
+.saas-admin .badge.attention {
+  background: var(--orange-doux);
+  border-color: transparent;
+  color: var(--orange);
+}
+
+.saas-admin .badge.alerte {
+  background: var(--rouge-doux);
+  border-color: transparent;
+  color: var(--rouge);
+}
+
+.saas-admin .bandeau {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.saas-admin .bandeau.info {
+  background: var(--accent-doux);
+  color: var(--accent-fort);
+}
+
+.saas-admin .bandeau.attention {
+  background: #fff8e1;
+  color: #8a5a00;
+}
+
+.saas-admin .bandeau-invitations {
+  display: grid;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent-doux);
+}
+
+.saas-admin .info {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--vert-doux);
+  color: var(--vert);
+  font-weight: 500;
+}
+
+.saas-admin .actions-gauche {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.saas-admin .message-copie {
+  display: grid;
+  gap: 8px;
+}
+
+.saas-admin .message-copie textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  background: var(--surface-douce);
+  resize: vertical;
+}
+
+.saas-admin .grille-droits {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.saas-admin .droits-module {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  min-width: 0;
+}
+
+.saas-admin .droits-module legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+.saas-admin .droits-module .case {
+  font-size: 13px;
+}
+
+.saas-admin .etapes {
+  display: grid;
+  gap: 2px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.saas-admin .etapes li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bordure);
+}
+
+.saas-admin .etapes li:last-child {
+  border-bottom: 0;
+}
+
+.saas-admin .etape-puce {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--bordure-forte);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.saas-admin .etapes li.faite .etape-puce {
+  border-color: var(--vert);
+  background: var(--vert);
+  color: #fff;
+}
+
+.saas-admin .etapes li.faite .etape-libelle {
+  color: var(--texte-doux);
+}
+
+.saas-admin .etape-libelle {
+  flex: 1;
+  min-width: 0;
+}
+
+.saas-admin .barre-progression {
+  height: 8px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: var(--surface-douce);
+  overflow: hidden;
+}
+
+.saas-admin .barre-progression span {
+  display: block;
+  height: 100%;
+  background: var(--vert);
+}
+
+.saas-admin .details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 8px 0 12px;
+}
+
+.saas-admin .details dt {
+  color: var(--texte-doux);
+}
+
+.saas-admin .details dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.saas-admin .nav-editeur {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--menu-actif);
+}
+
+.saas-admin .maitre-detail {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.saas-admin .liste-maitre {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+}
+
+.saas-admin .liste-maitre > button {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.saas-admin .liste-maitre > button small {
+  color: var(--texte-doux);
+}
+
+.saas-admin .liste-maitre > button:hover,
+.saas-admin .liste-maitre > button.actif {
+  background: var(--accent-doux);
+}
+
+.saas-admin .cartes-etablissements {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.saas-admin .carte-etablissement {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  background: var(--surface);
+  text-align: left;
+  font: inherit;
+  color: var(--texte);
+  cursor: pointer;
+}
+
+.saas-admin .carte-etablissement:hover {
+  border-color: var(--accent);
+}
+
+.saas-admin .carte-etablissement small {
+  overflow-wrap: anywhere;
+}
+
+.saas-admin .badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saas-admin .connexion-email {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bordure);
+}
+
+.saas-admin .apercu-import {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.saas-admin tr.cliquable {
+  cursor: pointer;
+}
+
+.saas-admin tr.cliquable:hover td {
+  background: var(--surface-douce);
+}
+
+.saas-admin .maitre-detail > *,
+.saas-admin .pile > *,
+.saas-admin .ligne-formulaire > input,
+.saas-admin .contenu,
+.saas-admin .page {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .saas-admin .maitre-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .saas-admin .bandeau,
+  .saas-admin .bandeau-invitations {
+    padding-inline: 16px;
+  }
+}
+
+/* ========================================================================
+   Mise à jour 2026-10 : coquille premium, barre du haut, système de composants.
+   Voir docs/DESIGN_SYSTEM.md. Les règles ci-dessous complètent ou remplacent les précédentes.
+   ======================================================================== */
+
+.saas-admin {
+  --menu: #0f172a;
+  --menu-texte: #b6c0d1;
+  --menu-titre: #6b7891;
+  --menu-survol: #1b2538;
+  --menu-actif: #1f2b42;
+  --texte-faible: #8a93a3;
+  --rayon-grand: 14px;
+  --barre-haut: 60px;
+  --ombre-carte: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.saas-admin .texte-faible { color: var(--texte-faible); }
+
+/* Coquille : menu latéral + colonne (barre du haut, contenu). */
+.saas-admin .coquille {
+  grid-template-columns: 252px minmax(0, 1fr);
+  height: 100%;
+}
+
+.saas-admin .colonne {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.saas-admin .contenu {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.saas-admin .menu {
+  gap: 18px;
+  padding: 18px 12px;
+  border-right: 1px solid #0b1222;
+}
+
+.saas-admin .menu .marque { padding: 2px 8px 6px; }
+.saas-admin .marque-texte { display: grid; line-height: 1.15; }
+.saas-admin .marque-texte strong { font-size: 15px; letter-spacing: -0.01em; }
+.saas-admin .marque-texte small { font-size: 11.5px; font-weight: 500; color: var(--menu-titre); }
+.saas-admin .connexion-carte .marque-texte small { color: var(--texte-doux); }
+.saas-admin .marque-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-fort));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.saas-admin .marque-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.saas-admin img.avatar { object-fit: cover; background: var(--surface-douce); }
+
+.saas-admin .menu nav { display: grid; gap: 16px; }
+.saas-admin .menu-groupe { display: grid; gap: 2px; }
+.saas-admin .menu-groupe-titre {
+  padding: 0 10px 4px;
+  color: var(--menu-titre);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.saas-admin .menu nav button { padding: 8px 10px; font-size: 13.5px; transition: background 0.12s, color 0.12s; }
+.saas-admin .menu nav button:hover { background: var(--menu-survol); }
+.saas-admin .menu nav button.actif { background: var(--menu-actif); box-shadow: inset 3px 0 0 var(--accent); }
+.saas-admin .menu nav button:focus-visible,
+.saas-admin .profil-chip-bouton:focus-visible,
+.saas-admin .stat-card.cliquable:focus-visible,
+.saas-admin .tableau tr.cliquable:focus-visible,
+.saas-admin .carte-etablissement:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.saas-admin .menu-etablissement {
+  display: grid;
+  gap: 2px;
+  margin: 0 4px;
+  padding: 10px;
+  border: 1px solid #22304a;
+  border-radius: 10px;
+  background: #121c31;
+}
+.saas-admin .menu-etablissement .menu-groupe-titre { padding: 0; }
+.saas-admin .menu-etablissement strong { color: #fff; font-size: 13px; }
+.saas-admin .menu-pied { border-top-color: #1b2538; }
+
+/* Barre du haut */
+.saas-admin .barre-haut {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--barre-haut);
+  padding: 8px 24px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+  border-bottom: 1px solid var(--bordure);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(1.4) blur(8px);
+}
+.saas-admin .barre-haut .fil-ariane { min-width: 0; flex: 1; }
+.saas-admin .bouton-menu { display: none; }
+.saas-admin .barre-haut-outils { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.saas-admin .selecteur {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--bordure);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--texte-doux);
+}
+.saas-admin .selecteur select {
+  min-height: 36px;
+  width: auto;
+  max-width: 220px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--texte);
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* Fil d'Ariane */
+.saas-admin .fil-ariane ol {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--texte-doux);
+}
+.saas-admin .fil-ariane li { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.saas-admin .fil-ariane li:not(:last-child)::after { content: '/'; color: var(--bordure-forte); }
+.saas-admin .fil-ariane li:last-child { overflow: hidden; }
+.saas-admin .fil-ariane li:last-child span { overflow: hidden; text-overflow: ellipsis; color: var(--texte); font-weight: 600; }
+.saas-admin .fil-ariane a { color: var(--texte-doux); text-decoration: none; }
+.saas-admin .fil-ariane a:hover { color: var(--accent); text-decoration: underline; }
+
+/* Profil */
+.saas-admin .profil-chip { position: relative; }
+.saas-admin .profil-chip-bouton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+}
+.saas-admin .profil-chip-bouton:hover { border-color: var(--bordure); background: var(--surface-douce); }
+.saas-admin .profil-chip-texte { display: grid; text-align: left; line-height: 1.2; }
+.saas-admin .profil-chip-texte strong { font-size: 13px; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saas-admin .profil-chip-texte small { font-size: 11.5px; color: var(--texte-doux); }
+.saas-admin .profil-chip-menu { right: 0; min-width: 240px; }
+.saas-admin .profil-chip-entete { display: grid; gap: 2px; padding: 8px 12px 10px; border-bottom: 1px solid var(--bordure); margin-bottom: 4px; }
+
+.saas-admin .avatar { width: 34px; height: 34px; font-size: 13px; background: linear-gradient(135deg, #2563eb, #7c3aed); letter-spacing: 0.02em; }
+.saas-admin .avatar.petit { width: 30px; height: 30px; font-size: 12px; }
+.saas-admin .avatar.grand { width: 48px; height: 48px; font-size: 17px; }
+
+/* En-tête de page */
+.saas-admin .page { gap: 20px; padding: 24px 28px 40px; max-width: 1320px; }
+.saas-admin .page-header { display: grid; gap: 8px; }
+.saas-admin .page-header-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 16px; }
+.saas-admin .page-header-titre { display: grid; gap: 4px; min-width: 0; }
+.saas-admin .page-header-nom { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.saas-admin .page-header h1 { font-size: 24px; letter-spacing: -0.02em; }
+.saas-admin .page-header p { margin: 0; color: var(--texte-doux); max-width: 75ch; }
+.saas-admin .entete-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.saas-admin .badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+/* Cartes et sections */
+.saas-admin .carte { border-radius: var(--rayon-grand); box-shadow: var(--ombre-carte); }
+.saas-admin .carte .titre-ligne h2 { font-size: 15px; }
+.saas-admin .deux-colonnes.large-gauche { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+
+/* Indicateurs */
+.saas-admin .grille-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.saas-admin .graphique-vide { display: grid; place-items: center; min-height: 140px; margin: 0; border: 1px dashed var(--bordure); border-radius: 10px; font-size: 13px; }
+.saas-admin .stat-card {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  background: var(--surface);
+  box-shadow: var(--ombre-carte);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.saas-admin .stat-card.cliquable { cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
+.saas-admin .stat-card.cliquable:hover { border-color: color-mix(in srgb, var(--accent) 30%, #ffffff); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
+.saas-admin .stat-card-tete { display: flex; align-items: center; gap: 8px; }
+.saas-admin .stat-card-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-doux); color: var(--accent); }
+.saas-admin .stat-card-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; letter-spacing: 0.01em; }
+.saas-admin .stat-card-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.saas-admin .stat-card-detail, .saas-admin .stat-card-note { color: var(--texte-doux); font-size: 12px; }
+.saas-admin .stat-card.fort { background: linear-gradient(160deg, var(--accent-fort), var(--accent)); border-color: transparent; color: #fff; }
+.saas-admin .stat-card.fort .stat-card-libelle, .saas-admin .stat-card.fort .stat-card-detail { color: rgba(255, 255, 255, 0.82); }
+.saas-admin .stat-card.fort .stat-card-icone { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.saas-admin .stat-card.alerte .stat-card-valeur { color: var(--rouge); }
+.saas-admin .stat-card.alerte .stat-card-icone { background: var(--rouge-doux); color: var(--rouge); }
+.saas-admin .stat-card.attention .stat-card-valeur { color: var(--orange); }
+.saas-admin .stat-card.attention .stat-card-icone { background: var(--orange-doux); color: var(--orange); }
+.saas-admin .stat-card.positif .stat-card-valeur { color: var(--vert); }
+
+.saas-admin .ligne-chiffres { display: flex; flex-wrap: wrap; gap: 12px 32px; margin-bottom: 8px; }
+.saas-admin .ligne-chiffres > div { display: grid; gap: 2px; }
+.saas-admin .ligne-chiffres span { font-size: 12.5px; }
+.saas-admin .ligne-chiffres strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+
+.saas-admin .liste-alertes, .saas-admin .fil-activite, .saas-admin .niveaux { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.saas-admin .liste-alertes li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+.saas-admin .liste-alertes li:last-child { border-bottom: 0; }
+.saas-admin .liste-alertes li > span:nth-child(2) { flex: 1; min-width: 160px; }
+.saas-admin .fil-activite li { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--bordure); }
+.saas-admin .fil-activite li:last-child { border-bottom: 0; }
+.saas-admin .fil-activite-icone { display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--surface-douce); border: 1px solid var(--bordure); color: var(--texte-doux); }
+.saas-admin .niveaux { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; counter-reset: niveau; }
+.saas-admin .niveaux li { display: grid; gap: 4px; padding: 12px; border: 1px solid var(--bordure); border-radius: 10px; background: var(--surface-douce); font-size: 13px; }
+
+.saas-admin .repartition { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.saas-admin .puce-filtre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--bordure);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.saas-admin .puce-filtre:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Onglets */
+.saas-admin .onglets { overflow-x: auto; scrollbar-width: thin; }
+.saas-admin .onglets button { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.saas-admin .onglet-compteur {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-douce);
+  border: 1px solid var(--bordure);
+  color: var(--texte-doux);
+  font-size: 11px;
+  font-weight: 600;
+}
+.saas-admin .onglets button.actif .onglet-compteur { background: var(--accent-doux); border-color: transparent; color: var(--accent); }
+
+/* Menu « ••• » */
+.saas-admin .menu-actions { position: relative; display: inline-flex; }
+.saas-admin .menu-actions-liste {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: grid;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--bordure);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--ombre-forte);
+}
+.saas-admin .menu-actions-liste button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.saas-admin .menu-actions-liste button:hover:not(:disabled) { background: var(--surface-douce); }
+.saas-admin .menu-actions-liste button.danger { color: var(--rouge); }
+.saas-admin .menu-actions-liste button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tableau de données */
+.saas-admin .data-table { display: grid; gap: 10px; }
+.saas-admin .data-table-outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.saas-admin .data-table-outils .recherche { flex: 1 1 240px; max-width: 420px; }
+.saas-admin .data-table-outils select { width: auto; min-width: 150px; }
+.saas-admin .data-table-compte { margin-left: auto; color: var(--texte-doux); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.saas-admin .tableau-conteneur { border-radius: var(--rayon-grand); box-shadow: var(--ombre-carte); }
+.saas-admin .tableau th.triable button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.saas-admin .tableau th.nombre.triable button { justify-content: flex-end; width: 100%; }
+.saas-admin .tri-indice { color: var(--texte-faible); font-size: 10px; }
+.saas-admin .tableau tr.cliquable { cursor: pointer; }
+.saas-admin .tableau tr.cliquable:hover td { background: #f5f8ff; }
+.saas-admin .tableau td { font-variant-numeric: tabular-nums; }
+.saas-admin .pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; color: var(--texte-doux); font-size: 13px; }
+
+.saas-admin .cellule-personne { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.saas-admin .cellule-personne.grande strong { font-size: 16px; }
+.saas-admin .case.compacte { min-height: 0; font-size: 13px; white-space: nowrap; }
+.saas-admin .case.retrait { padding-left: 26px; }
+
+/* États */
+.saas-admin .vide { gap: 6px; }
+.saas-admin .vide-icone { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: 0 auto 4px; border-radius: 12px; background: var(--accent-doux); color: var(--accent); }
+.saas-admin .squelette { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--bordure); border-radius: var(--rayon-grand); background: var(--surface); }
+.saas-admin .squelette span {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eef2f7 0%, #f7f9fc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  animation: squelette 1.3s ease-in-out infinite;
+}
+@keyframes squelette { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .saas-admin .squelette span { animation: none; }
+  .saas-admin .stat-card.cliquable:hover { transform: none; }
+}
+
+/* Hubs */
+.saas-admin .cartes-hubs { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.saas-admin .carte-hub { display: grid; align-content: start; gap: 12px; }
+.saas-admin .carte-hub.inactif { opacity: 0.7; }
+.saas-admin .carte-hub-titre { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.saas-admin .carte-hub-titre h2 { font-size: 15px; }
+.saas-admin .pastille-hub { display: inline-grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--accent-doux); color: var(--accent); }
+.saas-admin .mini-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.saas-admin .mini-stats > div { padding: 8px 10px; border-radius: 8px; background: var(--surface-douce); }
+.saas-admin .mini-stats dt { color: var(--texte-doux); font-size: 11.5px; }
+.saas-admin .mini-stats dd { margin: 2px 0 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Stock, inventaire, transferts */
+.saas-admin .saisie-quantite { width: 110px; min-height: 34px; padding: 4px 8px; text-align: right; }
+.saas-admin .saisie-quantite[aria-invalid="true"] { border-color: var(--rouge); }
+.saas-admin .saisie-casiers { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.saas-admin .saisie-casiers .saisie-quantite { width: 64px; }
+.saas-admin .transfert-sens { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; }
+.saas-admin .transfert-sens > .icone { margin-bottom: 11px; color: var(--texte-doux); }
+.saas-admin .lignes-transfert { display: grid; gap: 8px; }
+.saas-admin .ligne-transfert { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.saas-admin .trajet { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Connexion */
+.saas-admin .connexion { background: radial-gradient(1200px 600px at 10% -10%, #dbe7ff 0%, transparent 60%), radial-gradient(900px 500px at 110% 110%, #e9e3ff 0%, transparent 55%), var(--fond); }
+.saas-admin .connexion-carte { border-radius: 18px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12); }
+.saas-admin .connexion-carte.large { max-width: 640px; }
+.saas-admin .connexion-carte .marque { color: var(--texte); }
+.saas-admin .champ-mot-de-passe { position: relative; display: block; }
+.saas-admin .champ-mot-de-passe input { padding-right: 44px; }
+.saas-admin .champ-mot-de-passe .icone-bouton { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); }
+.saas-admin .separateur { display: flex; align-items: center; gap: 10px; color: var(--texte-faible); font-size: 12.5px; }
+.saas-admin .separateur::before, .saas-admin .separateur::after { content: ''; flex: 1; height: 1px; background: var(--bordure); }
+
+@media (max-width: 1100px) {
+  .saas-admin .deux-colonnes.large-gauche { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .saas-admin .coquille { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .bouton-menu { display: inline-grid; }
+  .saas-admin .barre-haut { padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); gap: 8px; }
+  .saas-admin .barre-haut .fil-ariane li:not(:last-child) { display: none; }
+  .saas-admin .profil-chip-texte { display: none; }
+  .saas-admin .selecteur { padding-left: 8px; }
+  .saas-admin .selecteur .icone { display: none; }
+  .saas-admin .selecteur select { max-width: 130px; }
+  .saas-admin .page { padding: 16px 16px 32px; }
+  .saas-admin .page-header h1 { font-size: 20px; }
+  .saas-admin .grille-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .saas-admin .stat-card { padding: 12px; }
+  .saas-admin .stat-card-valeur { font-size: 18px; }
+  .saas-admin .masque-mobile { display: none; }
+  .saas-admin .transfert-sens { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .transfert-sens > .icone { display: none; }
+  .saas-admin .ligne-transfert { grid-template-columns: minmax(0, 1fr) 110px auto; }
+  .saas-admin .data-table-compte { margin-left: 0; }
+}
+
+@media (max-width: 420px) {
+  .saas-admin .grille-stats { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .selecteur select { max-width: 110px; }
+}
+
+/* Les tableaux partagés deviennent des fiches lisibles sur un téléphone. Les
+   tableaux métier spécialisés gardent leur défilement horizontal. */
+@media (max-width: 640px) {
+  .saas-admin .data-table .tableau-conteneur { border: 0; box-shadow: none; overflow: visible; background: transparent; }
+  .saas-admin .data-table .tableau, .saas-admin .data-table .tableau tbody { display: grid; gap: 10px; width: 100%; }
+  .saas-admin .data-table .tableau thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .saas-admin .data-table .tableau tr { display: grid; gap: 0; padding: 8px 12px; border: 1px solid var(--bordure); border-radius: var(--rayon-grand); background: var(--surface); box-shadow: var(--ombre-carte); }
+  .saas-admin .data-table .tableau td { display: grid; grid-template-columns: minmax(92px, 38%) 1fr; gap: 10px; align-items: start; padding: 7px 0; border: 0; text-align: right; white-space: normal; overflow-wrap: anywhere; }
+  .saas-admin .data-table .tableau td::before { content: attr(data-label); color: var(--texte-doux); font-size: 12px; font-weight: 600; text-align: left; }
+  .saas-admin .data-table .tableau td.nombre { text-align: right; }
+  .saas-admin .data-table .tableau td.cellule-actions { display: flex; justify-content: flex-end; width: auto; }
+  .saas-admin .data-table .tableau td.cellule-actions::before { content: none; }
+  .saas-admin .data-table-outils > * { flex: 1 1 100%; }
+  .saas-admin .data-table-outils .data-table-compte { flex: 1 1 auto; }
+}
+
+.saas-admin .tableau .cellule-actions { width: 1%; text-align: right; white-space: nowrap; }
+.saas-admin .entete-actions .menu-actions > .icone-bouton { width: 40px; height: 40px; border: 1px solid var(--bordure-forte); border-radius: 8px; background: var(--surface); color: var(--texte); }
+
+/* Applications d'un établissement (cinq niveaux). */
+.saas-admin .niveaux-apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.saas-admin .niveaux-apps li { display: grid; gap: 2px; font-size: 13px; }
+.saas-admin .grille-apps { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.saas-admin .carte-app { display: grid; gap: 8px; align-content: start; padding: 14px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
+.saas-admin .carte-app.utilisable { border-color: color-mix(in srgb, var(--accent) 35%, var(--bordure)); }
+.saas-admin .carte-app header { display: flex; gap: 10px; align-items: center; }
+.saas-admin .carte-app header > span:last-child { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.saas-admin .carte-app p { margin: 0; font-size: 13px; }
+.saas-admin .carte-app-icone { display: inline-grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 9px; background: var(--accent-doux); color: var(--accent); }
+.saas-admin .niveaux-app { display: flex; flex-wrap: wrap; gap: 6px; }
+.saas-admin .niveau-app { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--surface-douce); color: var(--texte-faible); }
+.saas-admin .niveau-app.oui { background: var(--vert-doux); color: var(--vert); }
+
+/* Personnalisation : palette de couleurs contrôlées. */
+.saas-admin .palette { display: flex; flex-wrap: wrap; gap: 8px; }
+.saas-admin .palette button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.saas-admin .palette button[aria-pressed='true'] { border-color: var(--texte); box-shadow: 0 0 0 2px var(--surface) inset; }
+.saas-admin .apercu-marque { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 14px; border-radius: var(--rayon); background: var(--menu); }
+.saas-admin .apercu-marque .bouton { pointer-events: none; }
+.saas-admin .liste-puces { display: grid; gap: 8px; margin: 0 0 12px; padding-left: 18px; font-size: 13.5px; }
+.saas-admin .grille-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 14px; }
+.saas-admin .grille-cases .case { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.saas-admin .liste-ligne > .rang { flex: none; }
+
+/* Socle transversal : notifications, pièces jointes, documents */
+.saas-admin .cloche { position: relative; }
+.saas-admin .cloche-compteur { position: absolute; top: 2px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--rouge); color: #fff; font-size: 10.5px; font-weight: 700; line-height: 17px; text-align: center; }
+.saas-admin .cloche-liste { width: min(360px, calc(100vw - 24px)); max-height: 70vh; overflow-y: auto; padding: 0; }
+.saas-admin .cloche-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--bordure); position: sticky; top: 0; background: var(--surface); }
+.saas-admin .cloche-element { display: grid; gap: 2px; width: 100%; padding: 10px 14px; border: 0; border-bottom: 1px solid var(--bordure); background: none; text-align: left; font: inherit; color: var(--texte); cursor: pointer; }
+.saas-admin .cloche-element:hover, .saas-admin .cloche-element:focus-visible { background: var(--surface-douce); }
+.saas-admin .cloche-element span { color: var(--texte-doux); font-size: 13px; }
+.saas-admin .cloche-element.non-lue { background: var(--accent-doux); }
+.saas-admin .cloche-element.non-lue strong::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.saas-admin .pieces-jointes { display: grid; gap: 8px; }
+.saas-admin .pieces-jointes h3 { margin: 0; font-size: 14px; }
+.saas-admin .apercu-pdf { width: 100%; height: 70vh; border: 1px solid var(--bordure); border-radius: 8px; }
+.saas-admin .explorateur { display: grid; grid-template-columns: minmax(200px, 280px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.saas-admin .arbre { list-style: none; margin: 0; padding: 0; }
+.saas-admin .arbre .arbre { padding-left: 16px; }
+.saas-admin .arbre button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 8px; border: 0; border-radius: 8px; background: none; color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.saas-admin .arbre button:hover { background: var(--surface-douce); }
+.saas-admin .arbre button.actif { background: var(--accent-doux); color: var(--accent-fort); font-weight: 600; }
+
+/* RH */
+.saas-admin .fiche-identite { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.saas-admin .fiche-identite strong { font-size: 17px; }
+.saas-admin .chiffres-cles { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--texte-doux); }
+.saas-admin .chiffres-cles strong { color: var(--texte); font-size: 20px; font-variant-numeric: tabular-nums; }
+.saas-admin .organigramme-conteneur { overflow-x: auto; }
+.saas-admin .organigramme, .saas-admin .organigramme ul { list-style: none; margin: 0; padding: 0; }
+.saas-admin .organigramme ul { margin-left: 22px; padding-left: 16px; border-left: 2px solid var(--bordure); }
+.saas-admin .organigramme li { padding-top: 8px; }
+.saas-admin .organigramme-carte { display: inline-flex; align-items: center; gap: 10px; min-width: 220px; padding: 8px 12px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte); font: inherit; text-align: left; cursor: pointer; }
+.saas-admin .organigramme-carte:hover, .saas-admin .organigramme-carte:focus-visible { border-color: var(--accent); box-shadow: var(--ombre); }
+.saas-admin .barre-outils { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 14px; }
+.saas-admin .barre-outils .champ { min-width: 160px; margin: 0; }
+.saas-admin .groupe-boutons { display: inline-flex; gap: 6px; }
+.saas-admin .ligne-cases { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.saas-admin .carte-pointage { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); box-shadow: var(--ombre); }
+.saas-admin .carte-pointage strong { font-size: 17px; }
+.saas-admin .planning { border-collapse: separate; border-spacing: 2px; font-size: 12.5px; min-width: 100%; }
+.saas-admin .planning th { padding: 4px 6px; font-weight: 600; color: var(--texte-doux); text-align: center; white-space: nowrap; }
+.saas-admin .planning tbody th { text-align: left; color: var(--texte); position: sticky; left: 0; background: var(--surface); }
+.saas-admin .planning td { min-width: 28px; height: 28px; padding: 0; border-radius: 4px; background: var(--surface-douce); text-align: center; font-weight: 700; }
+.saas-admin .planning td.ferie, .saas-admin .planning th.ferie { background: var(--bordure); }
+.saas-admin .planning td.absence.approuvee { background: var(--accent); color: #fff; }
+.saas-admin .planning td.absence.demandee { background: var(--orange-doux); color: var(--orange); outline: 1px dashed var(--orange); }
+.saas-admin .planning-large td { min-width: 96px; height: 36px; font-weight: 500; }
+.saas-admin .planning td.creneau { background: var(--accent-doux); color: var(--accent-fort); font-weight: 600; }
+.saas-admin .planning td.creneau-type { color: var(--texte-faible); }
+.saas-admin .cellule-planning { width: 100%; height: 100%; min-height: 36px; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; border-radius: 4px; }
+.saas-admin .cellule-planning:hover, .saas-admin .cellule-planning:focus-visible { outline: 2px solid var(--accent); }
+.saas-admin .legende { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 10px 0 0; color: var(--texte-doux); font-size: 12.5px; }
+.saas-admin .legende .pastille { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; }
+.saas-admin .legende .pastille.absence.approuvee { background: var(--accent); }
+.saas-admin .legende .pastille.absence.demandee { background: var(--orange-doux); outline: 1px dashed var(--orange); }
+.saas-admin .legende .pastille.ferie { background: var(--bordure); }
+@media (max-width: 860px) {
+  .saas-admin .explorateur { grid-template-columns: 1fr; }
+  .saas-admin .organigramme-carte { min-width: 0; }
+}
+
+/* Facturation : éditeur de lignes, feuille A4 (écran et impression) */
+.saas-admin .lignes-document td { vertical-align: top; }
+.saas-admin .lignes-document td:first-child { min-width: 240px; display: grid; gap: 4px; }
+.saas-admin .lignes-document input, .saas-admin .lignes-document select { width: 100%; min-width: 0; }
+.saas-admin .lignes-document td.nombre input { width: 96px; text-align: right; }
+.saas-admin .lignes-document input.discret { font-size: 12.5px; color: var(--texte-doux); }
+.saas-admin .totaux-document { display: grid; gap: 4px; justify-content: end; margin-top: 12px; font-variant-numeric: tabular-nums; }
+.saas-admin .totaux-document div { display: flex; justify-content: space-between; gap: 32px; }
+.saas-admin .totaux-document .total { font-size: 18px; border-top: 1px solid var(--bordure); padding-top: 6px; }
+.saas-admin .document-disposition { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; align-items: start; }
+.saas-admin .feuille-conteneur { overflow-x: auto; }
+.saas-admin .feuille-a4 { width: 210mm; max-width: 100%; min-height: 260mm; margin: 0 auto; padding: 14mm 14mm 10mm; background: #fff; color: #111827; box-shadow: var(--ombre); border-radius: 4px; font-size: 12.5px; display: flex; flex-direction: column; gap: 14px; }
+.saas-admin .feuille-tete { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+.saas-admin .feuille-logo { max-height: 56px; max-width: 180px; display: block; margin-bottom: 6px; }
+.saas-admin .feuille-emetteur { font-size: 16px; display: block; }
+.saas-admin .feuille-titre { text-align: right; }
+.saas-admin .feuille-titre h1 { margin: 0; font-size: 24px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--accent-fort); }
+.saas-admin .feuille-numero { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.saas-admin .feuille-petit { font-size: 11px; color: #4b5563; }
+.saas-admin .feuille-client { align-self: flex-end; min-width: 45%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 6px; display: grid; gap: 2px; }
+.saas-admin .feuille-objet { margin: 0; }
+.saas-admin .feuille-annule { margin: 0; padding: 8px 10px; border: 2px solid #b91c1c; color: #b91c1c; font-weight: 700; text-align: center; }
+.saas-admin .feuille-lignes { width: 100%; border-collapse: collapse; }
+.saas-admin .feuille-lignes th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #4b5563; border-bottom: 2px solid #111827; padding: 6px 4px; }
+.saas-admin .feuille-lignes td { padding: 7px 4px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+.saas-admin .feuille-lignes .nombre { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.saas-admin .feuille-totaux { align-self: flex-end; min-width: 260px; display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.saas-admin .feuille-totaux div { display: flex; justify-content: space-between; gap: 24px; }
+.saas-admin .feuille-total { font-weight: 700; font-size: 14px; border-top: 1px solid #111827; padding-top: 4px; }
+.saas-admin .feuille-notes { margin: 0; white-space: pre-wrap; }
+.saas-admin .feuille-pied { margin-top: auto; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 10.5px; color: #4b5563; text-align: center; display: grid; gap: 2px; }
+@media (max-width: 1100px) { .saas-admin .document-disposition { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .saas-admin .feuille-a4 { padding: 16px; min-height: 0; } .saas-admin .feuille-titre { text-align: left; } }
+@media print {
+  .saas-admin.impression-a4 > *:not(.zone-impression) { display: none !important; }
+  .saas-admin.impression-a4 .zone-impression { display: block; }
+  .saas-admin.impression-a4 .feuille-a4 { box-shadow: none; width: auto; min-height: 0; padding: 0; border-radius: 0; }
+  @page { size: A4; margin: 12mm; }
+}
+
+/* CRM : pipeline en colonnes (glisser-déposer, ou liste « Déplacer… » au clavier) et fil des étapes. */
+.saas-admin .kanban { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: flex-start; }
+.saas-admin .kanban-colonne {
+  flex: 0 0 240px; display: flex; flex-direction: column; gap: 8px; min-height: 120px; padding: 10px;
+  background: var(--surface-douce); border: 1px solid var(--bordure); border-radius: var(--rayon);
+}
+.saas-admin .kanban-colonne.survol { border-color: var(--accent); background: var(--accent-doux); }
+.saas-admin .kanban-colonne > header { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.saas-admin .kanban-colonne.kanban-fin { flex-basis: 150px; border-style: dashed; }
+.saas-admin .kanban-colonne.kanban-fin p { font-size: 12px; margin: 0; }
+.saas-admin .kanban-carte {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px; background: var(--surface);
+  border: 1px solid var(--bordure); border-radius: var(--rayon); font-size: 13px; cursor: grab;
+}
+.saas-admin .kanban-carte[draggable='false'] { cursor: default; }
+.saas-admin .kanban-titre { text-align: left; font-weight: 600; }
+.saas-admin .kanban-pied { display: flex; justify-content: space-between; gap: 8px; }
+.saas-admin .kanban-deplacer { font-size: 12px; padding: 2px 4px; min-height: 0; }
+.saas-admin .etapes-pipeline { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+.saas-admin .etapes-pipeline button {
+  flex: 1 1 110px; padding: 8px 10px; border: 1px solid var(--bordure); background: var(--surface);
+  border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; color: var(--texte-doux);
+}
+.saas-admin .etapes-pipeline button.passe { background: var(--accent-doux); color: var(--accent-fort); }
+.saas-admin .etapes-pipeline button.actif { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+@media (max-width: 700px) { .saas-admin .kanban-colonne { flex-basis: 78vw; } }
+.saas-admin .page.page-large { max-width: 1600px; }
+
+/* Restaurant : plan de salle, commande, écran cuisine */
+.saas-admin .plan-salle { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+.saas-admin .table-resto {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 96px; padding: 12px 14px;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte);
+  text-align: left; cursor: pointer; font: inherit; transition: border-color .15s, box-shadow .15s;
+}
+.saas-admin .table-resto:hover, .saas-admin .table-resto:focus-visible { border-color: var(--accent); box-shadow: var(--ombre); }
+.saas-admin .table-resto strong { font-size: 1.05rem; }
+.saas-admin .table-resto.occupee { background: var(--accent-doux); border-color: var(--accent); }
+.saas-admin .table-resto.pret { background: var(--vert-doux); border-color: var(--vert); }
+.saas-admin .table-resto .table-montant { font-weight: 600; font-variant-numeric: tabular-nums; }
+.saas-admin .commande-resto { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+.saas-admin .commande-resto .commande-catalogue { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.saas-admin .commande-resto .commande-lignes { position: sticky; top: calc(var(--barre-haut, 60px) + 12px); }
+.saas-admin .liste-ligne.barre > span:first-child strong { text-decoration: line-through; color: var(--texte-faible); }
+.saas-admin .bons-cuisine { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.saas-admin .bon-cuisine { border: 1px solid var(--bordure); border-top: 4px solid var(--accent); border-radius: var(--rayon); background: var(--surface); box-shadow: var(--ombre); }
+.saas-admin .bon-cuisine.attention { border-top-color: var(--orange); }
+.saas-admin .bon-cuisine.retard { border-top-color: var(--rouge); }
+.saas-admin .bon-cuisine header { display: flex; justify-content: space-between; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--bordure); }
+.saas-admin .bon-cuisine header span { color: var(--texte-doux); font-variant-numeric: tabular-nums; }
+.saas-admin .bon-cuisine ul { list-style: none; margin: 0; padding: 6px 0; }
+.saas-admin .bon-cuisine li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 14px; }
+.saas-admin .bon-cuisine li.en_preparation { background: var(--orange-doux); }
+@media (max-width: 900px) {
+  .saas-admin .commande-resto { grid-template-columns: 1fr; }
+  .saas-admin .commande-resto .commande-lignes { position: static; }
+}
+
+/* Salle : filtres, serveur de la table, affectation, tuiles et barre de commande sur téléphone */
+.saas-admin .filtres-salle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.saas-admin .filtres-salle .puces { flex: 1 1 320px; }
+.saas-admin .filtres-salle select { width: auto; min-height: 36px; }
+.saas-admin .puces button { min-height: 36px; }
+.saas-admin .table-resto .table-serveur { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; font-size: .85rem; }
+.saas-admin .table-resto.mienne { box-shadow: inset 0 0 0 2px var(--accent); }
+.saas-admin .table-resto.reservee { background: var(--bleu-doux); border-style: dashed; }
+.saas-admin .plan-salle.mode-affectation .table-resto { border-style: dashed; border-color: var(--accent); }
+.saas-admin .tuile-article:disabled { cursor: not-allowed; transform: none; }
+.saas-admin .tuile-article .tuile-quantite {
+  position: absolute; top: 6px; right: 6px; min-width: 26px; padding: 2px 8px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-weight: 700; text-align: center;
+}
+.saas-admin .titre-section { margin: 18px 0 8px; font-size: 1rem; }
+.saas-admin .barre-commande-mobile { display: none; }
+@media (max-width: 900px) {
+  .saas-admin .commande-resto .commande-catalogue { padding-bottom: 72px; }
+  .saas-admin .barre-commande-mobile {
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; padding: 10px 16px;
+    border: 0; border-radius: var(--rayon); background: var(--texte); color: #fff; font: inherit; box-shadow: var(--ombre);
+  }
+}
+@media (max-width: 640px) {
+  .saas-admin .plan-salle { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+  .saas-admin .table-resto { min-height: 104px; }
+  .saas-admin .tableau-serveurs thead { display: none; }
+  .saas-admin .tableau-serveurs tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+  .saas-admin .tableau-serveurs td { border: 0; padding: 2px 0; text-align: left; }
+  .saas-admin .tableau-serveurs td::before { content: attr(data-libelle) " : "; color: var(--texte-doux); }
+  .saas-admin .tableau-serveurs td:first-child { grid-column: 1 / -1; }
+  .saas-admin .tableau-serveurs td:first-child::before { content: none; }
+}
+
+/* Hôtel : planning des chambres, cartes d'entretien */
+.saas-admin .planning-hotel { overflow-x: auto; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
+.saas-admin .planning-ligne { display: grid; grid-template-columns: 140px repeat(14, minmax(44px, 1fr)); min-width: 780px; border-bottom: 1px solid var(--bordure); }
+.saas-admin .planning-ligne:last-child { border-bottom: 0; }
+.saas-admin .planning-ligne > span { padding: 8px; font-size: .82rem; }
+.saas-admin .planning-ligne.entete > span { color: var(--texte-doux); text-align: center; text-transform: capitalize; }
+.saas-admin .planning-ligne.entete > span:first-child { text-align: left; }
+.saas-admin .planning-ligne .jour-courant { color: var(--accent); font-weight: 600; }
+.saas-admin .planning-case { border: 0; border-left: 1px solid var(--bordure); background: transparent; font: inherit; font-size: .78rem; padding: 4px 6px;
+  text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; color: var(--texte); min-height: 36px; }
+.saas-admin .planning-case.libre:hover, .saas-admin .planning-case.libre:focus-visible { background: var(--surface-douce); }
+.saas-admin .planning-case.confirmee { background: var(--accent-doux); color: var(--accent-fort); }
+.saas-admin .planning-case.en_cours { background: var(--vert-doux); color: var(--vert); font-weight: 600; }
+.saas-admin .carte-chambre { cursor: default; }
+.saas-admin .carte-chambre.sale { border-color: var(--orange); }
+.saas-admin .carte-chambre.hors_service { border-color: var(--rouge); background: var(--rouge-doux); }
+
+/* Boutique en ligne publique */
+.saas-admin .boutique-publique { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 20px; }
+.saas-admin .boutique-tete { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.saas-admin .boutique-tete > div { flex: 1 1 260px; }
+.saas-admin .boutique-tete h1 { margin: 0; text-wrap: balance; }
+.saas-admin .boutique-logo { width: 64px; height: 64px; object-fit: contain; border-radius: var(--rayon); background: var(--surface); }
+.saas-admin .boutique-infos { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 0; color: var(--texte-doux); font-size: .88rem; }
+.saas-admin .grille-produits { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.saas-admin .produit-boutique { display: flex; flex-direction: column; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); overflow: hidden; }
+.saas-admin .produit-boutique img, .saas-admin .produit-sans-photo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; max-width: 100%; }
+.saas-admin .produit-sans-photo { display: grid; place-items: center; background: var(--accent-doux); color: var(--accent-fort); font-size: 2.4rem; font-weight: 700; }
+.saas-admin .produit-corps { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; flex: 1; }
+.saas-admin .produit-corps h3 { margin: 0; font-size: 1rem; }
+.saas-admin .produit-corps p { margin: 0; font-size: .88rem; }
+.saas-admin .produit-pied { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; font-variant-numeric: tabular-nums; }
+.saas-admin .variantes { display: flex; flex-wrap: wrap; gap: 6px; }
+.saas-admin .variantes button { border: 1px solid var(--bordure); background: var(--surface); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .85rem; cursor: pointer; color: var(--texte); }
+.saas-admin .variantes button.actif { border-color: var(--accent); background: var(--accent-doux); color: var(--accent-fort); font-weight: 600; }
+.saas-admin .variantes button:disabled { opacity: .45; text-decoration: line-through; cursor: not-allowed; }
+.saas-admin .boutique-panier, .saas-admin .boutique-confirmation { padding: 20px; max-width: 720px; width: 100%; justify-self: center; }
+.saas-admin .lignes-panier { list-style: none; margin: 0 0 12px; padding: 0; }
+.saas-admin .lignes-panier li { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--bordure); font-variant-numeric: tabular-nums; }
+.saas-admin .lignes-panier .quantite { display: inline-flex; align-items: center; gap: 8px; }
+.saas-admin .code-promo { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.saas-admin .totaux-panier { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; margin: 8px 0; font-variant-numeric: tabular-nums; }
+.saas-admin .totaux-panier dd { margin: 0; text-align: right; }
+
+/* Site web public (blocs contrôlés) */
+.saas-admin .site-public { --site-fond: var(--surface); --site-texte: var(--texte); --site-doux: var(--texte-doux); --site-carte: var(--surface-douce);
+  background: var(--site-fond); color: var(--site-texte); min-height: 100%; }
+.saas-admin .site-public.theme-sombre { --site-fond: #111827; --site-texte: #f3f4f6; --site-doux: #9ca3af; --site-carte: #1f2937; color-scheme: dark; }
+.saas-admin .site-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding: 14px 16px; max-width: 1100px; margin: 0 auto; }
+.saas-admin .site-marque { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; font-size: 1.1rem; }
+.saas-admin .site-marque img { width: 40px; height: 40px; object-fit: contain; }
+.saas-admin .site-entete nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.saas-admin .site-entete nav a { color: var(--site-doux); text-decoration: none; padding: 4px 0; }
+.saas-admin .site-entete nav a[aria-current="page"], .saas-admin .site-entete nav a:hover { color: var(--accent); }
+.saas-admin .site-public main { display: grid; gap: 8px; }
+.saas-admin .site-hero { background: var(--accent); color: #fff; background-size: cover; background-position: center; }
+.saas-admin .site-hero.avec-image { box-shadow: inset 0 0 0 2000px rgba(0, 0, 0, .45); }
+.saas-admin .site-hero-contenu { max-width: 1100px; margin: 0 auto; padding: 72px 16px; display: grid; gap: 14px; justify-items: start; }
+.saas-admin .site-hero h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 3rem); text-wrap: balance; max-width: 22ch; }
+.saas-admin .site-hero p { margin: 0; font-size: 1.1rem; max-width: 60ch; }
+.saas-admin .site-hero .bouton.principal { background: #fff; color: var(--accent-fort); }
+.saas-admin .site-section { max-width: 1100px; width: 100%; margin: 0 auto; padding: 32px 16px; box-sizing: border-box; }
+.saas-admin .site-section h2 { margin: 0 0 14px; text-wrap: balance; }
+.saas-admin .site-texte p, .saas-admin .site-cta p { max-width: 65ch; line-height: 1.6; }
+.saas-admin .site-image img { width: 100%; border-radius: var(--rayon); }
+.saas-admin .site-image figcaption, .saas-admin .site-galerie figcaption { color: var(--site-doux); font-size: .88rem; margin-top: 6px; }
+.saas-admin .site-galerie { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.saas-admin .site-galerie figure { margin: 0; }
+.saas-admin .site-galerie img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--rayon); }
+.saas-admin .site-cta { text-align: center; display: grid; justify-items: center; background: var(--accent-doux); border-radius: var(--rayon); }
+.saas-admin .theme-sombre .site-cta { background: var(--site-carte); }
+.saas-admin .site-cartes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.saas-admin .site-carte { background: var(--site-carte); border-radius: var(--rayon); padding: 18px; margin: 0; }
+.saas-admin .site-carte img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: calc(var(--rayon) - 2px); margin-bottom: 10px; }
+.saas-admin .site-carte h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.saas-admin .site-carte footer { color: var(--site-doux); font-size: .9rem; }
+.saas-admin .site-faq { border-bottom: 1px solid var(--bordure); padding: 12px 0; }
+.saas-admin .site-faq summary { cursor: pointer; font-weight: 600; }
+.saas-admin .site-coordonnees { list-style: none; padding: 0; display: grid; gap: 4px; }
+.saas-admin .site-formulaire { max-width: 720px; }
+.saas-admin .site-pied { max-width: 1100px; margin: 24px auto 0; padding: 24px 16px; color: var(--site-doux); border-top: 1px solid var(--bordure); font-size: .88rem; }
+.saas-admin .apercu-site { border: 1px solid var(--bordure); border-radius: var(--rayon); overflow: hidden; max-height: 70vh; overflow-y: auto; }
+/* Éditeur de pages */
+.saas-admin .liste-blocs-site { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.saas-admin .bloc-site-edition { border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 10px 14px; background: var(--surface); }
+.saas-admin .bloc-site-tete { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.saas-admin .bloc-site-edition > fieldset { border: 0; padding: 12px 0 4px; margin: 0; }
+.saas-admin .ajout-bloc-site { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.saas-admin .site-elements { border: 1px dashed var(--bordure); border-radius: var(--rayon); padding: 10px; display: grid; gap: 10px; }
+.saas-admin .site-element { border-bottom: 1px solid var(--bordure); padding-bottom: 10px; display: grid; gap: 8px; }
+.saas-admin .champ-image-site { display: grid; gap: 6px; }
+.saas-admin .champ-image-site img { max-width: 220px; max-height: 140px; object-fit: cover; border-radius: var(--rayon); }
+.saas-admin .texte-multiligne { white-space: pre-line; }
+
+/* Agenda : semaine */
+.saas-admin .barre-filtres { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.saas-admin .semaine-agenda { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 8px; overflow-x: auto; }
+.saas-admin .jour-agenda { border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); padding: 8px; display: grid; gap: 6px; align-content: start; min-height: 120px; }
+.saas-admin .jour-agenda.aujourdhui { border-color: var(--accent); }
+.saas-admin .jour-agenda header { display: flex; justify-content: space-between; align-items: center; gap: 6px; text-transform: capitalize; font-size: .85rem; }
+.saas-admin .rdv-agenda { display: grid; gap: 2px; text-align: left; border: 0; border-left: 3px solid var(--accent); background: var(--accent-doux); border-radius: 6px; padding: 6px 8px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--texte); }
+.saas-admin .rdv-agenda span { font-variant-numeric: tabular-nums; color: var(--texte-doux); }
+.saas-admin .rdv-agenda small { color: var(--texte-doux); }
+.saas-admin .rdv-agenda.honore { border-left-color: var(--vert); background: var(--vert-doux); }
+.saas-admin .rdv-agenda.annule { opacity: .55; text-decoration: line-through; background: var(--surface-douce); border-left-color: var(--bordure); }
+.saas-admin .rdv-agenda.absent { border-left-color: var(--rouge); background: var(--rouge-doux); }
+@media (max-width: 900px) { .saas-admin .semaine-agenda { grid-template-columns: 1fr; } }
+
+/* Support : fil d'échanges */
+.saas-admin .ticket-grille { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .saas-admin .ticket-grille { grid-template-columns: 1fr; } }
+.saas-admin .message-ticket { border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 10px 14px; margin-bottom: 10px; background: var(--surface); }
+.saas-admin .message-ticket small { color: var(--texte-doux); }
+.saas-admin .message-ticket p { margin: 6px 0 0; }
+.saas-admin .message-ticket.client { background: var(--surface-douce); }
+.saas-admin .message-ticket.interne { background: var(--orange-doux); border-color: transparent; }
+.saas-admin .message-ticket.evenement { border-style: dashed; background: transparent; font-size: .88rem; }
+.saas-admin .texte-erreur { color: var(--rouge); }
+
+/* Agenda sur téléphone : les jours sans rendez-vous (sauf aujourd'hui) sont repliés. */
+@media (max-width: 640px) {
+  .saas-admin .jour-agenda.vide:not(.aujourdhui) { min-height: 0; }
+  .saas-admin .jour-agenda.vide:not(.aujourdhui) > p { display: none; }
+}
+
+/* Pages d'authentification administrables ---------------------------------- */
+/* Disposition et fond choisis dans une liste fermée ; la carte du formulaire reste toujours claire. */
+.saas-admin .connexion.auth { display: flex; flex-direction: column; padding: 0; container-type: inline-size; }
+.saas-admin .auth.auth-fond-degrade {
+  background: radial-gradient(1200px 600px at 10% -10%, var(--accent-doux) 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, var(--accent-doux) 0%, transparent 55%), var(--fond);
+}
+.saas-admin .auth.auth-fond-image { background-color: #0f172a; background-size: cover; background-position: center; }
+.saas-admin .auth-grille { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); }
+.saas-admin .auth-zone { display: grid; place-items: center; padding: 24px 16px; min-width: 0; }
+.saas-admin .auth .connexion-carte { min-width: 0; overflow-wrap: anywhere; }
+.saas-admin .auth .connexion-carte h1 { margin: 0; font-size: 22px; line-height: 1.25; }
+.saas-admin .auth .connexion-carte h2 { margin: 0; font-size: 17px; }
+.saas-admin .texte-multiligne { white-space: pre-line; overflow-wrap: anywhere; }
+.saas-admin .auth-avis { display: grid; gap: 2px; }
+.saas-admin .auth-pied { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--bordure); font-size: 12.5px; color: var(--texte-doux); }
+.saas-admin .auth-pied p { margin: 0; }
+.saas-admin .auth-liens { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.saas-admin .auth-liens a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.saas-admin .auth-liens a:hover { text-decoration: underline; }
+.saas-admin .auth-texte-centre .connexion-carte > h1,
+.saas-admin .auth-texte-centre .connexion-carte > p,
+.saas-admin .auth-texte-centre .connexion-carte > .vide,
+.saas-admin .auth-texte-centre .auth-pied { text-align: center; }
+.saas-admin .auth-texte-centre .connexion-carte > .marque,
+.saas-admin .auth-texte-centre .auth-liens { justify-content: center; }
+.saas-admin .auth-laterale .auth-zone { justify-items: start; padding-left: clamp(16px, 8cqw, 96px); }
+.saas-admin .auth-partagee .auth-grille { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.saas-admin .auth-partagee .auth-zone { background: var(--surface); }
+.saas-admin .auth-partagee .connexion-carte { box-shadow: none; }
+.saas-admin .auth-partagee .connexion-carte > .marque { display: none; }
+.saas-admin .auth-panneau { position: relative; display: flex; align-items: flex-start; padding: 56px 40px; color: #fff; background: var(--accent) center / cover no-repeat; }
+.saas-admin .auth-panneau::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.05)); }
+.saas-admin .auth-panneau-contenu { position: sticky; top: 56px; display: grid; gap: 14px; max-width: 440px; }
+.saas-admin .auth-panneau .marque { color: #fff; }
+.saas-admin .auth-panneau .marque-texte small { color: rgba(255, 255, 255, 0.82); }
+.saas-admin .auth-panneau p { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.35; }
+@container (max-width: 760px) {
+  .saas-admin .auth-partagee .auth-grille { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .auth-panneau { display: none; }
+  .saas-admin .auth-partagee .connexion-carte > .marque { display: flex; }
+  .saas-admin .auth-laterale .auth-zone { justify-items: center; padding-left: 16px; }
+}
+
+/* Éditeur des pages d'authentification */
+.saas-admin .editeur-auth { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1100px) { .saas-admin .editeur-auth { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; } .saas-admin .editeur-auth-apercu { position: sticky; top: 12px; } }
+.saas-admin .editeur-auth-apercu { display: grid; gap: 10px; min-width: 0; }
+.saas-admin .apercu-auth-cadre { height: 620px; width: 100%; overflow: auto; border: 1px solid var(--bordure); border-radius: 12px; background: var(--fond); margin-inline: auto; }
+.saas-admin .apercu-auth-cadre.mobile { width: 390px; max-width: 100%; height: 720px; }
+.saas-admin .apercu-auth-cadre .connexion { min-height: 100%; }
+.saas-admin .apercu-auth-cadre.ordinateur { overflow: hidden; }
+.saas-admin .apercu-echelle { width: 1180px; overflow: auto; transform-origin: top left; }
+.saas-admin .apercu-echelle > .connexion { min-height: 100%; }
+.saas-admin .champ-herite { font-size: 12px; color: var(--texte-faible); overflow-wrap: anywhere; }
+.saas-admin .choix-fond { display: flex; flex-wrap: wrap; gap: 6px; }
+.saas-admin .choix-fond button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--bordure); cursor: pointer; }
+.saas-admin .choix-fond button[aria-pressed='true'] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.saas-admin .journal-auth { display: grid; gap: 8px; }
+.saas-admin .journal-auth details summary { cursor: pointer; }
+.saas-admin .journal-auth ul { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--texte-doux); overflow-wrap: anywhere; }
+.saas-admin .sans-bordure { border: 0; padding: 0; margin: 0; min-width: 0; }
+.saas-admin .auth-panneau .marque-logo { background: rgba(255, 255, 255, 0.18); }
+
+/* ---------------------------------------------------------------------------
+   Tableaux de bord (cockpit) : période, indicateurs, « À surveiller », graphiques.
+   --------------------------------------------------------------------------- */
+.saas-admin .cockpit { gap: 16px; }
+.saas-admin .cockpit-onglets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.saas-admin .cockpit-onglets button {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--bordure); background: var(--surface); color: var(--texte-doux); font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.saas-admin .cockpit-onglets button:hover { border-color: var(--bordure-forte); color: var(--texte); }
+.saas-admin .cockpit-onglets button.actif { background: var(--texte); border-color: var(--texte); color: #fff; }
+
+.saas-admin .cockpit-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.saas-admin .cockpit-periodes { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 10px; background: var(--surface); border: 1px solid var(--bordure); }
+.saas-admin .cockpit-periodes button { border: 0; background: transparent; padding: 6px 10px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--texte-doux); cursor: pointer; }
+.saas-admin .cockpit-periodes button:hover { color: var(--texte); background: var(--surface-douce); }
+.saas-admin .cockpit-periodes button.actif { background: var(--accent); color: #fff; }
+.saas-admin .cockpit-filtres, .saas-admin .cockpit-filtres-avances, .saas-admin .cockpit-dates { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.saas-admin .cockpit-filtres-avances { flex-basis: 100%; }
+.saas-admin .cockpit-filtres select, .saas-admin .cockpit-filtres-avances select, .saas-admin .cockpit-dates input { min-height: 34px; padding: 5px 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--surface); max-width: 100%; }
+.saas-admin .cockpit-dates label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--texte-doux); }
+.saas-admin .cockpit-plage { font-size: 13px; font-variant-numeric: tabular-nums; }
+.saas-admin .cockpit-note { margin: -6px 0 0; font-size: 12.5px; }
+
+.saas-admin .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
+.saas-admin .kpis-hero { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.saas-admin .kpi {
+  display: grid; gap: 4px; align-content: start; text-align: left; padding: 14px 16px; border-radius: var(--rayon);
+  border: 1px solid var(--bordure); background: var(--surface); box-shadow: var(--ombre); color: inherit; min-width: 0;
+}
+.saas-admin .kpi.cliquable { cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s, transform 0.12s; }
+.saas-admin .kpi.cliquable:hover { border-color: color-mix(in srgb, var(--accent) 35%, #ffffff); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 12%, transparent); transform: translateY(-1px); }
+.saas-admin .kpi.cliquable:focus-visible { outline: 3px solid var(--accent-doux); outline-offset: 1px; border-color: var(--accent); }
+.saas-admin .kpi-libelle { color: var(--texte-doux); font-size: 12.5px; font-weight: 600; }
+.saas-admin .kpi-valeur { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+.saas-admin .kpi-detail { color: var(--texte-doux); font-size: 12px; }
+.saas-admin .kpi-variation { font-size: 12px; font-weight: 700; color: var(--texte-doux); font-variant-numeric: tabular-nums; }
+.saas-admin .kpi-variation small { font-weight: 500; color: var(--texte-faible); }
+.saas-admin .kpi-variation.bon { color: var(--vert); }
+.saas-admin .kpi-variation.mauvais { color: var(--rouge); }
+.saas-admin .kpi.kpi-alerte .kpi-valeur { color: var(--rouge); }
+.saas-admin .kpi.kpi-attention .kpi-valeur { color: var(--orange); }
+.saas-admin .kpi.fort { background: linear-gradient(160deg, var(--accent-fort), var(--accent)); border-color: transparent; color: #fff; }
+.saas-admin .kpi.fort .kpi-libelle, .saas-admin .kpi.fort .kpi-detail, .saas-admin .kpi.fort .kpi-variation, .saas-admin .kpi.fort .kpi-variation small { color: rgba(255, 255, 255, 0.86); }
+
+.saas-admin .cockpit-grille { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.saas-admin .cockpit-colonnes { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.saas-admin .cockpit-domaines { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.saas-admin .cockpit-domaine h2 { display: inline-flex; align-items: center; gap: 8px; }
+.saas-admin .cockpit-domaine .kpis { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.saas-admin .cockpit-domaine .kpi { box-shadow: none; background: var(--surface-douce); padding: 10px 12px; }
+.saas-admin .cockpit-domaine .kpi-valeur { font-size: 18px; }
+.saas-admin .cockpit-domaine > .bouton { justify-self: start; }
+
+.saas-admin .cockpit-rien { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--vert); font-weight: 600; }
+.saas-admin .attention-liste, .saas-admin .cockpit-liste, .saas-admin .cockpit-repartition { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.saas-admin .attention {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--bordure); background: var(--surface); cursor: pointer; color: inherit;
+}
+.saas-admin .attention:hover:not(:disabled) { border-color: var(--bordure-forte); background: var(--surface-douce); }
+.saas-admin .attention:disabled { cursor: default; }
+.saas-admin .attention-icone { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; }
+.saas-admin .attention-texte { display: grid; gap: 1px; min-width: 0; }
+.saas-admin .attention-texte small { color: var(--texte-doux); font-size: 12px; }
+.saas-admin .attention-nombre { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.saas-admin .niveau-critique { border-left: 3px solid var(--rouge); }
+.saas-admin .niveau-critique .attention-icone { background: var(--rouge-doux); color: var(--rouge); }
+.saas-admin .niveau-alerte { border-left: 3px solid var(--orange); }
+.saas-admin .niveau-alerte .attention-icone { background: var(--orange-doux); color: var(--orange); }
+.saas-admin .niveau-info { border-left: 3px solid var(--accent); }
+.saas-admin .niveau-info .attention-icone { background: var(--accent-doux); color: var(--accent); }
+
+.saas-admin .cockpit-liste button {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left;
+  padding: 8px 4px; border: 0; border-bottom: 1px solid var(--bordure); background: transparent; color: inherit; cursor: pointer;
+}
+.saas-admin .cockpit-liste li:last-child button { border-bottom: 0; }
+.saas-admin .cockpit-liste button:disabled { cursor: default; }
+.saas-admin .cockpit-liste button:hover:not(:disabled) strong { color: var(--accent); }
+.saas-admin .cockpit-liste span { display: grid; gap: 1px; min-width: 0; }
+.saas-admin .cockpit-liste small { color: var(--texte-doux); font-size: 12px; }
+.saas-admin .cockpit-liste-valeur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.saas-admin .repartition-ligne {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; width: 100%; text-align: left;
+  padding: 4px 0; border: 0; background: transparent; color: inherit; cursor: pointer;
+}
+.saas-admin .repartition-ligne:disabled { cursor: default; }
+.saas-admin .repartition-libelle { font-weight: 600; overflow-wrap: anywhere; }
+.saas-admin .repartition-valeur { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.saas-admin .repartition-valeur small { color: var(--texte-doux); font-weight: 500; }
+.saas-admin .repartition-barre { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--surface-douce); overflow: hidden; }
+.saas-admin .repartition-barre span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+
+.saas-admin .actions-rapides { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 860px) {
+  .saas-admin .cockpit-grille { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .kpis, .saas-admin .kpis-hero { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .saas-admin .kpi { padding: 12px; }
+  .saas-admin .kpi-valeur { font-size: 18px; }
+  .saas-admin .kpi-variation small { display: none; }
+  .saas-admin .cockpit-periodes { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+  .saas-admin .cockpit-periodes button { flex: 0 0 auto; }
+  .saas-admin .cockpit-domaines, .saas-admin .cockpit-colonnes { grid-template-columns: minmax(0, 1fr); }
+  .saas-admin .page-header .actions-rapides { width: 100%; }
+}
+
+/* Articles : sélection multiple, catégories, rapport d'import */
+.saas-admin .barre-selection { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 14px;
+  border: 1px solid var(--accent); border-radius: var(--rayon); background: var(--accent-doux); }
+.saas-admin .barre-selection select { width: auto; min-height: 36px; }
+.saas-admin .cellule-case { width: 40px; }
+.saas-admin .cellule-case input { width: 20px; height: 20px; }
+.saas-admin .ligne-categorie { align-items: center; }
+.saas-admin .ordre-categorie .icone-bouton { font-size: 1rem; }
+.saas-admin .rapport-import { display: grid; gap: 8px; }
+.saas-admin .rapport-import ul { margin: 6px 0 0; padding-left: 20px; }
+.saas-admin .rapport-import details summary { cursor: pointer; font-weight: 600; }
+
+/* Corrections : la classe générique « .attention » (liste d'alertes du tableau de bord) ne doit pas déformer
+   une carte d'indicateur de ton « attention » ; la recherche de la prise de commande ne s'étire pas en hauteur. */
+.saas-admin .stat-card.attention { grid-template-columns: none; align-items: initial; width: auto; padding: 16px; border-radius: var(--rayon-grand); cursor: default; }
+.saas-admin .stat-card.attention.cliquable { cursor: pointer; }
+@media (max-width: 640px) { .saas-admin .stat-card.attention { padding: 12px; } }
+.saas-admin .commande-resto .commande-catalogue .recherche { flex: none; max-width: none; }
+
+/* Articles : sélection multiple lisible sur téléphone (barre collée en bas de l'écran). */
+.saas-admin .aide-selection { margin: 0 0 10px; font-size: .9rem; }
+@media (max-width: 720px) {
+  .saas-admin .barre-selection { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 30; margin: 0; max-height: 60vh; overflow-y: auto;
+    background: var(--surface, #fff); box-shadow: 0 6px 24px rgba(0, 0, 0, .25); }
+  .saas-admin .page:has(.barre-selection) { padding-bottom: 260px; }
+  .saas-admin .barre-selection select, .saas-admin .barre-selection .bouton { flex: 1 1 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Confort (2026-10-09) : palette Ctrl+K, préférences d'affichage par appareil (thème, taille du texte,
+   contraste, gros boutons), impression et export des listes.
+   --------------------------------------------------------------------------- */
+.saas-admin .barre-haut-recherche {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; min-width: 200px;
+  border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); color: var(--texte-doux); cursor: pointer;
+}
+.saas-admin .barre-haut-recherche:hover { border-color: var(--bordure-forte); color: var(--texte); }
+.saas-admin .barre-haut-recherche kbd { margin-left: auto; }
+.saas-admin kbd {
+  display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px solid var(--bordure-forte); border-bottom-width: 2px;
+  border-radius: 5px; background: var(--surface-douce); color: var(--texte-doux); font: 600 11px/1.4 var(--police); text-align: center;
+}
+.saas-admin .voile-palette { place-items: start center; padding-top: 12vh; }
+.saas-admin .palette-recherche {
+  width: min(640px, 100%); max-height: 70vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--bordure); border-radius: 14px; box-shadow: var(--ombre-forte);
+}
+.saas-admin .palette-saisie { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--bordure); color: var(--texte-doux); }
+.saas-admin .palette-saisie input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px; color: var(--texte); }
+.saas-admin .palette-resultats { overflow-y: auto; padding: 6px; }
+.saas-admin .palette-groupe { padding: 10px 10px 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--texte-faible); }
+.saas-admin .palette-ligne { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.saas-admin .palette-ligne.active { background: var(--accent-doux); color: var(--accent-fort); }
+.saas-admin .palette-libelle { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saas-admin .palette-ligne small { margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 45%; }
+.saas-admin .palette-note { padding: 10px; margin: 0; }
+.saas-admin .palette-pied { display: flex; flex-wrap: wrap; gap: 14px; padding: 8px 14px; border-top: 1px solid var(--bordure); font-size: 12px; }
+.saas-admin .liste-raccourcis { display: grid; gap: 8px; margin: 0; }
+.saas-admin .liste-raccourcis div { display: flex; align-items: center; gap: 12px; }
+.saas-admin .liste-raccourcis dt { min-width: 120px; display: flex; gap: 4px; }
+.saas-admin .liste-raccourcis dd { margin: 0; }
+@media (max-width: 860px) {
+  .saas-admin .barre-haut-recherche { min-width: 0; padding: 0 9px; }
+  .saas-admin .barre-haut-recherche span, .saas-admin .barre-haut-recherche kbd { display: none; }
+  .saas-admin .voile-palette { padding-top: 8px; }
+  .saas-admin .palette-recherche { max-height: calc(100vh - 16px); }
+  .saas-admin .palette-pied { display: none; }
+}
+
+/* Thème sombre : mêmes rôles de couleur, valeurs foncées. « auto » suit le réglage de l'appareil. */
+.saas-admin.sombre {
+  --fond: #0f141c; --surface: #171e29; --surface-douce: #1c2431; --bordure: #2a3444; --bordure-forte: #3a4658;
+  --texte: #e6eaf0; --texte-doux: #aab3c2; --texte-faible: #808a9b;
+  --accent-doux: #1b2a47; --bleu-doux: #1b2a47; --vert: #34c48f; --vert-doux: #12322a; --orange: #f08a4b; --orange-doux: #3a2414;
+  --rouge: #f26b6b; --rouge-doux: #3a1a1c; --menu: #0b1017; --menu-actif: #1f2a3b;
+  --ombre: 0 1px 2px rgba(0, 0, 0, 0.4); --ombre-forte: 0 12px 32px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+.saas-admin.sombre .barre-haut { background: rgba(23, 30, 41, 0.92); }
+.saas-admin.sombre .bandeau.attention { background: #3a2f12; color: #f5d27a; }
+/* La couleur de marque écrit ses nuances douces directement sur <html> : en sombre, on les recalcule sur <body>. */
+.saas-admin.sombre { --accent-doux: color-mix(in srgb, var(--accent) 24%, #171e29); --bleu-doux: color-mix(in srgb, var(--accent) 24%, #171e29); }
+/* Les documents imprimables (tickets, factures A4) restent noir sur blanc. */
+
+/* Contraste élevé : textes plus foncés, bordures plus nettes, liens soulignés. */
+
+/* Taille du texte : tout l'écran est agrandi (les tailles sont en pixels). */
+
+/* Gros boutons (écrans tactiles de caisse et de salle) : cibles d'au moins 48 px. */
+
+/* Impression d'une liste : seul le tableau demandé sort, sans menu ni barres. */
+@media print {
+  .saas-admin.impression-liste * { visibility: hidden; }
+  .saas-admin.impression-liste .a-imprimer, .saas-admin.impression-liste .a-imprimer * { visibility: visible; }
+  .saas-admin.impression-liste .a-imprimer { position: absolute; left: 0; top: 0; width: 100%; }
+  .saas-admin.impression-liste .a-imprimer .data-table-outils, .saas-admin.impression-liste .a-imprimer .pagination { display: none; }
+  .saas-admin.impression-liste .tableau { font-size: 11px; }
+  .saas-admin.impression-liste .titre-impression { display: block; }
+}
+.saas-admin .titre-impression { display: none; margin: 0 0 8px; font-size: 16px; }
+.saas-admin .data-table-export { display: inline-flex; gap: 2px; }
+
+/* Téléphone : cibles tactiles d'au moins 36 px (en-têtes triables, liens d'action, périodes, couleurs). */
+@media (max-width: 640px) {
+  .saas-admin .tableau th.triable button { min-height: 36px; }
+  .saas-admin td .lien, .saas-admin .actions-ligne .lien { display: inline-flex; align-items: center; min-height: 36px; padding-inline: 4px; }
+  .saas-admin .cockpit-periodes button { min-height: 36px; }
+  .saas-admin .palette button { width: 36px; height: 36px; }
+}
+
+/* Caisse : ventes en attente, comptage du tiroir par coupures. */
+.saas-admin .liste-attentes { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.saas-admin .liste-attentes li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 10px; }
+.saas-admin .comptage-coupures { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; border: 1px solid var(--bordure); border-radius: 10px; padding: 10px 12px; margin: 0; }
+.saas-admin .comptage-coupures legend { padding: 0 6px; font-weight: 600; }
+.saas-admin .coupure { display: grid; grid-template-columns: 1fr 80px; align-items: center; gap: 4px 8px; }
+.saas-admin .coupure small { grid-column: 1 / -1; }
+
+/* Paramètres › Connexions : une carte par service. */
+.saas-admin .grille-integrations { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.saas-admin .carte.integration h3 { margin: 0; font-size: 15px; }
+.saas-admin .carte.integration p { margin: 8px 0; }
+
+/* Bandeaux d'état : connexion perdue, nouvelle version (lot G). */
+.saas-admin .bandeau-etat { padding: 10px 14px; border-radius: var(--rayon); margin-bottom: 12px; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.saas-admin .bandeau-etat.alerte { background: var(--orange-doux); color: var(--orange); }
+.saas-admin .bandeau-etat.succes { background: var(--vert-doux); color: var(--vert); }
+.saas-admin .bandeau-etat.info { background: var(--accent-doux); color: var(--texte); }
+
+/* Espace client (lien public) : page lisible sur téléphone, messages du client à droite. */
+.saas-admin .espace-client { max-width: 900px; margin: 0 auto; padding: 16px; }
+.saas-admin .espace-client progress { width: 100%; height: 10px; }
+.saas-admin .espace-client .message-client { margin-left: 15%; border-color: var(--accent, #2563eb); }
+.saas-admin .creneaux { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Recadrage d'une photo (lot G2) */
+.saas-admin .recadrage-cadre { position: relative; display: inline-block; max-width: 100%; touch-action: none; user-select: none; line-height: 0; }
+.saas-admin .recadrage-cadre img { display: block; max-width: 100%; max-height: 60vh; }
+.saas-admin .recadrage-zone { position: absolute; box-shadow: 0 0 0 9999px rgb(0 0 0 / 45%); outline: 2px solid #fff; cursor: move; }
+.saas-admin .recadrage-cadre { overflow: hidden; }
+.saas-admin .recadrage-zone:focus-visible, .saas-admin .recadrage-poignee:focus-visible { outline: 3px solid var(--accent, #2563eb); }
+.saas-admin .recadrage-poignee { position: absolute; width: 24px; height: 24px; background: #fff; border: 2px solid var(--accent, #2563eb); border-radius: 50%; }
+.saas-admin .recadrage-poignee.hg { left: -12px; top: -12px; cursor: nwse-resize; }
+.saas-admin .recadrage-poignee.hd { right: -12px; top: -12px; cursor: nesw-resize; }
+.saas-admin .recadrage-poignee.bg { left: -12px; bottom: -12px; cursor: nesw-resize; }
+.saas-admin .recadrage-poignee.bd { right: -12px; bottom: -12px; cursor: nwse-resize; }
+
+/* Elite Partners */
+.saas-admin .bloc-code { display: block; padding: 8px 10px; border-radius: 8px; background: var(--surface-douce, rgba(127, 127, 127, 0.08)); font-family: ui-monospace, monospace; font-size: 13px; white-space: pre-wrap; word-break: break-all; margin: 6px 0; }
+.saas-admin .espace-partenaire { min-height: 100vh; background: var(--fond, transparent); }
+.saas-admin .espace-partenaire-entete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--bordure, rgba(127, 127, 127, 0.2)); flex-wrap: wrap; }
+.saas-admin .espace-partenaire-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.saas-admin .espace-partenaire > .page { max-width: 1200px; margin: 0 auto; }
+.saas-admin .pile-serree { display: flex; flex-direction: column; gap: 2px; }
+.saas-admin .espace-partenaire a.bouton { text-decoration: none; }
+
+/* Bulle d'aide d'un écran (src/noyau/aides.js) */
+.saas-admin .bulle-aide { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--accent-doux, #EAF2FF); color: var(--texte, #1f2328); }
+.saas-admin .bulle-aide span { flex: 1; }
+
+/* Bandeau « Nouveau » (src/ui/Nouveau.jsx) : affiché 72 h après une nouveauté. */
+.saas-admin .bandeau-nouveau { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 12px; border: 1px solid var(--accent); border-radius: var(--rayon); background: var(--accent-doux); color: var(--texte); }
+.saas-admin .pastille-nouveau { display: inline-block; flex: none; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; vertical-align: middle; }
+.saas-admin h2 .pastille-nouveau, .saas-admin .champ-libelle .pastille-nouveau { margin-left: 6px; }
+
+/* Pop-ups « Tu continues ? » / « Tu es toujours là ? » (VerrouCaisse) : gros boutons empilés, lisibles au téléphone. */
+.saas-admin .presence-caisse { display: grid; gap: 12px; font-size: 16px; }
+.saas-admin .presence-caisse p { margin: 0; }
+.saas-admin .presence-resume { font-weight: 600; }
+.saas-admin .presence-question { font-size: 18px; font-weight: 600; }
+.saas-admin .presence-rebours { padding: 10px 12px; border-radius: var(--rayon); background: var(--rouge-doux); color: var(--rouge); font-size: 17px; text-align: center; }
+.saas-admin .presence-rebours strong { font-size: 22px; font-variant-numeric: tabular-nums; }
+.saas-admin .presence-actions { display: grid; gap: 10px; }
+.saas-admin .presence-actions .bouton.grand { min-height: 56px; font-size: 17px; }
+/* Menu QR d'une table (#/menu/<jeton>) : pensé pour un téléphone tenu d'une main. */
+.saas-admin .menu-public { max-width: 760px; margin: 0 auto; padding: 16px 16px 96px; display: grid; gap: 16px; }
+.saas-admin .menu-tete { display: flex; align-items: center; gap: 14px; }
+.saas-admin .menu-tete h1 { margin: 0; font-size: 1.5rem; text-wrap: balance; }
+.saas-admin .menu-message { margin: 0.4rem 0 0; }
+.saas-admin .menu-outils { position: sticky; top: 0; z-index: 2; display: grid; gap: 8px; padding: 8px 0; background: var(--fond, #fff); }
+.saas-admin .menu-outils input[type='search'] { width: 100%; min-height: 44px; }
+.saas-admin .menu-categorie h2 { font-size: 1.1rem; margin: 8px 0; }
+.saas-admin .menu-articles { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.saas-admin .menu-articles li { display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); }
+.saas-admin .menu-articles li.epuise { opacity: 0.55; }
+.saas-admin .menu-articles img { width: 64px; height: 64px; object-fit: cover; border-radius: var(--rayon); flex: none; }
+.saas-admin .menu-article-texte { flex: 1; display: grid; gap: 2px; min-width: 0; }
+.saas-admin .menu-article-prix { display: grid; justify-items: end; gap: 6px; }
+.saas-admin .menu-article-prix .quantite { display: flex; align-items: center; gap: 8px; }
+.saas-admin .menu-barre-panier { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--bordure); display: flex; justify-content: center; z-index: 3; }
+.saas-admin .menu-barre-panier .bouton { width: 100%; max-width: 728px; min-height: 52px; }
+.saas-admin .menu-panier .lignes-panier li { align-items: flex-start; }
+.saas-admin .menu-precision { display: block; margin-top: 4px; width: 100%; font-size: 0.85rem; }
+.saas-admin .menu-suivi ul { padding-left: 1.1rem; }
+.saas-admin .menu-pied { text-align: center; }
+
+/* Copier des articles (espace Agence Elite) : grille de cartes à cocher avec photo. */
+.saas-admin .copie-filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.saas-admin .copie-filtres input[type=search] { flex: 1 1 200px; }
+.saas-admin .copie-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.saas-admin .copie-carte { position: relative; display: grid; gap: 4px; padding: 8px; border: 1px solid var(--bordure); border-radius: var(--rayon); background: var(--surface); cursor: pointer; }
+.saas-admin .copie-carte.cochee { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-doux); }
+.saas-admin .copie-carte input[type=checkbox] { position: absolute; top: 8px; left: 8px; width: 20px; height: 20px; }
+.saas-admin .copie-vignette { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--rayon) - 2px); background: var(--accent-doux); }
+.saas-admin .copie-vignette-vide { display: grid; place-items: center; font-weight: 700; color: var(--accent); }
+.saas-admin .copie-nom { font-weight: 600; line-height: 1.2; }
+.saas-admin .copie-prix { display: grid; gap: 8px; }
+.saas-admin .copie-prix-ligne { display: grid; grid-template-columns: 48px 1fr 140px; gap: 10px; align-items: center; }
+.saas-admin .copie-prix-ligne .copie-vignette { width: 48px; }
+.saas-admin .copie-prix-choix { display: grid; gap: 6px; border: 0; padding: 0; margin: 8px 0; }
+.saas-admin .copie-pourcentage { width: 80px; margin: 0 6px; }
+/* Rapport du soir (#/rapport-du-soir) : gros chiffres lisibles, envoi au patron sur WhatsApp. */
+.saas-admin .rapport-soir .stat-card-valeur { font-size: 26px; }
+.saas-admin .rapport-soir-top { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; }
+.saas-admin .rapport-soir-top li strong { float: right; font-variant-numeric: tabular-nums; }
+.saas-admin .rapport-soir-numero { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.saas-admin .rapport-soir-numero .champ { flex: 1 1 220px; max-width: 320px; }
+.saas-admin .rapport-soir textarea { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.45; }
+
+/* Accueil de l'espace Agence Elite : écrans de secours quand le CRM est indisponible */
+.saas-admin .acces-secours { margin-top: 8px; }
+.saas-admin .acces-secours summary { cursor: pointer; color: var(--texte-doux, inherit); font-weight: 500; }
+.saas-admin .acces-secours ul { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; }
+

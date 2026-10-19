@@ -913,7 +913,7 @@ function Plus({ c, onChoisir, onFermer, onFait }) {
               >
                 <Icon n="ban" size={14} /> {e.statut === 'suspendu' ? 'Débloquer' : 'Bloquer'} l’établissement
               </button>
-              <a className="btn sm" href={`${ADRESSE_SAAS}/#/editeur/etablissement/${e.id}`} target="_blank" rel="noreferrer">
+              <a className="btn sm" href={`#/editeur/etablissements/${e.id}`}>
                 <Icon n="settings" size={14} /> Réglages avancés
               </a>
             </div>
@@ -1045,7 +1045,7 @@ const OUTILS = [
   ['Adresses web', 'Adresses de connexion des clients', 'globe', 'editeur/adresses'],
   ['Sites clients', 'Sites publics des clients', 'folder', 'editeur/sites'],
   ['Copier des articles', 'D’un client à un autre, bibliothèque', 'copy', 'editeur/copie-articles'],
-  ['Tableau détaillé', 'Ancien tableau de bord de l’éditeur', 'chart', 'editeur/tableau'],
+  ['Tableau détaillé', 'Chiffres détaillés de la plateforme', 'chart', 'editeur/tableau'],
 ]
 export function OutilsPlateforme() {
   const p = usePlateforme()
@@ -1054,7 +1054,7 @@ export function OutilsPlateforme() {
       <div className="pf-tete">
         <div>
           <h1 className="pf-titre">Boîte à outils</h1>
-          <p className="small muted">Les réglages moins fréquents de la plateforme. Chaque bouton ouvre l’écran dans le SaaS, en accès Agence Elite.</p>
+          <p className="small muted">Les réglages moins fréquents de la plateforme, directement ici dans le CRM.</p>
         </div>
         {p.connecte && (
           <button
@@ -1071,7 +1071,7 @@ export function OutilsPlateforme() {
       </div>
       <div className="pf-outils">
         {OUTILS.map(([nom, desc, ico, route]) => (
-          <a key={route} className="card pf-outil" href={`${ADRESSE_SAAS}/#/${route}`} target="_blank" rel="noreferrer">
+          <a key={route} className="card pf-outil" href={`#/${route}`}>
             <Icon n={ico} size={20} />
             <strong>{nom}</strong>
             <span className="small muted">{desc}</span>
