@@ -51,6 +51,7 @@ export const ESPACES_NAV = [
         sub: [['?filtre=danger', 'En danger'], ['?filtre=licence', 'Licence à régler'], ['?filtre=bloques', 'Bloqués']],
         pages: ['plateforme-client', 'editeur/clients', 'editeur/etablissements'],
       },
+      { route: 'operations', label: 'Opérations et réconciliation', ico: 'repeat' },
       { route: 'editeur/comptes', label: 'Comptes et accès', ico: 'users' },
       { route: 'editeur/hubs', label: 'Points de vente (Hubs)', ico: 'layers' },
       { route: 'editeur/adresses', label: 'Adresses de connexion', ico: 'globe' },
@@ -193,6 +194,9 @@ export function pagesRecherche(accessible = () => true) {
 // Adresse à corriger (ancienne route) ou null
 export function redirection(route) {
   const [chemin, query] = route.split('?')
+  // Page client de l'éditeur : la fiche client unique (ses réglages sont dans l'onglet « Réglages avancés »)
+  const client = chemin.match(/^editeur\/clients\/([^/]+)$/)
+  if (client) return `plateforme-client/${client[1]}?onglet=avance`
   const cible = REDIRECTIONS[chemin]
   return cible ? `${cible}${query ? `?${query}` : ''}` : null
 }

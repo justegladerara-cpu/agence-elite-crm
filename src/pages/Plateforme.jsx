@@ -1,9 +1,9 @@
 // Plateforme : le CRM est le centre d'administration d'Agence Elite (ce que faisait le super admin du SaaS).
 // Tour de contrôle (tout voir), Clients de la plateforme, fiche client complète avec ses boutons, boîte à outils.
 // Les données des clients restent dans la base de la plateforme : le CRM les lit et agit par ses fonctions.
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { Modal, Field, Chips, Empty, confirmer, go, BoutonCopier, Bloc, Indicateur, deviseCode } from '../ui'
+import { Modal, Field, Chips, Empty, confirmer, go, BoutonCopier, Bloc, Indicateur, deviseCode, Tabs, KV } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { appeler, deconnecter, sessionValide } from '../modules/plateforme/connexion'
 import { ConnexionPlateforme } from '../modules/plateforme/ui'
@@ -13,7 +13,7 @@ import { argent, afficherSommes, deviseDe } from '../lib/argent'
 import { pageAccessible } from '../core/modules'
 import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
-import { A_REPRENDRE, ETATS, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
+import { A_REPRENDRE, ETATS, GESTES, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
 // Montant dans sa vraie devise ; sans devise connue (paiement du CRM), celle réglée dans Paramètres
@@ -381,6 +381,10 @@ function ListeClients({ p, filtreInitial }) {
           <label className="small muted row" style={{ gap: 6 }}>
             <input type="checkbox" checked={tout} onChange={(e) => setTout(e.target.checked)} /> Démo et archives
           </label>
+          {/* Création guidée : client, puis la fiche montre les étapes suivantes (établissement, licence, compte) */}
+          <button className="btn primary" onClick={() => go('/editeur/clients?nouveau=1')}>
+            <Icon n="plus" size={14} /> Nouveau client
+          </button>
         </div>
       </div>
       <div className="chips">
@@ -430,47 +434,91 @@ function ListeClients({ p, filtreInitial }) {
   )
 }
 
-// ——— Fiche client complète ———
-export function FichePlateforme({ id, faire }) {
+// ——— Fiche client unique (lot 5) ———
+// Une seule fiche par client du logiciel, à onglets. L'ancienne page client de l'éditeur y mène (redirection) et
+// reste disponible dans « Réglages avancés ». Chaque geste sur l'argent ou l'accès est séparé, confirmé et tracé.
+export const ONGLETS_FICHE = [
+  ['resume', 'Résumé'],
+  ['etablissements', 'Établissements'],
+  ['licences', 'Licences et paiements'],
+  ['modules', 'Modules'],
+  ['comptes', 'Comptes'],
+  ['assistance', 'Assistance'],
+  ['avance', 'Réglages avancés'],
+]
+const FAIRE = ['encaisser', 'prolonger', 'renouveler', 'bloquer', 'debloquer', 'message', 'assister']
+
+export function FichePlateforme({ id, faire, onglet, mdp }) {
   const p = usePlateforme()
   return (
     <Garde p={p} titre="Fiche client">
-      <Fiche360 key={id} p={p} id={id} faire={faire} />
+      <Fiche360 key={id} p={p} id={id} faire={faire} ongletDemande={onglet} mdpDemande={mdp} />
     </Garde>
   )
 }
 
-function Fiche360({ p, id, faire }) {
+// Comptes de la plateforme : lus seulement quand l'onglet Comptes est ouvert, gardés 2 minutes (pas à chaque fiche)
+let comptesCache = null
+async function lireComptes(forcer) {
+  if (!forcer && comptesCache && Date.now() - comptesCache.t < 120000) return comptesCache.liste
+  const liste = await appeler('editeur_comptes')
+  comptesCache = { t: Date.now(), liste: liste || [] }
+  return comptesCache.liste
+}
+export const viderComptes = () => (comptesCache = null)
+
+function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
   const c = p.etat.clients.find((x) => x.id === id)
   const { settings, toast } = useNoyau()
   const { prospects = [], actions = [] } = useDonnees()
+  const [onglet, setOnglet] = useState(ONGLETS_FICHE.some(([k]) => k === ongletDemande) ? ongletDemande : mdpDemande ? 'comptes' : 'resume')
   const [chrono, setChrono] = useState(null)
   const [comptes, setComptes] = useState(null)
-  const [modale, setModale] = useState(['encaisser', 'prolonger', 'bloquer', 'debloquer', 'message', 'assister'].includes(faire) ? faire : null)
-  const charger = useCallback(() => {
+  const [modale, setModale] = useState(FAIRE.includes(faire) ? faire : null)
+  const chargerChrono = useCallback(() => {
     appeler('pilotage_chronologie', { p_client_id: id, p_limite: 80 }).then(setChrono, (e) => setChrono({ erreur: e.message }))
-    appeler('editeur_comptes').then(setComptes, () => setComptes([]))
   }, [id])
+  const chargerComptes = useCallback((forcer) => {
+    setComptes((x) => (forcer ? null : x))
+    lireComptes(forcer).then(setComptes, (e) => setComptes({ erreur: e.message }))
+  }, [])
   useEffect(() => {
-    charger()
-  }, [charger])
+    chargerChrono()
+  }, [chargerChrono])
+  useEffect(() => {
+    if (onglet === 'comptes' && comptes === null) chargerComptes()
+  }, [onglet, comptes, chargerComptes])
+  // Lien « mot de passe » venu d'un autre écran : le seul chemin passe par l'onglet Comptes
+  useEffect(() => {
+    if (mdpDemande && Array.isArray(comptes)) {
+      const u = comptes.find((x) => x.id === mdpDemande)
+      if (u) setModale({ mdp: u })
+    }
+  }, [mdpDemande, comptes])
   if (!c) return <Empty>Client introuvable sur la plateforme.</Empty>
   const fiche = ficheLiee(c, settings, prospects)
   const ids = new Set(c.etablissements.map((e) => e.id))
-  const sesComptes = (comptes || []).filter((u) => u.acces.some((a) => ids.has(a.etablissement_id)))
+  const sesComptes = Array.isArray(comptes) ? comptes.filter((u) => (u.acces || []).some((a) => ids.has(a.etablissement_id))) : []
   const paiementsCrm = fiche ? actions.filter((a) => a.prospect_id === fiche.id && a.action === 'Paiement reçu').sort((a, b) => (a.date < b.date ? 1 : -1)) : []
+  const etabs = c.etablissements.filter((e) => e.statut !== 'archive')
   // Après une action : la fenêtre se ferme (sauf si elle doit rester ouverte), puis tout est relu
   const apres = async (message, garder) => {
     if (!garder) fermer()
     toast(`${message} ✓`)
     await p.recharger()
-    charger()
+    chargerChrono()
+    if (Array.isArray(comptes)) chargerComptes(true)
   }
   const fermer = () => {
     setModale(null)
-    if (faire) window.history.replaceState(null, '', `#/plateforme-client/${id}`)
+    if (faire || mdpDemande) window.history.replaceState(null, '', `#/plateforme-client/${id}${onglet !== 'resume' ? `?onglet=${onglet}` : ''}`)
+  }
+  const changerOnglet = (o) => {
+    setOnglet(o)
+    window.history.replaceState(null, '', `#/plateforme-client/${id}${o !== 'resume' ? `?onglet=${o}` : ''}`)
   }
   const bloque = c.statut === 'suspendu'
+  const compte = (o) => (o === 'etablissements' ? etabs.length : o === 'comptes' && Array.isArray(comptes) ? sesComptes.length : undefined)
   return (
     <div className="stack pf">
       <button className="btn sm ghost pf-retour" onClick={() => go('/plateforme')}>
@@ -481,6 +529,7 @@ function Fiche360({ p, id, faire }) {
           <h1 className="pf-titre">{c.nom}</h1>
           <div className="row small muted">
             <Sante s={c.sante} />
+            {bloque && <span className="badge b-red">Client bloqué</span>}
             {c.pays && <span>{c.pays}</span>}
             {c.contact?.telephone && <a href={`tel:${c.contact.telephone}`}>{c.contact.telephone}</a>}
             {fiche ? (
@@ -492,35 +541,21 @@ function Fiche360({ p, id, faire }) {
             )}
           </div>
         </div>
-        <div className="pf-chiffres compact">
-          <Chiffre label="Paie par mois" valeur={enDevise(c.mensuel, c.devise)} />
-          <Chiffre label="Licence" valeur={c.joursRestants == null ? '—' : c.joursRestants < 0 ? `Échue (${-c.joursRestants} j)` : `${c.joursRestants} j`} ton={c.joursRestants != null && c.joursRestants < 0 ? 'rouge' : c.joursRestants != null && c.joursRestants <= 7 ? 'orange' : ''} />
-          <Chiffre label="Ventes 30 j" valeur={enDevise(c.ventes30j, c.devise)} />
-          <Chiffre label="Activité" valeur={quand(c.derniereActivite)} />
-        </div>
         {c.message && (
           <p className={`pf-message ${c.message.ton}`}>
             Message affiché au client : « {c.message.texte} »
           </p>
         )}
+        {/* Densité : 1 action principale, 3 secondaires au plus, le reste dans « Plus » */}
         <div className="pf-boutons">
           <button className="btn primary" onClick={() => setModale('encaisser')}>
             <Icon n="coins" size={15} /> Encaisser
           </button>
-          <button className="btn" onClick={() => go(`/facture/new?type=facture${fiche ? `&p=${fiche.id}` : ''}`)}>
-            <Icon n="file" size={15} /> Facturer
-          </button>
           <button className="btn" onClick={() => setModale('prolonger')}>
             <Icon n="clock" size={15} /> Prolonger
           </button>
-          <button className={`btn ${bloque ? 'primary' : 'danger'}`} onClick={() => setModale(bloque ? 'debloquer' : 'bloquer')}>
-            <Icon n="ban" size={15} /> {bloque ? 'Débloquer' : 'Bloquer'}
-          </button>
-          <button className="btn" onClick={() => setModale('message')}>
-            <Icon n="message" size={15} /> Message
-          </button>
-          <button className="btn" onClick={() => setModale('assister')}>
-            <Icon n="eye" size={15} /> Assister
+          <button className="btn" onClick={() => go(`/facture/new?type=facture${fiche ? `&p=${fiche.id}` : ''}`)}>
+            <Icon n="file" size={15} /> Facturer
           </button>
           <button className="btn" onClick={() => setModale('plus')}>
             <Icon n="more" size={15} /> Plus
@@ -528,10 +563,30 @@ function Fiche360({ p, id, faire }) {
         </div>
       </section>
       <OperationsAReconcilier clientId={c.id} onFait={(m) => apres(m, true)} />
+      <Tabs items={ONGLETS_FICHE.map(([k, l]) => [k, l, compte(k)])} value={onglet} onChange={changerOnglet} />
 
-      <div className="pf-grille deux">
+      {onglet === 'resume' && (
+        <div className="pf-grille deux">
+          <div className="stack">
+            <MiseEnRoute c={c} comptes={Array.isArray(comptes) ? sesComptes : null} onOnglet={changerOnglet} />
+            <section className="card">
+              <h2 className="section">En bref</h2>
+              <div className="pf-chiffres compact">
+                <Chiffre label="Paie par mois" valeur={enDevise(c.mensuel, c.devise)} />
+                <Chiffre label="Licence" valeur={c.joursRestants == null ? '—' : c.joursRestants < 0 ? `Échue (${-c.joursRestants} j)` : `${c.joursRestants} j`} ton={c.joursRestants != null && c.joursRestants < 0 ? 'rouge' : c.joursRestants != null && c.joursRestants <= 7 ? 'orange' : ''} />
+                <Chiffre label="Ventes 30 j" valeur={enDevise(c.ventes30j, c.devise)} />
+                <Chiffre label="Activité" valeur={quand(c.derniereActivite)} />
+              </div>
+            </section>
+          </div>
+          <Histoire chrono={chrono} c={c} />
+        </div>
+      )}
+
+      {onglet === 'etablissements' && (
         <div className="stack">
-          {c.etablissements.map((e) => (
+          {etabs.length === 0 && <Empty>Aucun établissement. Crée-le dans « Réglages avancés ».</Empty>}
+          {etabs.map((e) => (
             <section key={e.id} className="card">
               <div className="pf-carte-tete">
                 <h2 className="section">{e.nom}</h2>
@@ -556,8 +611,9 @@ function Fiche360({ p, id, faire }) {
                 </span>
               </div>
               <p className="small muted">
-                {e.licence ? `${e.licence.offre} · ${e.licence.formule} · échéance ${date(e.licence.echeance)}` : 'Aucune licence'} · {e.membres_actifs} membre(s) · dernière connexion {quand(e.activite.derniere_connexion)}
+                {e.membres_actifs} membre(s) · dernière connexion {quand(e.activite.derniere_connexion)}
                 {e.activite.caisses_ouvertes ? ` · ${e.activite.caisses_ouvertes} caisse(s) ouverte(s)` : ''}
+                {e.statut === 'suspendu' ? ' · établissement bloqué' : ''}
               </p>
               {e.sante.raisons.length > 0 && (
                 <ul className="pf-raisons">
@@ -568,41 +624,74 @@ function Fiche360({ p, id, faire }) {
                   ))}
                 </ul>
               )}
+              <div className="pf-boutons">
+                <a className="btn sm" href={`#/editeur/etablissements/${e.id}`}>
+                  <Icon n="settings" size={14} /> Hubs, équipe, mise en service
+                </a>
+              </div>
             </section>
           ))}
-          <section className="card">
-            <h2 className="section">Comptes ({sesComptes.length})</h2>
-            {comptes === null ? (
-              <p className="small muted">Chargement…</p>
-            ) : sesComptes.length === 0 ? (
-              <Empty>Aucun compte.</Empty>
-            ) : (
-              <ul className="pf-liste">
-                {sesComptes.map((u) => (
-                  <li key={u.id} className="pf-fil">
-                    <span className="pf-alerte-txt">
-                      <strong>{u.nom || u.identifiant || u.email}</strong>
-                      <span className="bloc small muted">
-                        {u.identifiant ? `${u.identifiant} · ` : ''}
-                        {u.acces.filter((a) => ids.has(a.etablissement_id)).map((a) => `${a.role}${a.actif ? '' : ' (désactivé)'}`).join(', ')} · connecté {quand(u.derniere_connexion)}
-                      </span>
-                    </span>
-                    <button className="btn sm" onClick={() => setModale({ mdp: u })}>
-                      Mot de passe
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          {fiche && (
+        </div>
+      )}
+
+      {onglet === 'licences' && (
+        <div className="pf-grille deux">
+          <div className="stack">
+            {etabs.map((e) => (
+              <section key={e.id} className="card">
+                <div className="pf-carte-tete">
+                  <h2 className="section">{e.nom}</h2>
+                  {e.licence ? <span className={`badge ${e.licence.statut === 'suspendue' ? 'b-red' : e.licence.valide ? 'b-green' : 'b-orange'}`}>{e.licence.statut === 'suspendue' ? 'Suspendue' : e.licence.valide ? 'Valide' : 'Expirée'}</span> : <span className="badge b-orange">Aucune licence</span>}
+                </div>
+                {e.licence ? (
+                  <>
+                    <KV
+                      rows={[
+                        ['Offre', `${e.licence.offre || '—'} · ${e.licence.formule || '—'}`],
+                        ['Échéance', `${date(e.licence.echeance)}${e.licence.jours_restants != null ? ` (${e.licence.jours_restants < 0 ? `échue depuis ${-e.licence.jours_restants} j` : `dans ${e.licence.jours_restants} j`})` : ''}`],
+                        ['Montant', enDevise(e.licence.montant, e.devise)],
+                      ]}
+                    />
+                    <div className="pf-boutons">
+                      <button className="btn sm primary" onClick={() => setModale({ encaisser: e.id })}>
+                        Encaisser et renouveler
+                      </button>
+                      <button className="btn sm" onClick={() => setModale({ renouveler: e.id })}>
+                        Renouveler sans encaissement
+                      </button>
+                      <button className="btn sm" onClick={() => setModale({ prolonger: e.id })}>
+                        Prolongation gratuite
+                      </button>
+                      <button className={`btn sm ${e.licence.statut === 'suspendue' ? '' : 'danger'}`} onClick={() => setModale({ licence: e })}>
+                        {e.licence.statut === 'suspendue' ? 'Réactiver la licence' : 'Suspendre la licence'}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="pf-boutons">
+                    <a className="btn sm primary" href={`#/editeur/etablissements/${e.id}`}>
+                      Attribuer une licence
+                    </a>
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+          <div className="stack">
             <section className="card">
               <h2 className="section">Paiements reçus (CRM)</h2>
-              {paiementsCrm.length === 0 ? (
+              {!fiche ? (
+                <p className="small muted">
+                  Relie ce client à une fiche CRM pour voir ses paiements.{' '}
+                  <button className="pf-lien" onClick={() => setModale('relier')}>
+                    Relier
+                  </button>
+                </p>
+              ) : paiementsCrm.length === 0 ? (
                 <Empty>Aucun paiement noté pour cette fiche.</Empty>
               ) : (
                 <ul className="pf-liste">
-                  {paiementsCrm.slice(0, 8).map((a) => (
+                  {paiementsCrm.slice(0, 12).map((a) => (
                     <li key={a.id} className="pf-fil">
                       <span className="pf-alerte-txt">
                         <strong>{enDevise(a.montant)}</strong>
@@ -615,35 +704,109 @@ function Fiche360({ p, id, faire }) {
                 </ul>
               )}
             </section>
-          )}
+            <JournalGestes clientId={c.id} />
+          </div>
         </div>
-        <section className="card">
-          <h2 className="section">Histoire du client</h2>
-          {!chrono ? (
-            <p className="small muted">Chargement…</p>
-          ) : chrono.erreur ? (
-            <p className="pf-erreur">{chrono.erreur}</p>
-          ) : chrono.length === 0 ? (
-            <Empty>Rien pour l’instant.</Empty>
-          ) : (
-            <ol className="pf-chrono">
-              {chrono.map((ev, i) => (
-                <li key={i} className={ev.type.split('.')[0]}>
-                  <span className="pf-chrono-date">{date(ev.date)}</span>
-                  <span>
-                    <strong>{LIBELLES_CHRONO[ev.type] || ev.type}</strong>
-                    {ev.montant ? ` · ${enDevise(ev.montant, c.devise)}` : ''}
-                    <span className="bloc small muted">{[ev.etablissement, ev.detail].filter(Boolean).join(' · ')}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-      </div>
+      )}
 
-      {modale === 'encaisser' && <Encaisser c={c} fiche={fiche} onFermer={fermer} onFait={apres} />}
-      {modale === 'prolonger' && <Prolonger c={c} onFermer={fermer} onFait={apres} />}
+      {onglet === 'modules' && (
+        <div className="stack">
+          {etabs.map((e) => (
+            <section key={e.id} className="card">
+              <div className="pf-carte-tete">
+                <h2 className="section">{e.nom}</h2>
+                <button className="btn sm" onClick={() => setModale({ modules: e })}>
+                  <Icon n="layers" size={14} /> Gérer les modules
+                </button>
+              </div>
+              <p className="small muted">{e.licence?.modules?.length ? `Inclus dans la licence : ${e.licence.modules.join(', ')}` : 'Modules : ouvre « Gérer les modules » pour les voir et les changer.'}</p>
+            </section>
+          ))}
+          {etabs.length === 0 && <Empty>Aucun établissement.</Empty>}
+        </div>
+      )}
+
+      {onglet === 'comptes' && (
+        <Bloc
+          id="comptes"
+          titre={`Comptes${Array.isArray(comptes) ? ` (${sesComptes.length})` : ''}`}
+          etat={comptes === null ? { etat: 'chargement' } : comptes.erreur ? { etat: /super admin|refus/i.test(comptes.erreur) ? 'refuse' : 'erreur', raison: comptes.erreur } : sesComptes.length === 0 ? { etat: 'vide' } : { etat: 'donnees' }}
+          vide="Aucun compte pour ce client."
+          onReessayer={() => chargerComptes(true)}
+          entete={
+            <button className="btn sm ghost" onClick={() => chargerComptes(true)}>
+              <Icon n="rotate" size={14} /> Actualiser
+            </button>
+          }
+        >
+          <ul className="pf-liste">
+            {sesComptes.map((u) => (
+              <li key={u.id} className="pf-fil">
+                <span className="pf-alerte-txt">
+                  <strong>{u.nom || u.identifiant || u.email}</strong>
+                  <span className="bloc small muted">
+                    {u.identifiant ? `${u.identifiant} · ` : ''}
+                    {u.acces.filter((a) => ids.has(a.etablissement_id)).map((a) => `${a.role}${a.actif ? '' : ' (désactivé)'}`).join(', ')} · connecté {quand(u.derniere_connexion)}
+                  </span>
+                </span>
+                <button className="btn sm" onClick={() => setModale({ mdp: u })}>
+                  Mot de passe
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Bloc>
+      )}
+
+      {onglet === 'assistance' && (
+        <div className="grid grid-2">
+          <section className="card">
+            <h2 className="section">Voir ce que voit le client</h2>
+            <p className="small muted">Session d’assistance en lecture, avec un motif, tracée côté plateforme.</p>
+            <div className="pf-boutons">
+              <button className="btn primary" onClick={() => setModale('assister')}>
+                <Icon n="eye" size={15} /> Assister
+              </button>
+            </div>
+          </section>
+          <section className="card">
+            <h2 className="section">Message affiché dans le logiciel</h2>
+            <p className="small muted">{c.message ? `En ce moment : « ${c.message.texte} »` : 'Aucun message en ce moment.'}</p>
+            <div className="pf-boutons">
+              <button className="btn" onClick={() => setModale('message')}>
+                <Icon n="message" size={15} /> {c.message ? 'Changer le message' : 'Écrire un message'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {onglet === 'avance' && (
+        <div className="stack">
+          <MiseEnRoute c={c} comptes={Array.isArray(comptes) ? sesComptes : null} onOnglet={changerOnglet} />
+          <section className="card zone-danger">
+            <h2 className="section">Zone danger</h2>
+            <p className="small muted">Chaque geste demande une confirmation et un motif ; il est noté dans le journal.</p>
+            <div className="pf-boutons">
+              <button className={`btn ${bloque ? 'primary' : 'danger'}`} onClick={() => setModale(bloque ? 'debloquer' : 'bloquer')}>
+                <Icon n="ban" size={15} /> {bloque ? 'Débloquer le client' : 'Bloquer le client'}
+              </button>
+              <button className="btn" onClick={() => setModale('relier')}>
+                <Icon n="handshake" size={15} /> {fiche ? 'Changer la fiche CRM liée' : 'Relier à une fiche CRM'}
+              </button>
+            </div>
+          </section>
+          <section className="card">
+            <h2 className="section">Fiche client de la plateforme</h2>
+            <p className="small muted">Identité, dirigeants, nouvel établissement, apparence : les écrans de l’éditeur, dans la fiche.</p>
+            <AdminEmbarque route={`clients/${c.id}`} />
+          </section>
+        </div>
+      )}
+
+      {(modale === 'encaisser' || modale?.encaisser) && <Encaisser c={c} fiche={fiche} etablissementId={modale?.encaisser} onFermer={fermer} onFait={apres} />}
+      {(modale === 'prolonger' || modale?.prolonger) && <Prolonger c={c} etablissementId={modale?.prolonger} onFermer={fermer} onFait={apres} />}
+      {(modale === 'renouveler' || modale?.renouveler) && <RenouvelerSansEncaissement c={c} etablissementId={modale?.renouveler} onFermer={fermer} onFait={apres} />}
       {(modale === 'bloquer' || modale === 'debloquer') && <Bloquer c={c} bloquer={modale === 'bloquer'} onFermer={fermer} onFait={apres} />}
       {modale === 'message' && <MessageClient c={c} onFermer={fermer} onFait={apres} />}
       {modale === 'assister' && <Assister c={c} onFermer={fermer} onFait={apres} />}
@@ -653,6 +816,111 @@ function Fiche360({ p, id, faire }) {
       {modale?.licence && <StatutLicence e={modale.licence} onFermer={fermer} onFait={apres} />}
       {modale?.mdp && <MotDePasse u={modale.mdp} onFermer={fermer} onFait={(m) => apres(m, true)} />}
     </div>
+  )
+}
+
+// Histoire du client (chronologie de la plateforme)
+function Histoire({ chrono, c }) {
+  return (
+    <section className="card">
+      <h2 className="section">Histoire du client</h2>
+      {!chrono ? (
+        <div className="bloc-etat squelette-bloc" aria-busy="true" aria-label="Chargement de l’histoire">
+          <span />
+          <span />
+          <span />
+        </div>
+      ) : chrono.erreur ? (
+        <p className="pf-erreur" role="alert">
+          {chrono.erreur}
+        </p>
+      ) : chrono.length === 0 ? (
+        <Empty>Rien pour l’instant.</Empty>
+      ) : (
+        <ol className="pf-chrono">
+          {chrono.map((ev, i) => (
+            <li key={i} className={ev.type.split('.')[0]}>
+              <span className="pf-chrono-date">{date(ev.date)}</span>
+              <span>
+                <strong>{LIBELLES_CHRONO[ev.type] || ev.type}</strong>
+                {ev.montant ? ` · ${enDevise(ev.montant, c.devise)}` : ''}
+                <span className="bloc small muted">{[ev.etablissement, ev.detail].filter(Boolean).join(' · ')}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
+
+// Création guidée : les étapes pour qu'un nouveau client soit prêt (client → établissement → licence → compte)
+export function etapesMiseEnRoute(c, comptes) {
+  const etabs = (c.etablissements || []).filter((e) => e.statut !== 'archive')
+  return [
+    { id: 'client', label: 'Client créé', fait: true },
+    { id: 'etablissement', label: 'Premier établissement', fait: etabs.length > 0, onglet: 'avance' },
+    { id: 'licence', label: 'Licence attribuée', fait: etabs.some((e) => e.licence), onglet: 'licences' },
+    { id: 'compte', label: 'Compte du gérant', fait: comptes == null ? null : comptes.length > 0, onglet: 'comptes' },
+    { id: 'service', label: 'Mis en service', fait: etabs.some((e) => e.mis_en_service_le), onglet: 'etablissements' },
+  ]
+}
+function MiseEnRoute({ c, comptes, onOnglet }) {
+  const etapes = etapesMiseEnRoute(c, comptes)
+  const restantes = etapes.filter((x) => x.fait === false)
+  if (!restantes.length) return null
+  const suivante = restantes[0]
+  return (
+    <section className="card mise-en-route" aria-labelledby="titre-mise-en-route">
+      <h2 className="section" id="titre-mise-en-route">
+        Mise en route
+      </h2>
+      <ol className="etapes">
+        {etapes.map((x) => (
+          <li key={x.id} className={x.fait ? 'fait' : x === suivante ? 'suivante' : ''}>
+            <span className="etape-pt" aria-hidden="true">{x.fait ? '✓' : ''}</span>
+            {x.label}
+            {x.fait === null && <span className="tiny muted"> (voir l’onglet Comptes)</span>}
+          </li>
+        ))}
+      </ol>
+      <button className="btn sm primary" onClick={() => onOnglet(suivante.onglet)}>
+        Étape suivante : {suivante.label.toLowerCase()}
+      </button>
+    </section>
+  )
+}
+
+// Journal des gestes de ce client (sur cet appareil)
+function JournalGestes({ clientId }) {
+  const journal = journalOperations()
+  const [liste, setListe] = useState(() => journal.liste())
+  useEffect(() => journal.abonner(() => setListe(journal.liste())), [journal])
+  const miens = liste.filter((o) => o.client?.id === clientId).slice(0, 12)
+  return (
+    <section className="card">
+      <h2 className="section">Journal des gestes</h2>
+      {miens.length === 0 ? (
+        <Empty>Aucun geste noté sur cet appareil.</Empty>
+      ) : (
+        <ul className="pf-liste">
+          {miens.map((o) => (
+            <li key={o.id} className="pf-fil">
+              <span className="pf-alerte-txt">
+                <strong>{GESTES[o.type] || o.type}</strong>
+                {o.etat && o.type === 'encaisser' && <span className={`badge ${o.etat === 'terminee' ? 'b-green' : A_REPRENDRE.includes(o.etat) ? 'b-orange' : 'b-red'}`}> {ETATS[o.etat] || o.etat}</span>}
+                <span className="bloc small muted">
+                  {date(o.cree_le || o.le)} {o.etablissement?.nom ? `· ${o.etablissement.nom}` : ''} {o.montant ? `· ${enDevise(o.montant, o.devise)}` : ''} {o.motif ? `· motif : ${o.motif}` : ''} {o.detail ? `· ${o.detail}` : ''}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <a className="btn sm ghost" href="#/operations">
+        Tout le journal et la réconciliation
+      </a>
+    </section>
   )
 }
 
@@ -731,10 +999,10 @@ function useDepsOperations() {
     ajouterPaiement: (a) => api.addActions([a]),
   }
 }
-function Encaisser({ c, fiche, onFermer, onFait }) {
+function Encaisser({ c, fiche, etablissementId, onFermer, onFait }) {
   const deps = useDepsOperations()
   const avecLicence = c.etablissements.filter((e) => e.licence && e.statut !== 'archive')
-  const [etabId, setEtabId] = useState(avecLicence[0]?.id || '')
+  const [etabId, setEtabId] = useState(avecLicence.some((x) => x.id === etablissementId) ? etablissementId : avecLicence[0]?.id || '')
   const e = avecLicence.find((x) => x.id === etabId)
   const [montant, setMontant] = useState(String(e?.mensuel || e?.licence?.montant || ''))
   const [mode, setMode] = useState('Mobile Money')
@@ -865,9 +1133,9 @@ function Encaisser({ c, fiche, onFermer, onFait }) {
 
 // Prolonger sans paiement : geste commercial ou délai accordé, avec un motif obligatoire.
 // La nouvelle échéance est toujours après l'actuelle (SEC-09).
-function Prolonger({ c, onFermer, onFait }) {
+function Prolonger({ c, etablissementId, onFermer, onFait }) {
   const avecLicence = c.etablissements.filter((e) => e.licence && e.statut !== 'archive')
-  const [etabId, setEtabId] = useState(avecLicence[0]?.id || '')
+  const [etabId, setEtabId] = useState(avecLicence.some((x) => x.id === etablissementId) ? etablissementId : avecLicence[0]?.id || '')
   const e = avecLicence.find((x) => x.id === etabId)
   const base = e ? baseRenouvellement(e.licence) : aujourdhui()
   const [jours, setJours] = useState('3 jours')
@@ -935,6 +1203,95 @@ function Prolonger({ c, onFermer, onFait }) {
   )
 }
 
+// Renouveler sans encaissement : une période normale (1 mois ou 1 an), sans paiement dans le CRM, motif obligatoire
+// (ex. payé par un autre canal, avoir). Différent de la prolongation gratuite (quelques jours, geste commercial).
+function RenouvelerSansEncaissement({ c, etablissementId, onFermer, onFait }) {
+  const avecLicence = c.etablissements.filter((e) => e.licence && e.statut !== 'archive')
+  const [etabId, setEtabId] = useState(avecLicence.some((x) => x.id === etablissementId) ? etablissementId : avecLicence[0]?.id || '')
+  const e = avecLicence.find((x) => x.id === etabId)
+  const [fin, setFin] = useState(e ? echeanceProposee(e.licence) || '' : '')
+  const [motif, setMotif] = useState('')
+  const [recap, setRecap] = useState(false)
+  const { erreur, occupe, envoyer } = useEnvoi(onFait)
+  if (!e)
+    return (
+      <Modal title="Renouveler sans encaissement" onClose={onFermer}>
+        <p>Ce client n’a pas de licence à renouveler.</p>
+      </Modal>
+    )
+  const probleme = erreurEcheance(e.licence, fin)
+  const pret = !probleme && motif.trim().length >= 3
+  return (
+    <Modal title={`Renouveler sans encaissement · ${c.nom}`} onClose={onFermer}>
+      <form
+        className="stack"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          if (!pret) return
+          if (!recap) return setRecap(true)
+          envoyer(async () => {
+            await appeler('renouveler_licence', { p_licence_id: e.licence.id, p_nouvelle_echeance: fin, p_montant: 0, p_reference: 'Renouvellement CRM sans encaissement', p_note: `Renouvellement sans encaissement : ${motif.trim()}` })
+            noterGeste(journalOperations(), { type: 'renouveler_sans_encaissement', client: c, etablissement: e, motif: motif.trim(), detail: `${e.licence.echeance || '—'} → ${fin}` })
+          }, `Licence renouvelée jusqu’au ${date(fin)}, sans encaissement`)
+        }}
+      >
+        {!recap ? (
+          <>
+            <ChoixEtablissement
+              c={c}
+              value={etabId}
+              onChange={(id) => {
+                setEtabId(id)
+                setFin(echeanceProposee(avecLicence.find((y) => y.id === id)?.licence) || '')
+              }}
+              filtre={(x) => Boolean(x.licence)}
+            />
+            <p className="small muted">Aucun paiement n’est noté dans le CRM. Si le client a payé, utilise plutôt « Encaisser et renouveler ».</p>
+            <Field label="Nouvelle échéance" hint={`Actuelle : ${date(e.licence.echeance)} · proposée : une période ${e.licence.formule === 'annuel' ? 'd’un an' : 'd’un mois'}`}>
+              <input type="date" value={fin} min={echeanceMinimum(e.licence)} onChange={(ev) => setFin(ev.target.value)} required aria-invalid={probleme ? true : undefined} />
+            </Field>
+            <Field label="Motif (obligatoire)">
+              <input value={motif} onChange={(ev) => setMotif(ev.target.value)} required minLength={3} placeholder="Ex. payé par virement noté ailleurs, avoir" />
+            </Field>
+            {probleme && (
+              <p className="pf-erreur" role="alert">
+                {probleme}
+              </p>
+            )}
+            <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok="Vérifier" />
+          </>
+        ) : (
+          <>
+            <dl className="pf-recap">
+              <dt>Établissement</dt>
+              <dd>{e.nom}</dd>
+              <dt>Échéance</dt>
+              <dd>
+                {date(e.licence.echeance)} → <strong>{date(fin)}</strong>
+              </dd>
+              <dt>Paiement</dt>
+              <dd>Aucun (rien n’est noté dans le CRM)</dd>
+              <dt>Motif</dt>
+              <dd>{motif.trim()}</dd>
+            </dl>
+            <Pied occupe={occupe} erreur={erreur} onFermer={() => setRecap(false)} ok="Renouveler sans encaissement" />
+          </>
+        )}
+      </form>
+    </Modal>
+  )
+}
+
+// Fiche client de l'éditeur, affichée dans « Réglages avancés » (chargée seulement à l'ouverture de l'onglet)
+const AdminSaaSDiffere = lazy(() => import('./AdminSaaS'))
+function AdminEmbarque({ route }) {
+  return (
+    <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement des réglages" />}>
+      <AdminSaaSDiffere route={route} />
+    </Suspense>
+  )
+}
+
 // Opérations à réconcilier : encaissements coupés en route. « Reprendre » finit seulement ce qui manque.
 export function OperationsAReconcilier({ clientId, onFait }) {
   const deps = useDepsOperations()
@@ -996,6 +1353,77 @@ export function OperationsAReconcilier({ clientId, onFait }) {
         </p>
       )}
     </section>
+  )
+}
+
+// Écran de réconciliation et journal complet des gestes (lot 5) : toutes les opérations notées sur cet appareil,
+// filtrables ; celles à reprendre en tête. Fonctionne sans la plateforme (le journal est local).
+const FILTRES_OPS = [
+  ['reprendre', 'À reprendre'],
+  ['encaissements', 'Encaissements'],
+  ['gestes', 'Autres gestes'],
+  ['tout', 'Tout'],
+]
+export function Operations() {
+  const { toast } = useNoyau()
+  const journal = journalOperations()
+  const [liste, setListe] = useState(() => journal.liste())
+  const [filtre, setFiltre] = useState(() => (journal.aReprendre().length ? 'reprendre' : 'tout'))
+  const [cherche, setCherche] = useState('')
+  useEffect(() => journal.abonner(() => setListe(journal.liste())), [journal])
+  const n = (f) => liste.filter((o) => garder(o, f)).length
+  const garder = (o, f) => (f === 'reprendre' ? A_REPRENDRE.includes(o.etat) : f === 'encaissements' ? o.type === 'encaisser' : f === 'gestes' ? o.type !== 'encaisser' : true)
+  const q = cherche.trim().toLowerCase()
+  const vues = liste.filter((o) => garder(o, filtre) && (!q || [o.client?.nom, o.etablissement?.nom, o.id, o.motif, o.detail, o.reference].some((x) => String(x || '').toLowerCase().includes(q))))
+  return (
+    <div className="stack pf">
+      <div className="page-head">
+        <div>
+          <h1>Opérations et réconciliation</h1>
+          <div className="sub">Chaque encaissement et chaque geste sensible, avec son état. Un encaissement coupé en route se reprend ici sans jamais être fait deux fois.</div>
+        </div>
+      </div>
+      <OperationsAReconcilier onFait={(m) => toast(`${m} ✓`)} />
+      <div className="filtres-actifs" role="group" aria-label="Filtres actifs">
+        <Tabs items={FILTRES_OPS.map(([k, l]) => [k, l, n(k)])} value={filtre} onChange={setFiltre} />
+        <input className="input" style={{ maxWidth: 260 }} value={cherche} onChange={(e) => setCherche(e.target.value)} placeholder="Client, établissement, référence…" aria-label="Chercher une opération" />
+      </div>
+      <Bloc id="journal-ops" titre={`Journal (${vues.length})`} etat={vues.length ? { etat: 'donnees' } : { etat: 'vide' }} vide={filtre === 'reprendre' ? 'Rien à reprendre : tous les encaissements sont terminés.' : 'Aucune opération notée sur cet appareil.'}>
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Journal des opérations">
+          <table className="t">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Geste</th>
+                <th>Client</th>
+                <th className="num">Montant</th>
+                <th>État</th>
+                <th>Motif, détail, référence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vues.map((o) => (
+                <tr key={o.id}>
+                  <td className="nowrap">{date(o.cree_le)}</td>
+                  <td>{GESTES[o.type] || o.type}</td>
+                  <td>
+                    {o.client ? <a href={`#/plateforme-client/${o.client.id}?onglet=licences`}>{o.client.nom}</a> : '—'}
+                    {o.etablissement?.nom && o.etablissement.nom !== o.client?.nom ? <span className="tiny muted"> · {o.etablissement.nom}</span> : null}
+                  </td>
+                  <td className="num">{o.montant ? enDevise(o.montant, o.devise) : '—'}</td>
+                  <td>
+                    <span className={`badge ${o.etat === 'terminee' ? 'b-green' : A_REPRENDRE.includes(o.etat) ? 'b-orange' : 'b-red'}`}>{ETATS[o.etat] || o.etat}</span>
+                  </td>
+                  <td className="small">
+                    {[o.motif && `motif : ${o.motif}`, o.detail, o.erreur, o.id].filter(Boolean).join(' · ')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Bloc>
+    </div>
   )
 }
 
@@ -1190,10 +1618,25 @@ function Plus({ c, onChoisir, onFermer, onFait }) {
             </div>
           </div>
         ))}
-        <div className="pf-boutons">
-          <button className="btn sm" onClick={() => onChoisir('relier')}>
-            <Icon n="handshake" size={14} /> Relier à une fiche CRM
-          </button>
+        <div className="pf-plus">
+          <strong>Client</strong>
+          <div className="pf-boutons">
+            <button className="btn sm" onClick={() => onChoisir('renouveler')}>
+              <Icon n="repeat" size={14} /> Renouveler sans encaissement
+            </button>
+            <button className="btn sm" onClick={() => onChoisir('message')}>
+              <Icon n="message" size={14} /> Message
+            </button>
+            <button className="btn sm" onClick={() => onChoisir('assister')}>
+              <Icon n="eye" size={14} /> Assister
+            </button>
+            <button className="btn sm" onClick={() => onChoisir('relier')}>
+              <Icon n="handshake" size={14} /> Relier à une fiche CRM
+            </button>
+            <button className={`btn sm ${c.statut === 'suspendu' ? '' : 'danger'}`} onClick={() => onChoisir(c.statut === 'suspendu' ? 'debloquer' : 'bloquer')}>
+              <Icon n="ban" size={14} /> {c.statut === 'suspendu' ? 'Débloquer le client' : 'Bloquer le client'}
+            </button>
+          </div>
         </div>
         {erreur && <p className="pf-erreur">{erreur}</p>}
       </div>
@@ -1302,6 +1745,10 @@ function MotDePasse({ u, onFermer, onFait }) {
           <p className="pf-mdp">{mdp}</p>
           <div className="row">
             <BoutonCopier texte={mdp} />
+            <BoutonCopier
+              libelle="Copier le message"
+              texte={`Bonjour${u.nom ? ` ${u.nom}` : ''},\n\nIdentifiant : ${u.identifiant || u.email}\nMot de passe provisoire : ${mdp}\n\nIl est valable 7 jours ; tu choisiras ton propre mot de passe à la connexion.`}
+            />
             <button className="btn primary" onClick={onFermer}>
               Terminé
             </button>

@@ -39,6 +39,7 @@ const SiteDemandes = lazy(() => import('./pages/SiteWeb').then((m) => ({ default
 const SitePages = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePages })))
 const SitePhotos = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePhotos })))
 const Controle = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.Controle })))
+const Operations = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.Operations })))
 const ClientsPlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.ClientsPlateforme })))
 const FichePlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.FichePlateforme })))
 import Applications from './pages/Applications'
@@ -618,8 +619,9 @@ function Crm() {
   else if (page === 'site-photos') content = <SitePhotos />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'controle') content = <Controle />
+  else if (page === 'operations') content = <Operations />
   else if (page === 'plateforme') content = <ClientsPlateforme key={route} filtre={q.get('filtre')} />
-  else if (page === 'plateforme-client') content = <FichePlateforme key={route} id={arg} faire={q.get('faire')} />
+  else if (page === 'plateforme-client') content = <FichePlateforme key={arg} id={arg} faire={q.get('faire')} onglet={q.get('onglet')} mdp={q.get('mdp')} />
   else if (page === 'editeur') content = <AdminSaaS route={chemin} />
   else if (page === 'espace') content = <Applications espaces={espaces} actif={arg} pastilles={(e) => e.entrees.map((x) => badges[x.route]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
