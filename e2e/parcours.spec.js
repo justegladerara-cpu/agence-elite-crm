@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { avecExemples, avecPlateforme } from './aides'
 
-test('l’application s’ouvre sur le tableau de bord ; Ma journée garde les relances en haut', async ({ page }) => {
+test('l’application s’ouvre sur le tableau de bord unique (Tour de contrôle) ; Ma journée garde les relances en haut', async ({ page }) => {
   await avecExemples(page)
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1, name: 'Tableau de bord' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Tour de contrôle' })).toBeVisible()
   await page.goto('/#/journee')
   const relances = page.getByRole('heading', { name: /Aujourd'hui et en retard/ })
   const objectifs = page.locator('#objectifs-jour')

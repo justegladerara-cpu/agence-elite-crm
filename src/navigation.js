@@ -137,6 +137,8 @@ export const PAGES_SANS_MENU = [{ route: 'saisie', label: 'Nouvelle action (page
 
 // Anciennes adresses → nouvelle place (le reste de l'adresse, ex. ?filtre=…, est gardé)
 export const REDIRECTIONS = {
+  // Accueil : le tableau de bord unique (Tour de contrôle) ; l'ancien tableau de bord reste dans Analyses
+  '': 'controle',
   'plateforme-outils': 'espace/administration',
   apps: 'espace',
   editeur: 'editeur/tableau',

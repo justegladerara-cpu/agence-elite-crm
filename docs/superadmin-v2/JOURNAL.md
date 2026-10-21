@@ -157,3 +157,44 @@ Lot 3 : design clair (jetons du § 9, navigation bleu nuit, contenu clair), écr
 
 ### Prochaine étape
 Lot 4 : tableau de bord unique sur la Tour de contrôle (4 indicateurs, 5 états par bloc, filtre visible, vraie devise).
+
+---
+
+## Lot 4 — Tableau de bord unique (2026-10-21)
+
+### Fait
+- La Tour de contrôle (`#/controle`) est l'accueil de l'application (adresse vide comprise) et le tableau de bord unique.
+- 4 indicateurs en tête : **clients logiciel actifs**, **relances en retard**, **encaissé ce mois**, **licences à
+  renouveler sous 7 jours** (les licences déjà échues sont signalées dans le sous-titre). Chaque indicateur mène à sa
+  liste. Règles de calcul : `src/modules/plateforme/accueil.js` (fonctions pures, `tests/accueil.test.js`).
+- Chaque bloc a ses **5 états** (composants `Bloc` et `Indicateur`, `src/ui.jsx`) : chargement (squelette `aria-busy`),
+  données, vide (phrase claire), accès refusé (raison ; « Se connecter à la plateforme » seulement si on n'est pas
+  connecté), erreur (`role="alert"` + « Réessayer »). Un bloc plateforme indisponible n'empêche plus de voir les
+  chiffres du CRM (avant : toute la page attendait la connexion plateforme).
+- **Filtres actifs visibles** : période (mois en cours) et périmètre clients (réels seulement / démo et archives),
+  avec « Réinitialiser ».
+- **Vraie devise** : `src/lib/argent.js` (`argent`, `sommesParDevise`). Montants plateforme dans la devise de la licence
+  (puis de l'établissement, puis de facturation du client), montants CRM dans la devise des Paramètres. Deux devises ne
+  s'additionnent jamais (« 150 FCFA + 5 € »). `FCFA` n'est plus écrit en dur dans `Plateforme.jsx` (13 endroits) ;
+  le libellé du champ « Montant reçu » prend le symbole de la licence. L'opération d'encaissement garde sa devise.
+- Les 4 autres chiffres de l'ancienne Tour (abonnements par mois, factures à encaisser, ventes des clients, personnes
+  actives) sont gardés dans « Autres chiffres ».
+- Placeholder de la barre de commande : les noms de deux vrais clients ont été retirés (aucune donnée réelle à l'écran).
+- Tests : `tests/accueil.test.js` (9), `e2e/tableau.spec.js` (8 × 2 formats : données, refus sans connexion, refus par
+  rôle, erreur + Réessayer, vide, chargement, module coupé, accessibilité et 320 px avec données). Résultats : oxlint 0
+  erreur, vitest 170/170, Playwright 99 réussis + 1 sauté (le même).
+
+### Décisions
+- **D4-1** Accueil = Tour de contrôle, aussi en mode démo (avant : Tableau de bord en démo, Tour en ligne). Le test
+  e2e « l'application s'ouvre sur… » a été mis à jour en conséquence (attendu changé, test gardé). Le Tableau de bord
+  analytique reste dans Analyses (`#/dashboard`), comme « Chiffres du logiciel ».
+- **D4-2** « Licences à renouveler sous 7 jours » = échéance dans 0 à 7 jours ; les échues sont un autre cas (déjà en
+  retard) affiché à côté pour ne pas mélanger deux urgences.
+- **D4-3** « Encaissé ce mois » = paiements reçus notés dans le CRM pendant le mois civil, devise du CRM (règle complète
+  au lot 6, `08_FINANCIAL_RULES.md`).
+- **D4-4** Libellés de saisie contenant « € » (ex. « Montant (€) ») : ils passent déjà par `lbl()`, qui affiche la devise
+  choisie ; non modifiés. Prix d'Elite Store : en FCFA par conception (le magasin vend en FCFA).
+
+### Prochaine étape
+Lot 5 : fiche client unique à onglets, gestes séparés et tracés, création guidée, mot de passe en un seul chemin,
+encaissement en deux temps (PR plateforme non appliquée pour la clé d'idempotence et les motifs).

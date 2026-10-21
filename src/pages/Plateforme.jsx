@@ -3,17 +3,22 @@
 // Les données des clients restent dans la base de la plateforme : le CRM les lit et agit par ses fonctions.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { Modal, Field, Chips, Empty, confirmer, go, BoutonCopier } from '../ui'
+import { Modal, Field, Chips, Empty, confirmer, go, BoutonCopier, Bloc, Indicateur, deviseCode } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { appeler, deconnecter, sessionValide } from '../modules/plateforme/connexion'
 import { ConnexionPlateforme } from '../modules/plateforme/ui'
 import { alertes, clientsReels, construireVue, ficheLiee, indicateurs, lireCommande, LIBELLES_CHRONO } from '../modules/plateforme/calculs'
+import { clientsActifs, encaisseDuMois, etatCrm, etatPlateforme, licencesARenouveler, relancesEnRetard } from '../modules/plateforme/accueil'
+import { argent, afficherSommes, deviseDe } from '../lib/argent'
+import { pageAccessible } from '../core/modules'
 import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
 import { A_REPRENDRE, ETATS, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
-const fcfa = (v) => `${Math.round(Number(v) || 0).toLocaleString('fr-FR')} FCFA`
+// Montant dans sa vraie devise ; sans devise connue (paiement du CRM), celle réglée dans Paramètres
+const enDevise = (v, devise) => argent(v, devise || deviseCode())
+const symbole = (devise) => deviseDe(devise || deviseCode())?.sym || devise
 const date = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—')
 const quand = (d) => {
   if (!d) return 'jamais'
@@ -136,7 +141,7 @@ function Sante({ s }) {
   )
 }
 
-// Barre de commande : « bloquer the dream », « prolonger hotel 2i », « encaisser epicerie »
+// Barre de commande : « bloquer <client> », « prolonger <client> », « encaisser <client> »
 function Commande({ clients }) {
   const [texte, setTexte] = useState('')
   const cmd = lireCommande(texte, clients)
@@ -149,7 +154,7 @@ function Commande({ clients }) {
   return (
     <form className="pf-commande" onSubmit={lancer} role="search">
       <Icon n="bolt" size={16} />
-      <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Tape une commande : bloquer The Dream, prolonger Hôtel 2i, encaisser…" aria-label="Commande" />
+      <input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Tape une commande : encaisser, prolonger ou bloquer suivi du nom du client…" aria-label="Commande" />
       {cmd && (
         <button className="btn sm primary">
           {cmd.verbe === 'ouvrir' ? 'Ouvrir' : cmd.verbe[0].toUpperCase() + cmd.verbe.slice(1)} {cmd.client.nom}
@@ -159,61 +164,93 @@ function Commande({ clients }) {
   )
 }
 
-// ——— Tour de contrôle ———
+// ——— Tour de contrôle : le tableau de bord unique ———
+// Chaque bloc a ses 5 états (chargement, données, vide, accès refusé, erreur) : un bloc plateforme indisponible
+// n'empêche pas de voir les chiffres du CRM. Montants dans leur vraie devise (lib/argent.js).
 export function Controle() {
   const p = usePlateforme()
-  const { actions = [], documents = [] } = useDonnees()
-  const mois = aujourdhui().slice(0, 7)
-  const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && String(a.date || '').startsWith(mois)).reduce((s, a) => s + (Number(a.montant) || 0), 0)
-  const impayees = documents.filter((d) => d.type === 'facture' && ['En attente', 'En retard', 'Partiellement payée'].includes(statutDe(d, actions)))
-  const enRetard = impayees.filter((d) => statutDe(d, actions) === 'En retard').length
-  return (
-    <Garde p={p} titre="Tour de contrôle">
-      <TourDeControle p={p} encaisse={encaisse} impayees={impayees.length} enRetard={enRetard} />
-    </Garde>
-  )
-}
-
-function TourDeControle({ p, encaisse, impayees, enRetard }) {
+  const { settings } = useNoyau()
+  const { actions = [], documents = [], data } = useDonnees()
   const [tout, setTout] = useState(false)
-  const clients = clientsReels(p.etat.clients, tout)
+  const [connexion, setConnexion] = useState(false)
+  const t = aujourdhui()
+  const mois = t.slice(0, 7)
+  const nomMois = new Date(`${mois}-15`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const devise = settings?.devise || 'EUR'
+  const finances = etatCrm({ actif: pageAccessible('paiements', settings), nom: 'Facturation' })
+  const commercial = etatCrm({ actif: pageAccessible('acquisition', settings), nom: 'Commercial' })
+  const encaisse = encaisseDuMois(actions, mois)
+  const relances = relancesEnRetard(data?.list || [], t)
+  const impayees = documents.filter((d) => d.type === 'facture' && ['En attente', 'En retard', 'Partiellement payée'].includes(statutDe(d, actions)))
+  const facturesEnRetard = impayees.filter((d) => statutDe(d, actions) === 'En retard').length
+
+  const pf = etatPlateforme(p)
+  const clients = pf.etat === 'donnees' || pf.etat === 'vide' ? clientsReels(p.etat.clients, tout) : []
+  const pfEtat = pf.etat === 'donnees' && clients.length === 0 ? { etat: 'vide' } : pf
   const k = indicateurs(clients)
+  const actifs = clientsActifs(clients)
+  const licences = licencesARenouveler(clients)
   const liste = alertes(clients)
   const fil = clients
     .flatMap((c) => c.etablissements.filter((e) => e.activite.derniere_activite).map((e) => ({ c, e, t: e.activite.derniere_activite })))
     .sort((a, b) => (a.t < b.t ? 1 : -1))
     .slice(0, 8)
+  const seConnecter = (
+    <button type="button" className="btn sm primary" onClick={() => setConnexion(true)}>
+      Se connecter à la plateforme
+    </button>
+  )
+  const filtres = [`Période : ${nomMois}`, tout ? 'Clients : tous (démo et archives compris)' : 'Clients : réels seulement']
+
   return (
     <div className="stack pf">
       <div className="pf-tete">
         <div>
           <h1 className="pf-titre">Tour de contrôle</h1>
           <p className="small muted">
-            Mis à jour {quand(p.etat.charge)} · {k.clients} clients · {k.etablissements} établissements
+            {pf.etat === 'donnees' ? `Mis à jour ${quand(p.etat.charge)} · ${k.clients} clients · ${k.etablissements} établissements` : 'Ce qui demande une action aujourd’hui'}
           </p>
         </div>
         <div className="row">
-          <label className="small muted row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={tout} onChange={(e) => setTout(e.target.checked)} /> Démo et archives
-          </label>
-          <button className="btn sm" onClick={p.recharger}>
+          <button className="btn sm" onClick={p.recharger} disabled={!p.connecte}>
             <Icon n="rotate" size={14} /> Actualiser
           </button>
         </div>
       </div>
-      <Commande clients={clients} />
+      <div className="filtres-actifs" role="group" aria-label="Filtres actifs">
+        <span className="tiny muted bold">Filtres actifs</span>
+        {filtres.map((f) => (
+          <span key={f} className="chip on filtre-actif">
+            {f}
+          </span>
+        ))}
+        <label className="small row filtre-choix">
+          <input type="checkbox" checked={tout} onChange={(e) => setTout(e.target.checked)} /> Inclure démo et archives
+        </label>
+        {tout && (
+          <button type="button" className="btn sm ghost" onClick={() => setTout(false)}>
+            Réinitialiser
+          </button>
+        )}
+      </div>
+      {pf.etat === 'donnees' && <Commande clients={clients} />}
       <OperationsAReconcilier onFait={() => p.recharger()} />
-      <div className="pf-chiffres">
-        <Chiffre label="Encaissé ce mois" valeur={fcfa(encaisse)} sous="paiements notés dans le CRM" onClick={() => go('/paiements')} />
-        <Chiffre label="Abonnements par mois" valeur={fcfa(k.mensuel)} sous="licences actives" ton="or" />
-        <Chiffre label="Factures à encaisser" valeur={impayees} sous={enRetard ? `${enRetard} en retard` : 'aucune en retard'} ton={enRetard ? 'rouge' : ''} onClick={() => go('/factures?filtre=impayees')} />
-        <Chiffre label="Licences échues" valeur={k.enRetard} sous={`${k.finSemaine} finissent cette semaine`} ton={k.enRetard ? 'rouge' : k.finSemaine ? 'orange' : ''} onClick={() => go('/plateforme?filtre=licence')} />
-        <Chiffre label="Ventes des clients aujourd’hui" valeur={fcfa(k.ventesJour)} sous="total de toutes les caisses" />
-        <Chiffre label="Personnes actives (7 j)" valeur={k.utilisateursActifs} sous={`${k.bloques} client(s) bloqué(s)`} />
+      <div className="indicateurs" aria-label="Indicateurs principaux">
+        <Indicateur label="Clients logiciel actifs" etat={pfEtat} vide="0" valeur={actifs.length} sous={`${k.etablissements} établissement(s) · ${k.bloques} bloqué(s)`} onClick={() => go('/plateforme')} />
+        <Indicateur label="Relances en retard" etat={commercial} valeur={relances.length} sous={relances.length ? 'à faire en premier' : 'aucune en retard'} ton={relances.length ? 'rouge' : 'vert'} onClick={() => go('/journee?onglet=jour')} />
+        <Indicateur label="Encaissé ce mois" etat={finances} valeur={argent(encaisse, devise)} sous={`paiements notés dans le CRM · ${nomMois}`} onClick={() => go('/paiements')} />
+        <Indicateur
+          label="Licences à renouveler (7 j)"
+          etat={pfEtat}
+          vide="0"
+          valeur={licences.bientot.length}
+          sous={licences.echues.length ? `+ ${licences.echues.length} déjà échue(s)` : 'aucune échue'}
+          ton={licences.echues.length ? 'rouge' : licences.bientot.length ? 'orange' : 'vert'}
+          onClick={() => go('/plateforme?filtre=licence')}
+        />
       </div>
       <div className="pf-grille">
-        <section className="card pf-afaire">
-          <h2 className="section">À faire aujourd’hui</h2>
+        <Bloc id="afaire" titre="À faire aujourd’hui" className="pf-afaire" etat={pfEtat} vide="Rien d’urgent : tous les clients vont bien." action={p.connecte ? null : seConnecter} onReessayer={p.recharger}>
           {liste.length === 0 ? (
             <Empty>Rien d’urgent : tous les clients vont bien.</Empty>
           ) : (
@@ -233,9 +270,8 @@ function TourDeControle({ p, encaisse, impayees, enRetard }) {
               ))}
             </ul>
           )}
-        </section>
-        <section className="card">
-          <h2 className="section">Santé des clients</h2>
+        </Bloc>
+        <Bloc id="sante" titre="Santé des clients" etat={pfEtat} vide="Aucun client à suivre." action={p.connecte ? null : seConnecter} onReessayer={p.recharger}>
           <div className="pf-sante">
             <span className="pf-sante-n vert">{k.sante.vert}<small>vont bien</small></span>
             <span className="pf-sante-n orange">{k.sante.orange}<small>à surveiller</small></span>
@@ -250,34 +286,48 @@ function TourDeControle({ p, encaisse, impayees, enRetard }) {
                 </button>
               ))}
           </div>
-        </section>
-        <section className="card">
-          <h2 className="section">En direct</h2>
-          {fil.length === 0 ? (
-            <Empty>Aucune activité récente.</Empty>
-          ) : (
-            <ul className="pf-liste">
-              {fil.map(({ c, e, t }) => (
-                <li key={e.id} className="pf-fil">
-                  <span className="pf-point vert" />
-                  <span className="pf-alerte-txt">
-                    <strong>{e.nom}</strong>
-                    <span className="bloc small muted">
-                      {quand(t)}
-                      {e.activite.ventes_jour ? ` · ${e.activite.ventes_jour} vente(s) aujourd’hui, ${fcfa(e.activite.montant_jour)}` : ''}
-                      {e.activite.caisses_ouvertes ? ` · ${e.activite.caisses_ouvertes} caisse(s) ouverte(s)` : ''}
-                    </span>
+        </Bloc>
+        <Bloc id="direct" titre="En direct" etat={pfEtat.etat === 'donnees' && fil.length === 0 ? { etat: 'vide' } : pfEtat} vide="Aucune activité récente." action={p.connecte ? null : seConnecter} onReessayer={p.recharger}>
+          <ul className="pf-liste">
+            {fil.map(({ c, e, t: quandT }) => (
+              <li key={e.id} className="pf-fil">
+                <span className="pf-point vert" />
+                <span className="pf-alerte-txt">
+                  <strong>{e.nom}</strong>
+                  <span className="bloc small muted">
+                    {quand(quandT)}
+                    {e.activite.ventes_jour ? ` · ${e.activite.ventes_jour} vente(s) aujourd’hui, ${argent(e.activite.montant_jour, e.devise)}` : ''}
+                    {e.activite.caisses_ouvertes ? ` · ${e.activite.caisses_ouvertes} caisse(s) ouverte(s)` : ''}
                   </span>
-                  <button className="btn sm ghost" onClick={() => go(`/plateforme-client/${c.id}`)} aria-label={`Ouvrir ${c.nom}`}>
-                    <Icon n="arrow-right" size={14} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                </span>
+                <button className="btn sm ghost" onClick={() => go(`/plateforme-client/${c.id}`)} aria-label={`Ouvrir ${c.nom}`}>
+                  <Icon n="arrow-right" size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Bloc>
       </div>
+      <Bloc id="autres" titre="Autres chiffres" etat={{ etat: 'donnees' }}>
+        <div className="pf-chiffres compact">
+          <Indicateur label="Abonnements par mois" etat={pfEtat} vide="0" valeur={afficherSommes(k.mensuelParDevise)} sous="licences actives" />
+          <Indicateur label="Factures à encaisser" etat={finances} valeur={impayees.length} sous={facturesEnRetard ? `${facturesEnRetard} en retard` : 'aucune en retard'} ton={facturesEnRetard ? 'rouge' : ''} onClick={() => go('/factures?filtre=impayees')} />
+          <Indicateur label="Ventes des clients aujourd’hui" etat={pfEtat} vide="0" valeur={afficherSommes(k.ventesJourParDevise)} sous="total de toutes les caisses" />
+          <Indicateur label="Personnes actives (7 j)" etat={pfEtat} vide="0" valeur={k.utilisateursActifs} sous={`${k.bloques} client(s) bloqué(s)`} />
+        </div>
+      </Bloc>
       <BoutonsRapides />
+      {connexion && (
+        <Modal title="Connexion à la plateforme" onClose={() => setConnexion(false)}>
+          <ConnexionPlateforme
+            onConnecte={() => {
+              setConnexion(false)
+              p.setConnecte(true)
+              p.recharger()
+            }}
+          />
+        </Modal>
+      )}
     </div>
   )
 }
@@ -353,12 +403,12 @@ function ListeClients({ p, filtreInitial }) {
                   <Sante s={c.sante} />
                 </span>
                 <span className="small muted">
-                  {c.etablissements.length} établissement(s) · {c.mensuel ? `${fcfa(c.mensuel)} / mois` : 'pas d’abonnement payant'}
+                  {c.etablissements.length} établissement(s) · {c.mensuel ? `${enDevise(c.mensuel, c.devise)} / mois` : 'pas d’abonnement payant'}
                 </span>
                 <span className="pf-carte-chiffres">
                   <span>
                     <small>Ventes 30 j</small>
-                    {fcfa(c.ventes30j)}
+                    {enDevise(c.ventes30j, c.devise)}
                   </span>
                   <span>
                     <small>Licence</small>
@@ -443,9 +493,9 @@ function Fiche360({ p, id, faire }) {
           </div>
         </div>
         <div className="pf-chiffres compact">
-          <Chiffre label="Paie par mois" valeur={fcfa(c.mensuel)} />
+          <Chiffre label="Paie par mois" valeur={enDevise(c.mensuel, c.devise)} />
           <Chiffre label="Licence" valeur={c.joursRestants == null ? '—' : c.joursRestants < 0 ? `Échue (${-c.joursRestants} j)` : `${c.joursRestants} j`} ton={c.joursRestants != null && c.joursRestants < 0 ? 'rouge' : c.joursRestants != null && c.joursRestants <= 7 ? 'orange' : ''} />
-          <Chiffre label="Ventes 30 j" valeur={fcfa(c.ventes30j)} />
+          <Chiffre label="Ventes 30 j" valeur={enDevise(c.ventes30j, c.devise)} />
           <Chiffre label="Activité" valeur={quand(c.derniereActivite)} />
         </div>
         {c.message && (
@@ -490,15 +540,15 @@ function Fiche360({ p, id, faire }) {
               <div className="pf-carte-chiffres">
                 <span>
                   <small>Aujourd’hui</small>
-                  {fcfa(e.activite.montant_jour)} ({e.activite.ventes_jour || 0})
+                  {enDevise(e.activite.montant_jour, e.devise)} ({e.activite.ventes_jour || 0})
                 </span>
                 <span>
                   <small>7 jours</small>
-                  {fcfa(e.activite.montant_7j)}
+                  {enDevise(e.activite.montant_7j, e.devise)}
                 </span>
                 <span>
                   <small>30 jours</small>
-                  {fcfa(e.activite.montant_30j)}
+                  {enDevise(e.activite.montant_30j, e.devise)}
                 </span>
                 <span>
                   <small>Personnes actives</small>
@@ -555,7 +605,7 @@ function Fiche360({ p, id, faire }) {
                   {paiementsCrm.slice(0, 8).map((a) => (
                     <li key={a.id} className="pf-fil">
                       <span className="pf-alerte-txt">
-                        <strong>{fcfa(a.montant)}</strong>
+                        <strong>{enDevise(a.montant)}</strong>
                         <span className="bloc small muted">
                           {date(a.date)} · {a.mode || '—'} {a.reference ? `· ${a.reference}` : ''}
                         </span>
@@ -582,7 +632,7 @@ function Fiche360({ p, id, faire }) {
                   <span className="pf-chrono-date">{date(ev.date)}</span>
                   <span>
                     <strong>{LIBELLES_CHRONO[ev.type] || ev.type}</strong>
-                    {ev.montant ? ` · ${fcfa(ev.montant)}` : ''}
+                    {ev.montant ? ` · ${enDevise(ev.montant, c.devise)}` : ''}
                     <span className="bloc small muted">{[ev.etablissement, ev.detail].filter(Boolean).join(' · ')}</span>
                   </span>
                 </li>
@@ -741,7 +791,7 @@ function Encaisser({ c, fiche, onFermer, onFait }) {
             <dd>{e.nom}</dd>
             <dt>Montant reçu</dt>
             <dd>
-              <strong>{fcfa(n)}</strong> · {mode}
+              <strong>{enDevise(n, e.devise)}</strong> · {mode}
               {reference ? ` · réf. ${reference}` : ''}
             </dd>
             <dt>Date du paiement</dt>
@@ -779,7 +829,7 @@ function Encaisser({ c, fiche, onFermer, onFait }) {
             }}
             filtre={(x) => Boolean(x.licence)}
           />
-          <Field label="Montant reçu (FCFA)">
+          <Field label={`Montant reçu (${symbole(avecLicence.find((y) => y.id === etabId)?.devise)})`}>
             <input inputMode="decimal" value={montant} onChange={(ev) => setMontant(ev.target.value)} required autoFocus />
           </Field>
           <Field label="Moyen de paiement">
@@ -908,7 +958,7 @@ export function OperationsAReconcilier({ clientId, onFait }) {
     }
   }
   const regler = async (op) => {
-    const r = await confirmer('L’opération sort de la liste sans rien envoyer. Fais-le seulement si tu as réglé la situation à la main (paiement noté, licence vérifiée).', { titre: 'Marquer comme réglée ?', objet: `${op.client.nom} · ${fcfa(op.montant)}`, ok: 'Marquer comme réglée', motif: true })
+    const r = await confirmer('L’opération sort de la liste sans rien envoyer. Fais-le seulement si tu as réglé la situation à la main (paiement noté, licence vérifiée).', { titre: 'Marquer comme réglée ?', objet: `${op.client.nom} · ${enDevise(op.montant, op.devise)}`, ok: 'Marquer comme réglée', motif: true })
     if (r) marquerReglee(deps.journal, op, r.motif)
   }
   return (
@@ -922,7 +972,7 @@ export function OperationsAReconcilier({ clientId, onFait }) {
           <li key={o.id} className="pf-fil">
             <span className="pf-alerte-txt">
               <strong>
-                {o.client.nom} · {o.etablissement.nom} · {fcfa(o.montant)}
+                {o.client.nom} · {o.etablissement.nom} · {enDevise(o.montant, o.devise)}
               </strong>
               <span className="bloc small muted">
                 {ETATS[o.etat]} · {quand(o.cree_le)} · {o.id}
