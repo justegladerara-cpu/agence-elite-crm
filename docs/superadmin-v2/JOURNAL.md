@@ -290,3 +290,33 @@ formulaires (un seul mode d'enregistrement, avertir avant de quitter, double cli
 
 ### Prochaine étape
 Lot 7 : `02_FUNCTION_MAPPING.csv`, documents 01 à 14, captures avant / après, mesures après, rapport final.
+
+---
+
+## Lot 7 — Documents, mesures, rapport final (2026-10-21)
+
+### Fait
+- Documents : `02_FUNCTION_MAPPING.csv` (64 lignes), `03_ACTION_MAPPING.csv`, `05_DESIGN_SYSTEM.md`,
+  `06_PARCOURS_AVANT_APRES.md`, `09_TEST_PLAN.md`, `10_PERFORMANCE.md` (après), `11_RESPONSIVE_REPORT.md`,
+  `12_RELEASE_CHECKLIST.md` (ordre de mise en production, migrations), `13_FINAL_REPORT.md`, `14_HANDOFF.md`.
+- Mesures après : `mesures/apres.json` et `apres.md`, 76 captures `CAPTURES/apres/` (38 paires avec `avant/`).
+- Corrections trouvées par les mesures :
+  - onglets coupés sur téléphone (151 → 35) : les barres d'onglets passent à la ligne (interface SaaS) ;
+  - liste « Colonnes » du cockpit qui sortait de l'écran (7 → 0 éléments débordants) ;
+  - Ctrl K : 316 ms au premier appui (React retarde d'environ 300 ms un premier écran chargé à la demande) →
+    19 ms, la recherche est préchargée puis affichée directement. Script `scripts/mesure/ctrlk.mjs`.
+- Résultats : oxlint 0 erreur, vitest 179/179, Playwright 125 réussis + 1 sauté (le même), npm audit 0, JS initial
+  428,0 ko (+1,4 % par rapport au départ).
+
+### Décisions
+- **D7-1** Les onglets passent à la ligne plutôt que de défiler : tout est visible d'un coup d'œil, au prix d'une ligne
+  de plus sur petit écran. Limité à l'interface SaaS (les deux autres interfaces gardent leur comportement).
+- **D7-2** Pas de test automatique sur les 300 ms de Ctrl K (instable sur les machines de CI) : mesure par script,
+  notée dans `10_PERFORMANCE.md`.
+
+### Bloqué
+- Audit et maquette absents (inchangé).
+- Aperçu en ligne : pas de plateforme fictive hébergée ; aperçu non ouvert depuis le conteneur (réseau fermé).
+
+### Prochaine étape
+Accords écrits de Juste : fusion sur la production, PR plateforme #72, migrations CRM (voir `13_FINAL_REPORT.md`).

@@ -19,13 +19,23 @@ du garde-fou et dans les données du site (`site/data.mjs`), jamais comme adress
 
 ## 2. Ordre de mise en production proposé
 
-À compléter au fil des lots (lot 1 sécurité d'abord).
+Chaque étape demande l'accord écrit de Juste.
+
+1. **CRM, lots 0 à 7** : fusionner #21 puis les suivants dans l'ordre (ou #28, qui les contient tous). Aucune migration
+   n'est nécessaire pour ce code : il fonctionne avec les bases telles qu'elles sont aujourd'hui.
+2. Vérifier en ligne : connexion, Tour de contrôle, une fiche client, aucun message d'erreur.
+3. **Plateforme, PR #72** (facultatif, recommandé) : workflow « Déploiement de la base » (sauvegarde, simulation,
+   application), puis fusion. Ensuite seulement, petite PR CRM qui envoie `p_motif` (D5-2).
+4. **Base CRM** : index unique des numéros (SEC-08), puis SEC-14, selon `supabase/README.md` (sauvegarde,
+   diagnostic, migration, contrôle).
 
 ## 3. Migrations
 
 | Base | Migration | État | Porte |
 |---|---|---|---|
 | CRM | `20260930180000_pareto_v1_documents_uniques.sql` (unicité des numéros) | **non appliquée** en production (vérifié en lecture seule le 2026-10-21 : index absent, 0 doublon) | accord de Juste + procédure `supabase/README.md` |
+| CRM | `migrations-proposees/SEC-14_inscriptions_emploi.sql` | proposée, **non appliquée** | accord de Juste + procédure `supabase/README.md` |
+| Plateforme | `20261021000150_idempotence_encaissement_motifs.sql` (PR #72) | brouillon, **non appliquée** ; retour arrière en commentaire dans le fichier | accord de Juste + workflow « Déploiement de la base » |
 
 ## 4. Retour arrière
 

@@ -161,3 +161,13 @@ textarea:user-invalid,
   border-color: var(--red, #c0322e) !important;
   box-shadow: 0 0 0 1px var(--red, #c0322e);
 }
+
+/* Lot 7 (mesures) : sur téléphone, les onglets passent à la ligne au lieu d'être coupés au bord de l'écran */
+:root[data-ui="saas"] .tabs,
+:root[data-ui="saas"] .app-onglets,
+:root[data-ui="saas"] .ptabs { flex-wrap: wrap; overflow-x: visible; }
+:root[data-ui="saas"] .tabs { width: auto; max-width: 100%; }
+/* Choix des colonnes du cockpit : sur téléphone, la liste s'ouvre au centre au lieu de sortir de l'écran à gauche */
+@media (max-width: 600px) {
+  .ck-cols-pop { position: fixed; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); max-height: 70vh; overflow-y: auto; }
+}

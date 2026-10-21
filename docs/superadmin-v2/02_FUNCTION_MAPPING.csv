@@ -1,0 +1,65 @@
+id;espace_ou_domaine;fonctionnalite;verification;type;formats;lot
+F-001;Design et accessibilité;interface SaaS premium par défaut : menu bleu nuit, fond clair, action principale bleue;e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-002;Design et accessibilité;les deux autres interfaces restent au choix;e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-003;Design et accessibilité;aucun défilement horizontal aux 11 largeurs;e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-004;Design et accessibilité;accessibilité et largeur : toutes les pages du menu;e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-005;Design et accessibilité;accessibilité : écrans éditeur (plateforme fictive);e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-006;Design et accessibilité;une erreur d’affichage montre « Réessayer » au lieu d’un écran blanc;e2e/design.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;3
+F-007;Clients logiciel › fiche client;sept onglets ; l’onglet choisi est dans l’adresse;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-008;Clients logiciel › fiche client;densité : une action principale, trois secondaires, le reste dans « Plus »;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-009;Clients logiciel › fiche client;l’ancienne page client de l’éditeur mène à la fiche unique;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-010;Clients logiciel › fiche client;comptes : lus seulement à l’ouverture de l’onglet ; mot de passe avec « Copier »;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-011;Clients logiciel › fiche client;mot de passe demandé depuis un autre écran : un seul chemin, la fiche › Comptes;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-012;Clients logiciel › fiche client;renouveler sans encaissement : motif, récapitulatif, aucun paiement, geste au journal;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-013;Clients logiciel › fiche client;licences : « Encaisser et renouveler » ouvre l’encaissement sur le bon établissement;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-014;Clients logiciel › fiche client;création guidée : « Nouveau client », puis la fiche montre l’étape suivante;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-015;Clients logiciel › fiche client;écran de réconciliation : journal filtrable, gestes et encaissements;e2e/fiche.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;5
+F-016;Formulaires;fermer une saisie commencée demande confirmation ; « Continuer la saisie » garde le texte;e2e/formulaires.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;6
+F-017;Formulaires;une fenêtre sans saisie se ferme tout de suite;e2e/formulaires.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;6
+F-018;Formulaires;double clic sur « Prolonger » : un seul appel à la plateforme;e2e/formulaires.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;6
+F-019;Formulaires;un champ invalide après saisie est entouré de rouge;e2e/formulaires.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;6
+F-020;Navigation;le menu de gauche montre les 6 espaces ; la page ouverte est allumée dans son espace;e2e/navigation.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;2
+F-021;Navigation;téléphone : la barre du bas mène aux espaces, et « Espaces » les montre tous;e2e/navigation.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;2
+F-022;Navigation;anciennes adresses : boîte à outils et applications mènent aux espaces;e2e/navigation.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;2
+F-023;Navigation;recherche Ctrl K : la Tour de contrôle et les pages autrefois orphelines sont proposées;e2e/navigation.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;2
+F-024;Navigation;écrans éditeur : rangés dans les espaces, plus de barre d’onglets à part;e2e/navigation.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;2
+F-025;Parcours métier;l’application s’ouvre sur le tableau de bord unique (Tour de contrôle) ; Ma journée garde les relances en haut;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-026;Parcours métier;noter une action en saisie rapide puis l’annuler;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-027;Parcours métier;feuille après appel : une touche note le résultat;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-028;Parcours métier;supprimer une fiche, annuler, puis la restaurer depuis la corbeille;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-029;Parcours métier;raccourcis clavier et tableau de bord sur 7 jours;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-030;Parcours métier;accessibilité : aucune violation grave sur les écrans principaux;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-031;Parcours métier;pas de défilement horizontal;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-032;Parcours métier;tableau de bord : un paiement et ses frais (taxi) donnent le net;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-033;Parcours métier;cockpit : les filtres croisés se posent, se partagent par le lien et s’effacent;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-034;Parcours métier;modules : désactiver la facturation retire ses pages, la réactiver les rend;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-035;Parcours métier;toutes les routes s’ouvrent sans erreur ni requête vers une base de production;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-036;Parcours métier;saisie d’argent ouverte par le noyau : depuis les clients et depuis le tableau de bord;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-037;Parcours métier;chronologie du client : étapes, paiements, dépenses et factures lus dans le journal (repli calcul en local);e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-038;Parcours métier;facture : un numéro déjà utilisé (même en minuscules) est refusé avant tout enregistrement;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-039;Parcours métier;photos du site : emplacements groupés, mode démo sans écriture;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-040;Parcours métier;documents : liste par dossier, remplir un contrat, aperçu à jour, mode démo sans écriture;e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-041;Parcours métier;plateforme : tour de contrôle, fiche client et encaissement (données fictives);e2e/parcours.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;0-5
+F-042;Sécurité;SEC-03 · réponse perdue après le renouvellement : à réconcilier, reprise sans doublon;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-043;Sécurité;SEC-03 · double clic sur « Confirmer » : un seul renouvellement, un seul paiement;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-044;Sécurité;SEC-09 · prolonger : motif obligatoire, jamais avant l’échéance actuelle;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-045;Sécurité;SEC-05 · retirer un module demande une confirmation avec motif ; Échap ne ferme que la fenêtre du dessus;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-046;Sécurité;SEC-04 · l’écran éditeur ne saisit plus de montant au renouvellement;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-047;Sécurité;SEC-11 · restaurer une sauvegarde : fichier vérifié, confirmation, données remises;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-048;Sécurité;SEC-11 · un fichier qui n’est pas une sauvegarde est refusé sans rien toucher;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-049;Sécurité;SEC-15 · les touches 1 à 4 ne notent rien pendant une saisie;e2e/securite.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;1
+F-050;Vue d’ensemble › Tour de contrôle;données : les 4 indicateurs, les filtres actifs et les montants dans leur devise;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-051;Vue d’ensemble › Tour de contrôle;accès refusé : sans connexion plateforme, les chiffres du CRM restent visibles;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-052;Vue d’ensemble › Tour de contrôle;accès refusé par la plateforme (rôle insuffisant);e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-053;Vue d’ensemble › Tour de contrôle;erreur : message et « Réessayer » qui recharge;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-054;Vue d’ensemble › Tour de contrôle;vide : aucun client, chaque bloc le dit;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-055;Vue d’ensemble › Tour de contrôle;chargement : les blocs plateforme attendent, ceux du CRM s’affichent;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-056;Vue d’ensemble › Tour de contrôle;module désactivé : le bloc dit pourquoi au lieu d’afficher 0;e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-057;Vue d’ensemble › Tour de contrôle;accessibilité et largeur avec les données (320 px et ordinateur);e2e/tableau.spec.js;e2e Playwright;ordinateur 1366 et téléphone 390;4
+F-058;Argent;Règles financières R1 à R7 (lecture, période, encaissé, dépenses, résultat, arrondi);tests/finances.test.js;unitaire vitest;—;6
+F-059;Vue d’ensemble;Indicateurs de la Tour, 5 états par bloc, sommes par devise;tests/accueil.test.js;unitaire vitest;—;4
+F-060;Navigation;Liste unique des 6 espaces, libellés, redirections;tests/navigation.test.js;unitaire vitest;—;2
+F-061;Sécurité;SEC-01 à SEC-15 : règles d’échéance, opérations idempotentes, exports, import;tests/securite.test.js;unitaire vitest;—;1
+F-062;Aperçu sûr;Aperçu de branche toujours en mode démo, garde-fou réseau;tests/apercu.test.js;unitaire vitest;—;0
+F-063;Clients logiciel;Calculs de la vue plateforme (établissements, licences, devises);tests/plateforme.test.js;unitaire vitest;—;0-5
+F-064;Audit;206 fonctionnalités de l’audit du 2026-10-21 (identifiants d’origine);Bloqué : audit absent;—;—;7

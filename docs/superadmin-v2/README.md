@@ -31,5 +31,6 @@ Point de reprise : **`JOURNAL.md`** (fait, décisions, bloqué, prochaine étape
 | `node scripts/mesure/mesurer.mjs --etiquette avant --captures` | Compte boutons, champs, débordements, onglets coupés, erreurs console et requêtes vers la production, sur 38 écrans × 11 largeurs. |
 | `node scripts/mesure/resume.mjs avant apres` | Tableaux avant / après en Markdown. |
 | `node scripts/mesure/tailles.mjs dist` | Tailles JS / CSS du build. |
+| `node scripts/mesure/ctrlk.mjs` | Temps d'ouverture de la recherche Ctrl K (objectif < 300 ms). |
 | `node scripts/plateforme-fictive/serveur.mjs` | Plateforme fictive seule (PGlite + vraies migrations, données fictives). |
 | `node scripts/plateforme-fictive/synchroniser.mjs` | Recopie l'instantané de la plateforme depuis un dépôt `agence-elite-platform` local. |

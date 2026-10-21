@@ -248,6 +248,21 @@ function Crm() {
       window.removeEventListener('crm-appel', lance)
     }
   }, [])
+  // La recherche Ctrl K est chargée à l'avance, quand le navigateur est libre, puis affichée sans passer par
+  // Suspense (qui retarde un premier affichage d'environ 300 ms) : elle s'ouvre en moins de 300 ms
+  const [RechercheChargee, setRechercheChargee] = useState(null)
+  useEffect(() => {
+    const charger = () =>
+      import('./pages/Recherche')
+        .then((m) => setRechercheChargee(() => m.default))
+        .catch(() => {})
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(charger, { timeout: 3000 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const t = setTimeout(charger, 1500)
+    return () => clearTimeout(t)
+  }, [])
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action, ? pour l'aide, G puis une lettre pour naviguer
   useEffect(() => {
     let g = 0
@@ -770,11 +785,14 @@ function Crm() {
       )}
       {aide && <Raccourcis onClose={() => setAide(false)} />}
       <ConfirmHost />
-      {recherche && (
-        <Suspense fallback={null}>
-          <Recherche onClose={() => setRecherche(false)} pages={pagesRecherche(accessible)} />
-        </Suspense>
-      )}
+      {recherche &&
+        (RechercheChargee ? (
+          <RechercheChargee onClose={() => setRecherche(false)} pages={pagesRecherche(accessible)} />
+        ) : (
+          <Suspense fallback={null}>
+            <Recherche onClose={() => setRecherche(false)} pages={pagesRecherche(accessible)} />
+          </Suspense>
+        ))}
       {toastNode}
       </DonneesCtx.Provider>
     </NoyauCtx.Provider>

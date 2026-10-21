@@ -32,6 +32,26 @@ Détail par écran (boutons, champs, débordements, onglets coupés) : `mesures/
 | JS initial build démo | 390,9 ko (la démo n'embarque plus le client Supabase de la plateforme) |
 | `npm audit --audit-level=high` | 0 vulnérabilité |
 
-## Après (lot 7)
+## Après (lot 7, branche `claude/superadmin-v2-lot-7`)
 
-À remplir avec les mêmes commandes.
+Mêmes commandes, même conteneur.
+
+| Mesure | Départ | Après | Objectif § 10 |
+|---|---:|---:|---|
+| Tests unitaires (vitest) | 127 | **179 / 179** | — |
+| Parcours e2e Playwright | 33 réussis, 1 ignoré (17 scénarios) | **125 réussis, 1 ignoré (57 scénarios × 2 formats)** | ≥ 40 scénarios ✓ |
+| Lint (oxlint) | 0 erreur | 0 erreur | — |
+| JS initial, build « production » | 422,0 ko (gzip 131,2 ko) | **428,0 ko (gzip 133,1 ko), +1,4 %** | ≤ +10 % ✓ |
+| CSS initial | 152,7 ko | 161,7 ko | — |
+| JS initial, build démo (CI < 700 000 octets) | 596,4 ko | 418,4 ko | ✓ |
+| Ouverture de la recherche Ctrl K | 316 ms au premier appui (mesuré au début du lot 7), ~12 ms ensuite | **19 ms au premier appui, ≤ 16 ms ensuite** | < 300 ms ✓ (`scripts/mesure/ctrlk.mjs`) |
+| Erreurs JavaScript (38 écrans × 11 largeurs) | 0 | **0** | 0 ✓ |
+| Messages d'erreur console | 152 | 78 (tous « Failed to load resource », images en ligne bloquées par le bac à sable) | — |
+| Requêtes vers une base de production pendant les mesures | 0 | **0** | 0 ✓ |
+| `editeur_comptes` | lu à chaque ouverture de fiche | lu seulement à l'ouverture de l'onglet Comptes, gardé 2 min | ✓ (e2e « comptes : lus seulement à l'ouverture de l'onglet ») |
+| `npm audit --audit-level=high` | échec (vite 8.3.0) | 0 vulnérabilité | ✓ |
+
+Ctrl K : la cause des 316 ms était React, qui retarde d'environ 300 ms le premier affichage d'un écran chargé à la
+demande. La recherche est maintenant chargée quand le navigateur est libre, puis affichée directement.
+
+Détail par écran : `mesures/apres.md` (boutons et champs à 390 et 1280 px, avant / après).
