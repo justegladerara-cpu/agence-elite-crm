@@ -4,12 +4,15 @@
 // elle-même que la personne connectée est super admin. La session est gardée sur cet appareil seulement,
 // sous une clé à part (elle ne se mélange pas avec la connexion du CRM).
 import { createClient } from '@supabase/supabase-js'
-import { PLATEFORME_CLE, PLATEFORME_URL } from '../../lib/porte'
+import { PLATEFORME_BRANCHEE, PLATEFORME_CLE, PLATEFORME_URL } from '../../lib/porte'
 
 export const CLE_SESSION = 'aecrm-plateforme'
 let client = null
 
+export const MESSAGE_NON_BRANCHEE = 'Mode démo : aucune plateforme n’est branchée (les vraies données ne sont jamais lues ici).'
+
 export function clientPlateforme() {
+  if (!PLATEFORME_BRANCHEE) throw new Error(MESSAGE_NON_BRANCHEE)
   if (!client) client = createClient(PLATEFORME_URL, PLATEFORME_CLE, { auth: { storageKey: CLE_SESSION, persistSession: true, autoRefreshToken: true } })
   return client
 }

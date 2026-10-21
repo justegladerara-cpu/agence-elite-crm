@@ -10,5 +10,5 @@ export default defineConfig({
     { name: 'ordinateur', use: { viewport: { width: 1366, height: 860 } } },
     { name: 'téléphone', use: { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true } },
   ],
-  webServer: { command: 'npx vite build --outDir dist-e2e && npx vite preview --outDir dist-e2e --port 4173 --strictPort', port: 4173, timeout: 120000, reuseExistingServer: !process.env.CI, env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' } },
+  webServer: { command: 'npx vite build --outDir dist-e2e && npx vite preview --outDir dist-e2e --port 4173 --strictPort', port: 4173, timeout: 120000, reuseExistingServer: !process.env.CI, env: { VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '', VITE_PLATEFORME_URL: 'https://plateforme.fictive.test', VITE_PLATEFORME_CLE: 'cle-fictive' } },
 })

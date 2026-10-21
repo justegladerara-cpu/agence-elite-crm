@@ -8,7 +8,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { clientPlateforme, sessionValide } from '../modules/plateforme'
 import { ConnexionPlateforme } from '../modules/plateforme/ui'
 import { FournisseurEspace } from '../saas/noyau/espace.jsx'
-import { ADRESSE_SAAS } from '../saas/noyau/routes.js'
+import { PLATEFORME_BRANCHEE, SAAS_ORIGINE } from '../lib/porte'
+import { MESSAGE_NON_BRANCHEE } from '../modules/plateforme/connexion'
 import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from '../saas/modules/editeur/EspaceEditeur.jsx'
 import { creerApi } from '../saas/api.js'
 import '../saas/saas.css'
@@ -19,11 +20,16 @@ const naviguer = (id) => {
 }
 
 export default function AdminSaaS({ route }) {
+  if (!PLATEFORME_BRANCHEE) return <div className="card empty" role="status">{MESSAGE_NON_BRANCHEE}</div>
+  return <AdminSaaSBranche route={route} />
+}
+
+function AdminSaaSBranche({ route }) {
   const [connecte, setConnecte] = useState(null)
   const [contexte, setContexte] = useState(null)
   const [erreur, setErreur] = useState('')
   const [version, setVersion] = useState(0)
-  const api = useMemo(() => creerApi(clientPlateforme(), ADRESSE_SAAS), [])
+  const api = useMemo(() => creerApi(clientPlateforme(), SAAS_ORIGINE), [])
   const sombre = typeof document !== 'undefined' && document.documentElement.dataset.ui === 'palantir'
 
   useEffect(() => {

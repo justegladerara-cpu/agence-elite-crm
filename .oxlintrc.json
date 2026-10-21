@@ -11,9 +11,43 @@
       {
         "allowConstantExport": true
       }
-    ]
+    ],
+    "no-undef": "warn"
   },
   "ignorePatterns": [
-    "public/recrutement/**"
+    "public/recrutement/**",
+    "dist*/**",
+    "scripts/plateforme-fictive/instantane/**",
+    "site-dist/**"
+  ],
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "overrides": [
+    {
+      "files": [
+        "scripts/**",
+        "site/**",
+        "functions/**",
+        "tests/**",
+        "e2e/**",
+        "*.config.js",
+        "*.config.mjs"
+      ],
+      "env": {
+        "node": true,
+        "browser": true,
+        "es2024": true
+      }
+    },
+    {
+      "files": [
+        "supabase/functions/**"
+      ],
+      "globals": {
+        "Deno": "readonly"
+      }
+    }
   ]
 }

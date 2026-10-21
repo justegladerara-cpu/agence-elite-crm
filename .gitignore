@@ -32,3 +32,5 @@ dist-e2e
 test-results
 playwright-report
 .wrangler/
+dist-apercu
+dist-apercu-*

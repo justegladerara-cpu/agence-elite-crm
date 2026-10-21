@@ -167,9 +167,11 @@ test('modules : désactiver la facturation retire ses pages, la réactiver les r
   expect(axe.violations.filter((v) => ['serious', 'critical'].includes(v.impact))).toEqual([])
 })
 
-test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
+test('toutes les routes s’ouvrent sans erreur ni requête vers une base de production', async ({ page }) => {
   const erreurs = []
+  const versProduction = []
   page.on('pageerror', (e) => erreurs.push(`${page.url()} : ${e.message}`))
+  page.on('request', (r) => /mylgnsuoppplmfaanyze|xrlfedosaqtffraadmgk/.test(r.url()) && versProduction.push(r.url()))
   await avecExemples(page)
   const routes = [
     'dashboard', 'dashboard/acquisition', 'dashboard/conversion', 'dashboard/finances', 'journee', 'calendrier',
@@ -181,9 +183,10 @@ test('toutes les routes s’ouvrent sans erreur', async ({ page }) => {
   for (const r of routes) {
     await page.goto(`/#/${r}`)
     await expect(page.locator('.main .chargement'), r).toHaveCount(0)
-    await expect(page.locator('.main h1, .main h2, .main .empty').first(), r).toBeVisible()
+    await expect(page.locator('.main h1, .main h2, .main .empty, .main [role="status"]').first(), r).toBeVisible()
   }
   expect(erreurs).toEqual([])
+  expect(versProduction).toEqual([])
 })
 
 test('saisie d’argent ouverte par le noyau : depuis les clients et depuis le tableau de bord', async ({ page }) => {
@@ -304,7 +307,7 @@ const FICTIF = {
 }
 async function avecPlateforme(page) {
   const appels = []
-  await page.route(/xrlfedosaqtffraadmgk\.supabase\.co\/rest\/v1\/rpc\/([a-z_]+)/, async (route) => {
+  await page.route(/plateforme\.fictive\.test\/rest\/v1\/rpc\/([a-z_]+)/, async (route) => {
     const nom = route.request().url().split('/rpc/')[1].split('?')[0]
     appels.push({ nom, corps: route.request().postDataJSON() })
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FICTIF[nom] ?? null) })
