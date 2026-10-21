@@ -36,8 +36,8 @@ export default function Recherche({ onClose, pages = [] }) {
       { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
     ]
     const pagesRes = pages.flatMap((n) => [
-      { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: '', ico: n.ico, path: `/${n.path}` },
-      ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
+      { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: n.espace || '', ico: n.ico, path: `/${n.path}` },
+      ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: n.espace || '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
     ])
     if (!s) return [...rapides, ...pagesRes.filter((r) => !r.sousPage)]
     const chiffres = s.replace(/\D/g, '')

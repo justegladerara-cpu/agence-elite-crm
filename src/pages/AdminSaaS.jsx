@@ -10,7 +10,7 @@ import { ConnexionPlateforme } from '../modules/plateforme/ui'
 import { FournisseurEspace } from '../saas/noyau/espace.jsx'
 import { PLATEFORME_BRANCHEE, SAAS_ORIGINE } from '../lib/porte'
 import { MESSAGE_NON_BRANCHEE } from '../modules/plateforme/connexion'
-import EspaceEditeur, { MENU_EDITEUR, routeEditeurActive } from '../saas/modules/editeur/EspaceEditeur.jsx'
+import EspaceEditeur from '../saas/modules/editeur/EspaceEditeur.jsx'
 import { creerApi } from '../saas/api.js'
 import '../saas/saas.css'
 import '../saas/admin.css'
@@ -80,19 +80,9 @@ function AdminSaaSBranche({ route }) {
     )
   if (!contexte) return <div className="chargement" aria-busy="true" aria-label="Chargement de l’administration" />
 
-  const actif = routeEditeurActive(route)
-  const menu = MENU_EDITEUR.filter((m) => !m.superAdmin || contexte.editeur === 'super_admin')
   return (
     <div className={`saas-admin${sombre ? ' sombre' : ''}`}>
       <FournisseurEspace api={api} contexte={contexte} onRecharger={() => setVersion((v) => v + 1)} onDeconnexion={() => setConnecte(false)}>
-        <nav className="saas-onglets" aria-label="Administration de la plateforme">
-          <a href="#/plateforme-outils">← Boîte à outils</a>
-          {menu.map((m) => (
-            <a key={m.id} href={`#/${m.id}`} className={actif === m.id ? 'actif' : ''} aria-current={actif === m.id ? 'page' : undefined}>
-              {m.libelle}
-            </a>
-          ))}
-        </nav>
         <EspaceEditeur route={route} naviguer={naviguer} />
       </FournisseurEspace>
     </div>

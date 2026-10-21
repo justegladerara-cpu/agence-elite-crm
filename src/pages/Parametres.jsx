@@ -17,6 +17,7 @@ import { sectionAccessible } from '../core/modules'
 import { peutGerer, ROLES, refusDe } from '../core/permissions'
 import { AVERTISSEMENT_DONNEES } from '../lib/csv'
 import Securite from './Securite'
+import { LIBELLES } from '../navigation'
 import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
 
 const NUM_GROUPS = [
@@ -756,7 +757,7 @@ export default function Parametres({ section }) {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Paramètres</h1>
+          <h1>{LIBELLES[`parametres/${sec}`] || 'Paramètres'}</h1>
           <div className="sub">{SECTIONS.find((x) => x[0] === sec)[2]}</div>
           {!peutGerer(role) && (
             <div className="small muted" data-reglages="lecture">

@@ -92,3 +92,31 @@ Lot 1 : sécurité SEC-01 à SEC-15, composant unique de zone danger.
 
 ### Prochaine étape
 Lot 2 : navigation en 6 espaces (une seule liste pour menu, Ctrl K et titres mobiles), redirections des anciennes routes.
+
+---
+
+## Lot 2 — Navigation en 6 espaces (2026-10-21)
+
+### Fait
+- `src/navigation.js` : liste unique (6 espaces, libellés, raccourcis de filtre, pages rattachées, redirections, barre du
+  bas). Menu de gauche, onglets d'espace, recherche Ctrl K, titres sur téléphone et écran « Tous les espaces » la lisent.
+- Supprimés comme menus concurrents : boîte à outils (`#/plateforme-outils` → `#/espace/administration`), écran des
+  applications (`#/apps` → `#/espace`), barre d'onglets des écrans éditeur. « Déconnecter la plateforme » est passé
+  dans l'espace Administration.
+- Plus de page orpheline (session, scripts, saisie) ; Tour de contrôle dans la recherche ; titres de Paramètres = libellé
+  du menu.
+- Tests : `tests/navigation.test.js` (9), `e2e/navigation.spec.js` (5 × 2 formats). Résultats : vitest 161/161,
+  Playwright 59 réussis + 1 sauté (le même qu'avant).
+- Doc : `01_ARCHITECTURE_V2.md` (principe, dictionnaire des libellés, redirections).
+
+### Décisions
+- **D2-1** « Clients du logiciel » (`#/plateforme`) est l'entrée unique ; `editeur/clients` et `editeur/etablissements`
+  y sont rattachés en attendant la fiche client unique (lot 5).
+- **D2-2** Site web, demandes et Elite Store rangés dans Commercial (ce sont des canaux de vente) ; offres, catalogue et
+  identité du logiciel dans Administration (réglages), Hubs et comptes dans Clients logiciel (ils appartiennent aux clients).
+- **D2-3** Barre du bas : « Espaces » plutôt que « Plus » pour ne pas se confondre avec les menus « Plus » des pages.
+- **D2-4** Les entrées éditeur réservées au super admin (adresses, sites, copie) restent visibles : la page elle-même
+  refuse si le compte n'a pas le rôle (le menu ne connaît pas le rôle plateforme avant connexion).
+
+### Prochaine étape
+Lot 3 : design clair (jetons du § 9, navigation bleu nuit, contenu clair), écrans éditeur au même style.
