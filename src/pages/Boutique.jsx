@@ -528,7 +528,7 @@ function ProduitForm({ p, cats, onDone }) {
       </div>
       <div className="row">
         {p.id && (
-          <button type="button" className="btn ghost" onClick={supprimer}>
+          <button type="button" className="ecriture btn ghost" onClick={supprimer}>
             <Icon n="trash" size={15} /> Supprimer
           </button>
         )}

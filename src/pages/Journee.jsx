@@ -99,7 +99,7 @@ export default function Journee({ onglet: ongletDemande }) {
             <button className="btn primary" onClick={() => go('/parametres/excel')}>
               <Icon n="upload" size={15} /> Importer mon Excel
             </button>
-            <button className="btn" onClick={() => go('/acquisition?nouveau=insta')}>
+            <button className="ecriture btn" onClick={() => go('/acquisition?nouveau=insta')}>
               <Icon n="instagram" size={15} /> Ajouter un prospect Instagram
             </button>
             {isLocal && (

@@ -1,5 +1,5 @@
 // Paramètres › Sécurité : sauvegarde des données, corbeille, double authentification et erreurs signalées
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Field, confirmer } from '../ui'
 import { useApp, useNoyau, useDonnees } from '../core/contexte'
 import { lireJournal, comparerJournal, LIBELLE } from '../core/journal'
@@ -7,11 +7,40 @@ import { Icon } from '../icons'
 import { supabase, isLocal } from '../lib/store'
 import { corbeille } from '../lib/corbeille'
 import { today, fmtDate } from '../lib/dates'
-import { derniereSauvegarde, telechargerSauvegarde } from '../lib/sauvegarde'
+import { derniereSauvegarde, telechargerSauvegarde, lireSauvegarde } from '../lib/sauvegarde'
+import { refusDe } from '../core/permissions'
 
 function Sauvegarde() {
   const ctx = useApp()
+  const { api } = useNoyau()
   const [date, setDate] = useState(derniereSauvegarde)
+  const fichier = useRef(null)
+  const [occupe, setOccupe] = useState(false)
+  const restaurer = async (e) => {
+    const f = e.target.files[0]
+    e.target.value = ''
+    if (!f) return
+    let c
+    try {
+      c = lireSauvegarde(await f.text())
+    } catch (err) {
+      ctx.toast(err.message, true)
+      return
+    }
+    const ok = await confirmer(
+      'Les fiches, actions et documents du fichier sont remis avec leurs identifiants. Rien n’est effacé : une ligne déjà présente reprend la version de la sauvegarde.',
+      { titre: 'Restaurer cette sauvegarde ?', objet: `${f.name}${c.date ? ` du ${fmtDate(c.date.slice(0, 10))}` : ''} · ${c.prospects.length} fiches, ${c.actions.length} actions, ${c.documents.length} documents`, ok: 'Restaurer' }
+    )
+    if (!ok) return
+    setOccupe(true)
+    try {
+      await api.restaurerSauvegarde(c)
+    } catch {
+      /* toast déjà affiché */
+    }
+    setOccupe(false)
+  }
+  const peutRestaurer = !refusDe(ctx.role, 'remplacer')
   return (
     <div className="card">
       <h2 className="section">
@@ -35,6 +64,12 @@ function Sauvegarde() {
         >
           <Icon n="download" size={15} /> Télécharger une sauvegarde
         </button>
+        {peutRestaurer && (
+          <button className="btn" disabled={occupe} aria-busy={occupe || undefined} onClick={() => fichier.current.click()}>
+            <Icon n="upload" size={15} /> {occupe ? 'Restauration…' : 'Restaurer une sauvegarde'}
+          </button>
+        )}
+        <input ref={fichier} type="file" accept=".json,application/json" hidden onChange={restaurer} />
         <span className="small muted">{date ? `Dernière sauvegarde sur cet appareil : ${fmtDate(date)}` : 'Aucune sauvegarde faite depuis cet appareil.'}</span>
       </div>
     </div>

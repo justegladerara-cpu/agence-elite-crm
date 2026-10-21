@@ -3,6 +3,8 @@ import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { go, Modal, Menu, confirmer } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
+import { refusDe } from '../core/permissions'
+import { versCsv, telechargerCsv, AVERTISSEMENT_DONNEES } from '../lib/csv'
 import FicheForm from './FicheForm'
 import { QuickInsta } from './Insta'
 import { Icon } from '../icons'
@@ -100,7 +102,7 @@ export const ACTION_ETAPE = ['Ajout prospect', 'Premier contact', 'Qualification
 
 // Actions sur plusieurs prospects cochés dans la liste
 export function ActionsGroupees({ choisis, etapes, vider }) {
-  const { api, settings, toast } = useNoyau()
+  const { api, settings, toast, role } = useNoyau()
   const [busy, setBusy] = useState(false)
   const ouverts = choisis.filter((p) => p.etape !== 'Gagné' && p.etape !== 'Perdu')
   const lancer = async (fn, msg) => {
@@ -130,15 +132,12 @@ export function ActionsGroupees({ choisis, etapes, vider }) {
     if (!(await confirmer(texte, { ok: 'Noter' }))) return
     lancer(() => api.addActions(ok.map((p) => ligne(p.id, { canal: p.canal || 'DM', action }))), `${ok.length} prospect${ok.length > 1 ? 's' : ''} passé${ok.length > 1 ? 's' : ''} à « ${cible} » ✓`)
   }
-  const exporter = () => {
+  const exporter = async () => {
+    const refus = refusDe(role, 'exporter')
+    if (refus) return toast(refus, true)
+    if (!(await confirmer(AVERTISSEMENT_DONNEES, { titre: `Exporter ${choisis.length} prospect${choisis.length > 1 ? 's' : ''} ?`, ok: 'Exporter' }))) return
     const cols = [['Entreprise', (p) => p.name], ['Contact', (p) => p.fiche?.contact], ['Téléphone', (p) => p.fiche?.telephone], ['Instagram', (p) => p.fiche?.instagram], ['Secteur', (p) => p.fiche?.secteur], ['Ville', (p) => p.fiche?.ville], ['Canal', (p) => p.canal], ['Étape', (p) => p.etape], ['Score', (p) => p.score], ['Relance', (p) => p.relance], ['Montant proposé', (p) => p.montantPropose]]
-    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
-    const csv = [cols.map(([h]) => esc(h)).join(';'), ...choisis.map((p) => cols.map(([, f]) => esc(f(p))).join(';'))].join('\r\n')
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }))
-    a.download = `prospects-${today()}.csv`
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+    telechargerCsv(`prospects-${today()}`, versCsv(cols.map(([h]) => h), choisis.map((p) => cols.map(([, f]) => f(p)))))
     toast(`${choisis.length} prospect${choisis.length > 1 ? 's' : ''} exporté${choisis.length > 1 ? 's' : ''} ✓`)
   }
   const supprimer = async () => {
@@ -168,7 +167,7 @@ export function ActionsGroupees({ choisis, etapes, vider }) {
         ].map(([l, f]) => ({ label: l, onClick: f, disabled: busy || !ouverts.length }))}
       />
       <Menu label={<><Icon n="layers" size={14} /> Passer à…</>} className="btn sm" items={etapes.filter((e) => e !== 'Nouveau' && e !== 'Gagné').map((e) => ({ label: e, onClick: () => passer(e), disabled: busy }))} />
-      <button className="btn sm" onClick={exporter}>
+      <button className="btn sm" onClick={exporter} hidden={!!refusDe(role, 'exporter')}>
         <Icon n="download" size={14} /> Exporter
       </button>
       <button className="btn sm danger" disabled={busy} onClick={supprimer}>

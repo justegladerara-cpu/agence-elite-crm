@@ -297,7 +297,7 @@ function AbonnementForm({ poste, onSave, onDelete }) {
         </button>
         <span className="spacer" />
         {onDelete && (
-          <button className="btn ghost sm danger" onClick={onDelete}>
+          <button className="ecriture btn ghost sm danger" onClick={onDelete}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
         )}

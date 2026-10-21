@@ -4,6 +4,16 @@ import { Icon } from './icons'
 import { ChiffreAnime } from './animations'
 
 import { useDonnees } from './core/contexte'
+import { empiler } from './lib/couches'
+
+// Fenêtre, menu ou liste ouverts : Échap ne ferme que le dernier ouvert (voir lib/couches.js)
+export function useCouche(actif, fermer) {
+  const ref = useRef(fermer)
+  useEffect(() => {
+    ref.current = fermer
+  })
+  useEffect(() => (actif ? empiler(() => ref.current?.()) : undefined), [actif])
+}
 
 // Devise d'affichage, réglée dans Paramètres (settings.devise)
 export const DEVISES = [
@@ -67,12 +77,14 @@ export function Chips({ options, value, onChange, small, allowEmpty = true }) {
 
 // Champ avec son libellé : le libellé est relié au premier champ de saisie (lecteurs d'écran, clic sur le libellé)
 let champN = 0
-export function Field({ label, children, style }) {
+export function Field({ label, hint, children, style }) {
   const boite = useRef(null)
   const [id] = useState(() => `champ-${++champN}`)
   useEffect(() => {
     const el = boite.current?.querySelector('input, select, textarea, button.choix')
-    if (!el || !label) return
+    if (!el) return
+    if (hint && !el.hasAttribute('aria-describedby')) el.setAttribute('aria-describedby', `${id}-aide`)
+    if (!label) return
     if (!el.id) el.id = `${id}-x`
     if (!el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) el.setAttribute('aria-labelledby', id)
   })
@@ -84,6 +96,11 @@ export function Field({ label, children, style }) {
         </label>
       )}
       {children}
+      {hint && (
+        <div id={`${id}-aide`} className="tiny muted" style={{ marginTop: 4 }}>
+          {hint}
+        </div>
+      )}
     </div>
   )
 }
@@ -102,21 +119,22 @@ export function Choix({ value, onChange, options, placeholder = 'Choisir…', li
   useEffect(() => {
     if (!open) return
     const close = (e) => !btn.current?.contains(e.target) && !pop.current?.contains(e.target) && setOpen(null)
-    const k = (e) => e.key === 'Escape' && setOpen(null)
     // Si la fenêtre défile, la liste (en position fixe) se refermerait décalée : on la ferme,
     // sauf pendant la saisie de la recherche (le clavier du téléphone fait défiler l'écran)
     const t0 = Date.now()
     const defile = (e) =>
       Date.now() - t0 > 250 && !pop.current?.contains(e.target) && !pop.current?.contains(document.activeElement) && setOpen(null)
     document.addEventListener('mousedown', close)
-    window.addEventListener('keydown', k)
     window.addEventListener('scroll', defile, true)
     return () => {
       document.removeEventListener('mousedown', close)
-      window.removeEventListener('keydown', k)
       window.removeEventListener('scroll', defile, true)
     }
   }, [open])
+  useCouche(!!open, () => {
+    setOpen(null)
+    btn.current?.focus()
+  })
   const ouvrir = () => {
     if (open) return setOpen(null)
     const r = btn.current.getBoundingClientRect()
@@ -183,22 +201,27 @@ export function Choix({ value, onChange, options, placeholder = 'Choisir…', li
 }
 
 let modalN = 0
+let modalesOuvertes = 0
 export function Modal({ title, onClose, children, large }) {
   const boite = useRef(null)
   const [id] = useState(() => `modal-${++modalN}`)
+  useCouche(true, onClose)
   useEffect(() => {
-    const k = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', k)
+    modalesOuvertes++
     document.body.style.overflow = 'hidden'
     return () => {
-      window.removeEventListener('keydown', k)
-      document.body.style.overflow = ''
+      if (--modalesOuvertes === 0) document.body.style.overflow = ''
     }
-  }, [onClose])
-  // Au clavier, le focus entre dans la fenêtre (sauf si un champ a déjà pris le focus)
+  }, [])
+  // Au clavier, le focus entre dans la fenêtre (sauf si un champ a déjà pris le focus), puis revient à l'élément
+  // qui l'a ouverte quand elle se ferme
   useEffect(() => {
+    const avant = document.activeElement
     const b = boite.current
     if (b && !b.contains(document.activeElement)) b.focus()
+    return () => {
+      if (avant && avant !== document.body && document.contains(avant)) avant.focus?.()
+    }
   }, [])
   // Rendue à la racine de la page : la fenêtre ne dépend pas du style de l'endroit où on l'ouvre
   return createPortal(
@@ -283,11 +306,86 @@ export function useToast() {
   return [show, node]
 }
 
-// Boîte de confirmation dans l'application (remplace window.confirm) : confirmer('Supprimer ?', { ok: 'Supprimer', danger: true })
+// Confirmation et zone danger : un seul composant pour tout geste qui touche un vrai client, l'argent, un rôle
+// ou efface des données. confirmer(message, options) → false (annulé) ou { motif, cases, resultat }.
+// Options : titre, ok, non, danger, objet (nom rappelé en gras), effet ('irreversible' | 'annulable' | texte),
+// motif (true = obligatoire, 'facultatif'), saisie (texte à recopier pour valider), cases [{ id, label, defaut }],
+// action (async ({ motif, cases }) => résultat) : lancée par la fenêtre elle-même, bouton désactivé pendant l'appel,
+// fenêtre fermée seulement après la réponse du serveur ; une erreur reste affichée en rouge dans la fenêtre.
 let ouvrirConfirm = null
 export function confirmer(message, opts = {}) {
-  if (!ouvrirConfirm) return Promise.resolve(window.confirm(message))
+  if (!ouvrirConfirm) return Promise.resolve(window.confirm(message) && { motif: '', cases: {} })
   return new Promise((resolve) => ouvrirConfirm({ message, ...opts, resolve }))
+}
+export const EFFETS = {
+  irreversible: 'Action définitive : elle ne peut pas être annulée.',
+  annulable: 'Tu pourras annuler juste après (bouton « Annuler » du message de confirmation).',
+}
+export function DangerAction({ q, onFin }) {
+  const [motif, setMotif] = useState('')
+  const [saisie, setSaisie] = useState('')
+  const [cases, setCases] = useState(() => Object.fromEntries((q.cases || []).map((c) => [c.id, !!c.defaut])))
+  const [occupe, setOccupe] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const motifRequis = q.motif === true
+  const pret = (!motifRequis || motif.trim().length >= 3) && (!q.saisie || saisie.trim().toUpperCase() === String(q.saisie).toUpperCase())
+  const valider = async (e) => {
+    e?.preventDefault()
+    if (!pret || occupe) return
+    const reponse = { motif: motif.trim(), cases }
+    if (!q.action) return onFin(reponse)
+    setOccupe(true)
+    setErreur('')
+    try {
+      const resultat = await q.action(reponse)
+      onFin({ ...reponse, resultat })
+    } catch (x) {
+      setErreur(x?.message || String(x))
+      setOccupe(false)
+    }
+  }
+  const effet = EFFETS[q.effet] || q.effet
+  return (
+    <Modal title={q.titre || 'Confirmer'} onClose={() => !occupe && onFin(false)}>
+      <form className="stack danger-action" onSubmit={valider} data-danger={q.danger ? 'oui' : undefined}>
+        {q.objet && (
+          <p className="danger-objet">
+            <strong>{q.objet}</strong>
+          </p>
+        )}
+        {q.message && <p style={{ margin: '4px 0', whiteSpace: 'pre-line' }}>{q.message}</p>}
+        {effet && <p className={`small ${q.effet === 'irreversible' ? 'red' : 'muted'}`}>{effet}</p>}
+        {(q.cases || []).map((c) => (
+          <label key={c.id} className="row small" style={{ gap: 8 }}>
+            <input type="checkbox" checked={cases[c.id]} onChange={(e) => setCases((x) => ({ ...x, [c.id]: e.target.checked }))} /> {c.label}
+          </label>
+        ))}
+        {q.motif && (
+          <Field label={motifRequis ? 'Motif (obligatoire, gardé dans le journal)' : 'Motif (facultatif)'}>
+            <input value={motif} onChange={(e) => setMotif(e.target.value)} required={motifRequis} minLength={motifRequis ? 3 : undefined} autoFocus />
+          </Field>
+        )}
+        {q.saisie && (
+          <Field label={`Pour confirmer, tape ${q.saisie}`}>
+            <input value={saisie} onChange={(e) => setSaisie(e.target.value)} autoComplete="off" autoFocus={!q.motif} />
+          </Field>
+        )}
+        {erreur && (
+          <p className="red small" role="alert">
+            {erreur}
+          </p>
+        )}
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <button type="button" className="btn" onClick={() => onFin(false)} disabled={occupe}>
+            {q.non || 'Annuler'}
+          </button>
+          <button type="submit" autoFocus={!q.motif && !q.saisie} className={`btn ${q.danger ? 'danger' : 'primary'}`} disabled={!pret || occupe} aria-busy={occupe || undefined}>
+            {occupe ? 'Envoi…' : q.ok || 'Confirmer'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
 }
 export function ConfirmHost() {
   const [q, setQ] = useState(null)
@@ -302,19 +400,7 @@ export function ConfirmHost() {
     setQ(null)
     q.resolve(v)
   }
-  return (
-    <Modal title={q.titre || 'Confirmer'} onClose={() => fin(false)}>
-      <p style={{ margin: '4px 0 18px', whiteSpace: 'pre-line' }}>{q.message}</p>
-      <div className="row" style={{ justifyContent: 'flex-end' }}>
-        <button type="button" className="btn" onClick={() => fin(false)}>
-          {q.non || 'Annuler'}
-        </button>
-        <button type="button" autoFocus className={`btn ${q.danger ? 'danger' : 'primary'}`} onClick={() => fin(true)}>
-          {q.ok || 'Confirmer'}
-        </button>
-      </div>
-    </Modal>
-  )
+  return <DangerAction key={q.message + (q.titre || '')} q={q} onFin={fin} />
 }
 
 export function Empty({ children }) {
@@ -363,21 +449,22 @@ export function Menu({ label, icon = 'chevron', items, className = 'btn sm', ali
   useEffect(() => {
     if (!open) return
     const close = (e) => !dedans(e.target) && setOpen(null)
-    const k = (e) => e.key === 'Escape' && setOpen(null)
     const t0 = Date.now()
     // Le défilement provoqué par l'ouverture elle-même ne ferme pas le menu
     const fermer = (e) => Date.now() - t0 > 250 && !dedans(e?.target) && setOpen(null)
     document.addEventListener('mousedown', close)
-    window.addEventListener('keydown', k)
     window.addEventListener('scroll', fermer, true)
     window.addEventListener('resize', fermer)
     return () => {
       document.removeEventListener('mousedown', close)
-      window.removeEventListener('keydown', k)
       window.removeEventListener('scroll', fermer, true)
       window.removeEventListener('resize', fermer)
     }
   }, [open])
+  useCouche(!!open, () => {
+    setOpen(null)
+    ref.current?.querySelector('button')?.focus()
+  })
   // Position fixe calculée à l'ouverture : le menu n'est jamais coupé par un bloc qui défile
   const ouvrir = (e) => {
     if (open) return setOpen(null)
@@ -478,5 +565,29 @@ export function Repartition({ rows, empty }) {
         </div>
       ))}
     </div>
+  )
+}
+
+// Bouton « Copier » : copie un texte (mot de passe temporaire, lien) et l'annonce aux lecteurs d'écran
+export function BoutonCopier({ texte, libelle = 'Copier', className = 'btn' }) {
+  const [etat, setEtat] = useState('')
+  const copier = async () => {
+    try {
+      await navigator.clipboard.writeText(texte)
+      setEtat('Copié ✓')
+    } catch {
+      setEtat('Copie impossible : sélectionne le texte à la main')
+    }
+    setTimeout(() => setEtat(''), 2500)
+  }
+  return (
+    <>
+      <button type="button" className={className} onClick={copier}>
+        <Icon n="copy" size={14} /> {libelle}
+      </button>
+      <span className="small muted" role="status" aria-live="polite">
+        {etat}
+      </span>
+    </>
   )
 }

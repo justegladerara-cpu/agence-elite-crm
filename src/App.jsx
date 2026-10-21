@@ -46,6 +46,8 @@ import Applications from './pages/Applications'
 import { syncRappels } from './lib/rappels'
 import { QuickForm, AppelSheet } from './pages/Rapide'
 import { corbeille } from './lib/corbeille'
+import { telechargerSauvegarde } from './lib/sauvegarde'
+import { remplacerDonnees } from './lib/remplacer'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
 import { NoyauCtx, DonneesCtx } from './core/contexte'
@@ -276,10 +278,13 @@ function PorteFermee({ onOuverte }) {
   )
 }
 
+// La porte se rouvre seulement si la session plateforme est toujours valable (vérifiée à chaque ouverture) ;
+// l'autorisation de 12 h ne sert plus que hors ligne. Se déconnecter ferme la porte (SEC-06).
 const etatPorteInitial = () => {
   if (isLocal) return 'ok'
   if (/^#porte=/.test(window.location.hash)) return 'verif'
-  return porteOuverte() ? 'ok' : 'session'
+  if (typeof navigator !== 'undefined' && navigator.onLine === false && porteOuverte()) return 'ok'
+  return 'session'
 }
 
 export default function App() {
@@ -597,6 +602,14 @@ function Crm() {
       }))
       toast(`${item.libelle} restauré ✓`)
     }),
+    // Restaurer une sauvegarde (SEC-11) : remet les lignes du fichier avec leurs identifiants d'origine.
+    // Rien n'est effacé : une ligne déjà présente (même identifiant) reprend la valeur de la sauvegarde.
+    restaurerSauvegarde: wrap(async (contenu) => {
+      garde('remplacer')
+      await db.restaurer(contenu)
+      await reload()
+      toast(`Sauvegarde restaurée ✓ (${contenu.prospects.length} fiches, ${contenu.actions.length} actions, ${contenu.documents.length} documents)`)
+    }),
     uploadRecu: wrap(async (dataUrl, ext, type) => {
       garde('ecrire')
       return db.uploadRecu(dataUrl, ext, type)
@@ -608,11 +621,26 @@ function Crm() {
       await db.saveSettings(settings)
       setState((s) => ({ ...s, settings }))
     }),
+    // Remplacer (SEC-02) : sauvegarde téléchargée d'abord, puis les nouvelles lignes sont ajoutées, et seulement
+    // si tout est passé, les anciennes sont retirées une par une (par identifiant). Un échec à l'ajout retire ce qui
+    // vient d'être ajouté : les données d'avant restent intactes. Les anciennes lignes vont dans la corbeille.
     bulkImport: wrap(async (prospects, actions, replace) => {
       garde(replace ? 'remplacer' : 'ecrire')
-      if (replace) await db.wipe()
-      await db.bulkImport(prospects, actions)
+      if (!replace) {
+        await db.bulkImport(prospects, actions)
+        return reload()
+      }
+      const avant = { prospects: state.prospects, actions: state.actions }
+      telechargerSauvegarde(state)
+      try {
+        await remplacerDonnees(db, avant, prospects, actions)
+      } catch (e) {
+        await reload().catch(() => {})
+        throw e
+      }
+      const cid = corbeille.ajouter('import', `Données remplacées par un import (${avant.prospects.length} prospects, ${avant.actions.length} actions)`, avant)
       await reload()
+      if (cid) toast('Données remplacées ✓ · les anciennes sont dans la corbeille', false, { annuler: () => api.restaurer(cid) })
     }),
     loadSeed: wrap(async () => {
       garde('ecrire')
@@ -662,12 +690,23 @@ function Crm() {
     settings,
     api,
     toast,
-    openAction: (prefill) => setActionModal(prefill || {}),
-    saisirArgent: (modal) => setArgent(modal),
+    // Rôle sans droit d'écriture (SEC-10) : la saisie ne s'ouvre pas, un message explique pourquoi
+    openAction: (prefill) => {
+      const refus = refusDe(roleActif(), 'ecrire')
+      if (refus) return toast(refus, true)
+      setActionModal(prefill || {})
+    },
+    saisirArgent: (modal) => {
+      const refus = refusDe(roleActif(), 'ecrire')
+      if (refus) return toast(refus, true)
+      setArgent(modal)
+    },
     live: { direct, majLe, sync, reload },
     role: roleActif(),
   }
   const donnees = { ...donneesEtat, data }
+  // Rôle affiché sur la page : les boutons marqués « ecriture » sont masqués pour un lecteur (SEC-10)
+  if (typeof document !== 'undefined' && document.body.dataset.role !== noyau.role) document.body.dataset.role = noyau.role
 
   const [chemin, query = ''] = route.split('?')
   const [page, arg = ''] = chemin.split(/\/(.*)/s)

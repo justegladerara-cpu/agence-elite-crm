@@ -1,13 +1,7 @@
 // Parcours essentiels du CRM (mode démo : données dans le navigateur)
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-
-async function avecExemples(page) {
-  await page.goto('/#/journee')
-  await expect(page.getByRole('heading', { name: 'Ajoute tes premiers prospects' })).toBeVisible()
-  await page.getByRole('button', { name: 'Charger des exemples' }).click()
-  await expect(page.getByText('Exemples chargés')).toBeVisible()
-}
+import { avecExemples, avecPlateforme } from './aides'
 
 test('l’application s’ouvre sur le tableau de bord ; Ma journée garde les relances en haut', async ({ page }) => {
   await avecExemples(page)
@@ -286,40 +280,6 @@ test('documents : liste par dossier, remplir un contrat, aperçu à jour, mode d
   await expect(page.locator('.docs-carte').first()).toBeVisible()
 })
 
-// Plateforme : données fictives servies à la place de la base du SaaS (aucune donnée réelle)
-const FICTIF = {
-  editeur_vue: {
-    offres: [{ id: 'standard', prix_mensuel: 25000, prix_annuel: 240000 }],
-    clients: [
-      { id: 'c1', nom: 'Bar Fictif', statut: 'actif', pays: 'CG', contact: { telephone: '+242000000000' }, etablissements: [{ id: 'e1', nom: 'Bar Fictif', statut: 'actif', mis_en_service_le: '2026-10-01', membres_actifs: 3, licence: { id: 'l1', offre: 'Standard', offre_id: 'standard', formule: 'mensuel', statut: 'active', valide: true, jours_restants: -2, echeance: '2026-10-16', montant: 25000 } }] },
-      { id: 'c2', nom: 'Hôtel Fictif', statut: 'actif', etablissements: [{ id: 'e2', nom: 'Hôtel Fictif', statut: 'actif', mis_en_service_le: '2026-10-01', membres_actifs: 5, licence: { id: 'l2', offre: 'Standard', offre_id: 'standard', formule: 'annuel', statut: 'active', valide: true, jours_restants: 200, echeance: '2027-05-01', montant: 240000 } }] },
-    ],
-  },
-  pilotage_activite: [
-    { etablissement_id: 'e1', ventes_jour: 4, montant_jour: 18000, montant_7j: 90000, montant_30j: 300000, utilisateurs_actifs_7j: 2, derniere_activite: new Date().toISOString(), caisses_ouvertes: 1 },
-    { etablissement_id: 'e2', ventes_jour: 1, montant_jour: 45000, montant_7j: 200000, montant_30j: 800000, utilisateurs_actifs_7j: 4, derniere_activite: new Date().toISOString() },
-  ],
-  pilotage_messages: [],
-  editeur_tableau_de_bord: {},
-  editeur_comptes: [{ id: 'u1', nom: 'Gérant Fictif', identifiant: 'gerant.fictif', acces: [{ etablissement_id: 'e1', role: 'gerant', actif: true }], derniere_connexion: new Date().toISOString() }],
-  pilotage_chronologie: [{ date: new Date().toISOString(), type: 'ventes.jour', etablissement: 'Bar Fictif', detail: '4 vente(s)', montant: 18000 }],
-  est_super_admin: true,
-}
-async function avecPlateforme(page) {
-  const appels = []
-  await page.route(/plateforme\.fictive\.test\/rest\/v1\/rpc\/([a-z_]+)/, async (route) => {
-    const nom = route.request().url().split('/rpc/')[1].split('?')[0]
-    appels.push({ nom, corps: route.request().postDataJSON() })
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FICTIF[nom] ?? null) })
-  })
-  await page.addInitScript(() => {
-    const exp = Math.floor(Date.now() / 1000) + 3600
-    const session = { access_token: 'jeton-fictif', refresh_token: 'fictif', token_type: 'bearer', expires_in: 3600, expires_at: exp, user: { id: 'u-admin', aud: 'authenticated', role: 'authenticated', email: 'admin@exemple.test' } }
-    localStorage.setItem('aecrm-plateforme', JSON.stringify(session))
-  })
-  return appels
-}
-
 test('plateforme : tour de contrôle, fiche client et encaissement (données fictives)', async ({ page }) => {
   const appels = await avecPlateforme(page)
   await avecExemples(page)
@@ -337,12 +297,15 @@ test('plateforme : tour de contrôle, fiche client et encaissement (données fic
   const dialog = page.getByRole('dialog', { name: /Encaisser/ })
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('textbox', { name: 'Montant reçu (FCFA)' })).toHaveValue('25000')
-  await dialog.getByRole('button', { name: 'Encaisser' }).click()
-  await expect(page.getByText('Paiement encaissé et licence prolongée')).toBeVisible()
-  expect(appels.find((a) => a.nom === 'renouveler_licence').corps).toMatchObject({ p_licence_id: 'l1', p_montant: 25000 })
+  await dialog.getByRole('button', { name: 'Vérifier' }).click()
+  await expect(dialog.getByText('Vérifie avant d’envoyer')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Confirmer l’encaissement' }).click()
+  await expect(page.getByText(/Paiement encaissé, licence prolongée/)).toBeVisible()
+  expect(appels.find((a) => a.nom === 'renouveler_licence').corps).toMatchObject({ p_licence_id: 'l1', p_montant: 25000, p_reference: expect.stringMatching(/^OP-/) })
   await expect(page.getByRole('heading', { name: 'Histoire du client' })).toBeVisible()
   if (process.env.CAPTURES) await page.screenshot({ path: `${process.env.CAPTURES}/fiche-${test.info().project.name}.png`, fullPage: true })
   await page.getByRole('button', { name: 'Bloquer', exact: true }).click()
+  await page.getByRole('dialog').getByRole('textbox', { name: /Motif/ }).fill('Impayé fictif')
   await page.getByRole('dialog').getByRole('button', { name: 'Bloquer' }).click()
   await expect.poll(() => appels.find((a) => a.nom === 'definir_statut_client')?.corps).toEqual({ p_client_id: 'c1', p_statut: 'suspendu' })
 })

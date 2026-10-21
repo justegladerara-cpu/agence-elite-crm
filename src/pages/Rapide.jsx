@@ -1,6 +1,7 @@
 // Saisie rapide : noter une action en 1 à 3 touches quand on sait déjà de quelle fiche il s'agit,
 // et feuille « Comment s'est passé l'appel ? » au retour d'un appel lancé depuis le CRM
 import { useEffect, useRef, useState } from 'react'
+import { estRaccourciLibre } from '../lib/clavier'
 import { Icon } from '../icons'
 import { StageBadge, sym } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
@@ -190,8 +191,10 @@ export function AppelSheet({ prospectId, onDone, onDetails }) {
   // Touches 1 à 4 : résultat de l'appel au clavier
   useEffect(() => {
     const k = (e) => {
+      // Jamais pendant une saisie (note, montant…) ni avec une touche de modification
+      if (!estRaccourciLibre(e)) return
       const i = Number(e.key) - 1
-      if (i >= 0 && i < 4 && !e.ctrlKey && !e.metaKey) noterRef.current(CHOIX_APPEL[i])
+      if (i >= 0 && i < 4) noterRef.current(CHOIX_APPEL[i])
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)

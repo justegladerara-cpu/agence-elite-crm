@@ -3,6 +3,9 @@ import { useEspace } from '../../noyau/espace.jsx';
 import { ADRESSE_SAAS } from '../../noyau/routes.js';
 import { dateLocale, formatDate, formatDateHeure, formatMontant } from '../../noyau/format.js';
 import { Badge, Bouton, Champ, Erreur, Modale, ModaleMotif, Section } from '../../ui/composants.jsx';
+import { confirmer } from '../../../ui.jsx';
+import { echeanceMinimum, echeanceProposee, erreurEcheance } from '../../../modules/plateforme/index.js';
+import { journalOperations, noterGeste } from '../../../modules/plateforme/index.js';
 
 export const FORMULES = { essai: 'Essai', acquisition: 'Acquisition', mensuel: 'Mensuel', annuel: 'Annuel' };
 export const EVENEMENTS = {
@@ -226,37 +229,49 @@ export function ModaleLicence({ etablissement, offres, modules, premiere, onFerm
   );
 }
 
-function ModaleRenouvellement({ licence, onFermer, onEnregistre }) {
+// Renouveler sans encaissement (SEC-04) : ici, aucun montant n'est saisi. Un paiement reçu passe par « Encaisser »
+// sur la fiche client du CRM, qui prolonge la licence ET note le paiement dans les finances : les deux bases restent
+// d'accord. Le motif est obligatoire et la nouvelle échéance est toujours après l'actuelle (SEC-09).
+function ModaleRenouvellement({ licence, clientId, onFermer, onEnregistre }) {
   const { api } = useEspace();
-  const [valeurs, setValeurs] = useState({ echeance: '', montant: String(licence.montant ?? 0), reference: '' });
-  const { erreur, enCours, agir } = useAction();
+  const proposee = echeanceProposee(licence);
+  const [valeurs, setValeurs] = useState({ echeance: proposee || '', motif: '' });
+  const { erreur, setErreur, enCours, agir } = useAction();
   const changer = (c) => (e) => setValeurs((v) => ({ ...v, [c]: e.target.value }));
+  const probleme = erreurEcheance(licence, valeurs.echeance);
   return (
-    <Modale titre="Renouveler la licence" onFermer={onFermer}>
+    <Modale titre="Renouveler sans encaissement" onFermer={onFermer}>
       <form
         className="formulaire"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (probleme) return setErreur(probleme);
+          if (valeurs.motif.trim().length < 3) return setErreur('Motif obligatoire.');
           try {
             await agir(() => api.rpc('renouveler_licence', {
-              p_licence_id: licence.id, p_nouvelle_echeance: valeurs.echeance || null, p_montant: Number(valeurs.montant || 0), p_reference: valeurs.reference || null,
+              p_licence_id: licence.id, p_nouvelle_echeance: valeurs.echeance, p_montant: 0, p_reference: 'Sans encaissement', p_note: valeurs.motif.trim(),
             }));
+            noterGeste(journalOperations(), { type: 'renouveler_sans_encaissement', motif: valeurs.motif.trim(), detail: `${licence.echeance || '—'} → ${valeurs.echeance}` });
             onEnregistre();
           } catch {
             // erreur affichée
           }
         }}
       >
-        <p>Échéance actuelle : <strong>{licence.echeance ? formatDate(licence.echeance) : 'aucune'}</strong></p>
+        <p className="texte-doux">
+          Aucun paiement n’est noté. Pour un paiement reçu, utilisez <a href={clientId ? `#/plateforme-client/${clientId}?faire=encaisser` : '#/plateforme'}>Encaisser sur la fiche client</a> : la licence est prolongée et le paiement entre dans les finances.
+        </p>
         <div className="grille-champs">
-          <Champ libelle="Nouvelle échéance" aide="Vide : +1 mois ou +1 an selon la formule."><input type="date" value={valeurs.echeance} onChange={changer('echeance')} /></Champ>
-          <Champ libelle="Montant encaissé"><input type="number" min="0" step="any" value={valeurs.montant} onChange={changer('montant')} /></Champ>
-          <Champ libelle="Référence du paiement"><input value={valeurs.reference} onChange={changer('reference')} /></Champ>
+          <Champ libelle="Nouvelle échéance" aide={`Actuelle : ${licence.echeance ? formatDate(licence.echeance) : 'aucune'}`}>
+            <input type="date" value={valeurs.echeance} min={echeanceMinimum(licence)} onChange={changer('echeance')} required />
+          </Champ>
+          <Champ libelle="Motif (obligatoire)"><input value={valeurs.motif} onChange={changer('motif')} required minLength={3} placeholder="Ex. geste commercial, correction d’échéance" /></Champ>
         </div>
-        <Erreur message={erreur} />
+        <p>Récapitulatif : échéance {licence.echeance ? formatDate(licence.echeance) : 'aucune'} → <strong>{valeurs.echeance ? formatDate(valeurs.echeance) : '—'}</strong>, sans paiement.</p>
+        <Erreur message={erreur || probleme} />
         <div className="actions">
           <Bouton type="button" onClick={onFermer}>Annuler</Bouton>
-          <Bouton type="submit" variante="principal" chargement={enCours}>Renouveler</Bouton>
+          <Bouton type="submit" variante="principal" chargement={enCours} disabled={!!probleme}>Renouveler sans encaissement</Bouton>
         </div>
       </form>
     </Modale>
@@ -325,8 +340,9 @@ export function OngletLicence({ detail, offres, recharger }) {
           </dl>
         ) : <p className="texte-doux">Aucune licence en cours : l’établissement est en consultation seule.</p>}
         <div className="actions-gauche">
-          <Bouton variante="principal" onClick={() => setModale({ type: 'attribuer' })}>Attribuer une licence</Bouton>
-          {licence && licence.formule !== 'acquisition' && <Bouton onClick={() => setModale({ type: 'renouveler' })}>Renouveler</Bouton>}
+          <Bouton variante={licence ? "secondaire" : "principal"} onClick={() => setModale({ type: "attribuer" })}>Attribuer une licence</Bouton>
+          {licence && licence.formule !== 'acquisition' && <a className="bouton principal" href={`#/plateforme-client/${detail.client?.id}?faire=encaisser`}>Encaisser et renouveler</a>}
+          {licence && licence.formule !== 'acquisition' && <Bouton onClick={() => setModale({ type: 'renouveler' })}>Renouveler sans encaissement</Bouton>}
           {licence && <Bouton onClick={() => setModale({ type: 'support' })}>{licence.support ? 'Retirer le support' : 'Ajouter le support'}</Bouton>}
           {licence?.statut === 'active' && <Bouton variante="danger" onClick={() => statut('suspendue', 'Suspendre la licence', 'L’établissement passe en consultation seule.', 'Suspendre')}>Suspendre</Bouton>}
           {licence?.statut === 'suspendue' && <Bouton onClick={() => statut('active', 'Réactiver la licence', 'L’établissement retrouve l’écriture.', 'Réactiver')}>Réactiver</Bouton>}
@@ -366,7 +382,7 @@ export function OngletLicence({ detail, offres, recharger }) {
         <ModaleSupport licence={licence} offre={offres.find((o) => o.id === licence.offre_id)} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
       )}
       {modale?.type === 'renouveler' && (
-        <ModaleRenouvellement licence={licence} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
+        <ModaleRenouvellement licence={licence} clientId={detail.client?.id} onFermer={() => setModale(null)} onEnregistre={() => { setModale(null); recharger(); }} />
       )}
       {modale?.type === 'statut' && (
         <ModaleMotif
@@ -414,7 +430,18 @@ function ModulesSolution({ detail, recharger }) {
                       type="checkbox"
                       checked={m.actif}
                       disabled={!m.actif && !m.couvert}
-                      onChange={(e) => agir(() => api.rpc('definir_module_etablissement', { p_etablissement_id: detail.etablissement.id, p_module_id: m.id, p_actif: e.target.checked }), 'Module mis à jour').catch(() => {})}
+                      onChange={async (e) => {
+                        const actif = e.target.checked;
+                        const r = await confirmer(
+                          actif ? `Le module devient utilisable par les équipes de ${detail.etablissement.nom}.` : `Les équipes de ${detail.etablissement.nom} n’y auront plus accès. Les données sont gardées et reviennent à la réactivation.`,
+                          { titre: actif ? `Activer ${m.nom} ?` : `Désactiver ${m.nom} ?`, objet: detail.etablissement.nom, effet: 'Vous pourrez revenir en arrière à tout moment.', ok: actif ? 'Activer' : 'Désactiver', danger: !actif, motif: actif ? 'facultatif' : true }
+                        );
+                        if (!r) return;
+                        agir(async () => {
+                          await api.rpc('definir_module_etablissement', { p_etablissement_id: detail.etablissement.id, p_module_id: m.id, p_actif: actif });
+                          noterGeste(journalOperations(), { type: actif ? 'module_active' : 'module_retire', etablissement: detail.etablissement, motif: r.motif, detail: m.nom });
+                        }, 'Module mis à jour').catch(() => {});
+                      }}
                     />
                     {m.actif ? 'Activé' : 'Désactivé'}
                   </label>
@@ -544,7 +571,17 @@ export function OngletInfos({ detail, recharger }) {
               key={id}
               variante={e.statut === id ? 'principal' : 'secondaire'}
               disabled={e.statut === id}
-              onClick={() => agir(() => api.rpc('definir_statut_etablissement', { p_etablissement_id: e.id, p_statut: id }), `Établissement : ${nom.toLowerCase()}`).catch(() => {})}
+              onClick={async () => {
+                const r = await confirmer(
+                  id === 'actif' ? 'Les équipes retrouvent l’écriture.' : 'Plus aucune écriture pour les équipes ; les données restent consultables.',
+                  { titre: `Passer l’établissement en « ${nom.toLowerCase()} » ?`, objet: e.nom, effet: 'Vous pourrez changer le statut de nouveau.', ok: nom, danger: id !== 'actif', motif: true }
+                );
+                if (!r) return;
+                agir(async () => {
+                  await api.rpc('definir_statut_etablissement', { p_etablissement_id: e.id, p_statut: id });
+                  noterGeste(journalOperations(), { type: id === 'actif' ? 'debloquer_etablissement' : 'bloquer_etablissement', etablissement: e, motif: r.motif, detail: nom });
+                }, `Établissement : ${nom.toLowerCase()}`).catch(() => {});
+              }}
             >
               {nom}
             </Bouton>
@@ -589,7 +626,7 @@ export function OngletSupport({ detail, recharger }) {
               {s.active && (
                 <button
                   className="lien"
-                  onClick={() => agir(async () => { await api.rpc('fermer_session_support', { p_session_id: s.id }); await rechargerContexte(); }, 'Session fermée').catch(() => {})}
+                  onClick={() => agir(() => api.rpc('fermer_session_support', { p_session_id: s.id }), 'Session fermée').catch(() => {})}
                 >
                   Fermer
                 </button>
