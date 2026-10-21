@@ -196,10 +196,50 @@ export function Choix({ value, onChange, options, placeholder = 'Choisir…', li
 
 let modalN = 0
 let modalesOuvertes = 0
-export function Modal({ title, onClose, children, large }) {
+
+// Règles communes des formulaires (lot 6, docs/superadmin-v2/JOURNAL.md D6-3) :
+// - un champ modifié rend la fenêtre « modifiée » ; la fermer par Échap, le fond ou la croix demande confirmation,
+//   et quitter la page est signalé par le navigateur (on n'avertit pas pour une recherche : type="search" ou
+//   data-sans-garde) ;
+// - le second clic d'un double clic sur un bouton d'envoi est ignoré ;
+// - un champ invalide est entouré de rouge (CSS : :user-invalid et aria-invalid).
+export const champSansGarde = (el) => !el || el.type === 'search' || !!el.closest?.('[data-sans-garde]')
+export const estDoubleClic = (e) => (e?.detail || 0) > 1
+let fenetresModifiees = 0
+const avertirAvantDeQuitter = (e) => {
+  e.preventDefault()
+  e.returnValue = ''
+}
+
+export function Modal({ title, onClose, children, large, garde = true }) {
   const boite = useRef(null)
   const [id] = useState(() => `modal-${++modalN}`)
-  useCouche(true, onClose)
+  const [modifiee, setModifiee] = useState(false)
+  const fermer = async () => {
+    if (modifiee && !(await confirmer('Fermer sans enregistrer ? Les changements saisis seront perdus.', { titre: 'Changements non enregistrés', ok: 'Fermer sans enregistrer', non: 'Continuer la saisie' }))) return
+    onClose()
+  }
+  useCouche(true, fermer)
+  useEffect(() => {
+    if (!modifiee) return undefined
+    if (fenetresModifiees++ === 0) window.addEventListener('beforeunload', avertirAvantDeQuitter)
+    return () => {
+      if (--fenetresModifiees === 0) window.removeEventListener('beforeunload', avertirAvantDeQuitter)
+    }
+  }, [modifiee])
+  const surSaisie = (e) => {
+    if (garde && !modifiee && !champSansGarde(e.target)) setModifiee(true)
+  }
+  const surClic = (e) => {
+    const b = e.target.closest?.('button[type="submit"], form button:not([type]), button.primary')
+    if (!b) return
+    // Clic répété (double clic : le navigateur compte les clics rapprochés dans e.detail) : seul le premier compte.
+    // Deux clics séparés restent deux clics (par exemple, renvoyer après avoir corrigé une erreur).
+    if (estDoubleClic(e)) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
   useEffect(() => {
     modalesOuvertes++
     document.body.style.overflow = 'hidden'
@@ -219,11 +259,22 @@ export function Modal({ title, onClose, children, large }) {
   }, [])
   // Rendue à la racine de la page : la fenêtre ne dépend pas du style de l'endroit où on l'ouvre
   return createPortal(
-    <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={`modal ${large ? 'large' : ''}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={boite}>
+    <div className="modal-bg" onMouseDown={(e) => e.target === e.currentTarget && fermer()}>
+      <div
+        className={`modal ${large ? 'large' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={id}
+        tabIndex={-1}
+        ref={boite}
+        data-modifiee={modifiee || undefined}
+        onInput={surSaisie}
+        onChange={surSaisie}
+        onClickCapture={surClic}
+      >
         <div className="modal-head">
           <h2 id={id}>{title}</h2>
-          <button className="icon-btn" onClick={onClose} aria-label="Fermer">
+          <button className="icon-btn" onClick={fermer} aria-label="Fermer">
             <Icon n="x" size={16} />
           </button>
         </div>
@@ -340,7 +391,7 @@ export function DangerAction({ q, onFin }) {
   }
   const effet = EFFETS[q.effet] || q.effet
   return (
-    <Modal title={q.titre || 'Confirmer'} onClose={() => !occupe && onFin(false)}>
+    <Modal title={q.titre || 'Confirmer'} onClose={() => !occupe && onFin(false)} garde={false}>
       <form className="stack danger-action" onSubmit={valider} data-danger={q.danger ? 'oui' : undefined}>
         {q.objet && (
           <p className="danger-objet">

@@ -152,3 +152,12 @@
   --menu-actif: var(--c-nav-2);
 }
 :root[data-ui="saas"] .saas-admin button { transition-duration: var(--t-court); }
+
+/* Lot 6 : erreurs de saisie en rouge (champ refusé par le navigateur après saisie, ou marqué aria-invalid) */
+input:user-invalid,
+select:user-invalid,
+textarea:user-invalid,
+[aria-invalid='true'] {
+  border-color: var(--red, #c0322e) !important;
+  box-shadow: 0 0 0 1px var(--red, #c0322e);
+}

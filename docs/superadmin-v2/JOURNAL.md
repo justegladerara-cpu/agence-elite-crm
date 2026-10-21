@@ -225,7 +225,7 @@ encaissement en deux temps (PR plateforme non appliquée pour la clé d'idempote
 - **Encaissement en deux temps** : réconciliation complète sur `#/operations` (« Opérations et réconciliation », espace
   Clients logiciel) : à reprendre en tête, journal filtrable (à reprendre, encaissements, autres gestes, tout),
   recherche, états. La devise de l'opération est gardée.
-- **PR plateforme non appliquée** (`agence-elite-platform`, migration `20261021000150_idempotence_encaissement_motifs`) :
+- **PR plateforme #72, non appliquée** (`agence-elite-platform`, brouillon, migration `20261021000150_idempotence_encaissement_motifs`) :
   clé d'idempotence (`OP-…` unique, vérifiée sous le verrou de la licence : deux onglets au même instant ne doublent
   plus) et motif facultatif pour `definir_statut_client`, `definir_statut_etablissement`, `definir_module_etablissement`
   (gardé dans `journal_audit`). Tests PGlite dans la PR. **Non fusionnée, non appliquée** : accord écrit requis.
@@ -247,3 +247,46 @@ encaissement en deux temps (PR plateforme non appliquée pour la clé d'idempote
 ### Prochaine étape
 Lot 6 : `08_FINANCIAL_RULES.md` et module de calcul unique, doublons (`04_REDUNDANCY_RESOLUTION.csv`), densité,
 formulaires (un seul mode d'enregistrement, avertir avant de quitter, double clic, erreurs en rouge).
+
+---
+
+## Lot 6 — Règles financières, doublons, formulaires (2026-10-21)
+
+### Fait
+- **Module de calcul unique** `src/lib/finances.js` : lecture d'un montant, nature (paiement, dépense), période,
+  encaissé, dépenses, résultat, arrondi. Règles R1 à R7 dans `08_FINANCIAL_RULES.md`, avec les règles de devise,
+  de licence et d'idempotence déjà en place. `lib/logic.js`, `facturation/invoice.js` et `lib/tresorerie.js` renvoient
+  à la même lecture ; la Tour de contrôle, Finances et Charges calculent l'encaissé et les dépenses par ce module.
+- **Bug corrigé** : `logic.num` lisait « 1 000 » comme 0 (écrans qui l'utilisaient : totaux sous-évalués quand un
+  montant était saisi avec une espace).
+- **Doublons** : `04_REDUNDANCY_RESOLUTION.csv`, 31 doublons trouvés dans le code et traités aux lots 1 à 6, plus une
+  ligne « Bloqué : audit absent » pour les 71 redondances de l'audit.
+- **Formulaires**, règle commune dans la fenêtre `Modal` (`src/ui.jsx`), donc dans toutes les fenêtres de saisie :
+  - fermer une saisie commencée (Échap, fond, croix) demande « Fermer sans enregistrer ? » ; quitter la page est
+    signalé par le navigateur tant qu'une saisie n'est pas enregistrée ;
+  - le second clic d'un double clic sur un bouton d'envoi est ignoré ;
+  - un champ invalide (après saisie, ou marqué `aria-invalid`) est entouré de rouge.
+- Tests : `tests/finances.test.js` (9), `e2e/formulaires.spec.js` (4 × 2 formats). Résultats : oxlint 0 erreur,
+  vitest 179/179, Playwright 125 réussis + 1 sauté (le même).
+
+### Décisions
+- **D6-1** Le module financier ne touche pas l'argent de la plateforme : les licences gardent leur devise
+  (`lib/argent.js`), jamais additionnées entre devises.
+- **D6-2** Pas de conversion automatique entre devises : c'est une décision commerciale (taux, date du taux).
+- **D6-3** Règles des formulaires posées dans `Modal`, sans toucher chaque écran : une recherche (`type="search"` ou
+  `data-sans-garde`) ne déclenche pas l'avertissement ; les fenêtres de confirmation non plus. Le bouton « Annuler »
+  d'un formulaire ferme sans question (geste explicite).
+- **D6-4** Double clic : on se fie au compteur de clics du navigateur (`detail`), pas à un délai. Deux clics séparés
+  restent deux clics, pour pouvoir renvoyer après avoir corrigé une erreur. Les boutons qui affichent déjà « Envoi… »
+  gardent leur blocage.
+- **D6-5** « Un seul mode d'enregistrement par formulaire » : aucune fenêtre du CRM ne mélange enregistrement
+  automatique et bouton « Enregistrer » (vérifié dans le code). Seuls les compteurs de « Mes objectifs » s'enregistrent
+  seuls, sur la page ; leur fenêtre de réglage a son bouton « Enregistrer pour aujourd'hui ». Rien à changer.
+
+### Bloqué
+- Rapprochement avec les 71 redondances de l'audit : **Bloqué : audit absent**.
+- PR plateforme #72 : contrôle « tests » rouge à cause d'un test de date (`rh.test.js`) qui échoue aussi sur `main`
+  depuis le 21/10 ; expliqué sur la PR, correctif proposé à part. « Workers Builds » rouge sur toutes les PR plateforme.
+
+### Prochaine étape
+Lot 7 : `02_FUNCTION_MAPPING.csv`, documents 01 à 14, captures avant / après, mesures après, rapport final.

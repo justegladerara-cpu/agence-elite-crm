@@ -1,6 +1,8 @@
 // Tableau de bord unique (Tour de contrôle) : les 4 indicateurs et l'état de chaque bloc. Fonctions pures, testées
 // (tests/accueil.test.js). Règles : docs/superadmin-v2/08_FINANCIAL_RULES.md (encaissé) et JOURNAL (D4-x).
 
+import { encaisse } from '../../lib/finances'
+
 // Les 5 états d'un bloc
 export const ETATS_BLOC = ['chargement', 'donnees', 'vide', 'refuse', 'erreur']
 
@@ -25,8 +27,7 @@ export function etatCrm({ actif = true, nom = '', vide = false }) {
 export const relancesEnRetard = (list = [], t) => list.filter((p) => p.relance && p.relance < t && p.etape !== 'Gagné' && p.etape !== 'Perdu')
 
 // Encaissé ce mois (mois civil « AAAA-MM ») : paiements reçus notés dans le CRM, dans la devise du CRM
-export const encaisseDuMois = (actions = [], mois) =>
-  actions.filter((a) => a.action === 'Paiement reçu' && String(a.date || '').startsWith(mois)).reduce((s, a) => s + (Number(a.montant) || 0), 0)
+export const encaisseDuMois = (actions = [], mois) => encaisse(actions, { mois })
 
 // Licences à renouveler : échéance dans 0 à 7 jours (les licences déjà échues sont comptées à part)
 export function licencesARenouveler(clients = [], jours = 7) {

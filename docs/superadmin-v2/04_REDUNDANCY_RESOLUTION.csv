@@ -1,0 +1,33 @@
+id;domaine;doublon_constate;ou_avant;decision;ou_maintenant;lot;statut;preuve
+RED-01;Navigation;Boîte à outils de la plateforme : second menu à côté du menu principal;#/plateforme-outils;Supprimée comme menu, adresse redirigée;#/espace/administration;2;traité;tests/navigation.test.js
+RED-02;Navigation;Écran des applications : troisième liste des pages;#/apps;Supprimé comme menu, adresse redirigée;#/espace;2;traité;tests/navigation.test.js
+RED-03;Navigation;Barre d'onglets propre aux écrans éditeur;src/saas (barre d'onglets);Retirée : les écrans éditeur sont dans le menu principal;src/navigation.js;2;traité;e2e/navigation.spec.js
+RED-04;Navigation;Recherche Ctrl K avec sa propre liste de pages;recherche;Lit la liste unique;src/navigation.js;2;traité;e2e/navigation.spec.js
+RED-05;Navigation;Titres sur téléphone avec leur propre liste;en-tête mobile;Lit la liste unique;src/navigation.js;2;traité;tests/navigation.test.js
+RED-06;Navigation;Écran « Tous les espaces » avec sa propre liste;#/espace;Lit la liste unique;src/navigation.js;2;traité;e2e/navigation.spec.js
+RED-07;Navigation;Une même page sous plusieurs noms (menu, titre, recherche);partout;Un seul libellé par page (LIBELLES);src/navigation.js;2;traité;tests/navigation.test.js
+RED-08;Navigation;« Plus » de la barre du bas confondu avec les menus « Plus » des pages;barre du bas;Renommé « Espaces » (D2-3);src/navigation.js;2;traité;JOURNAL D2-3
+RED-09;Navigation;« Déconnecter la plateforme » rangé dans la boîte à outils;#/plateforme-outils;Une seule place : espace Administration;#/espace/administration;2;traité;JOURNAL lot 2
+RED-10;Navigation;Liste des clients éditeur et liste « Clients du logiciel »;#/editeur/clients et #/plateforme;Entrée unique « Clients du logiciel » (D2-1);#/plateforme;2;traité;JOURNAL D2-1
+RED-11;Navigation;Liste des établissements éditeur à côté des clients;#/editeur/etablissements;Rattachée à « Clients du logiciel » (D2-1);#/plateforme;2;traité;JOURNAL D2-1
+RED-12;Accueil;Deux accueils : Tableau de bord en démo, Tour de contrôle en ligne;useRoute;Accueil unique : Tour de contrôle (D4-1);#/controle;4;traité;e2e/parcours.spec.js
+RED-13;Accueil;Deux tableaux de bord avec des chiffres qui se recoupent;#/controle et #/dashboard;Tour = tableau de bord unique ; l'analytique reste dans Analyses;#/controle;4;traité;e2e/tableau.spec.js
+RED-14;Accueil;Indicateurs secondaires mélangés aux 4 indicateurs clés;Tour de contrôle;4 indicateurs en tête, le reste dans « Autres chiffres »;#/controle;4;traité;e2e/tableau.spec.js
+RED-15;Fiche client;Deux fiches client (CRM et éditeur);#/plateforme-client/:id et #/editeur/clients/:id;Fiche unique, l'éditeur passe en « Réglages avancés » (D5-1);#/plateforme-client/:id?onglet=avance;5;traité;tests/navigation.test.js et e2e/fiche.spec.js
+RED-16;Fiche client;Deux chemins pour le mot de passe (équipe d'établissement et fiche);Equipe.jsx et fiche;Un seul chemin : fiche › Comptes › Mot de passe;#/plateforme-client/:id?onglet=comptes&mdp=;5;traité;e2e/fiche.spec.js
+RED-17;Fiche client;Trop d'actions de même niveau en tête de fiche;bandeau de la fiche;1 principale, 3 secondaires, le reste dans « Plus »;Fiche360;5;traité;e2e/fiche.spec.js (densité)
+RED-18;Fiche client;« Opérations à réconcilier » affichées à deux endroits sans écran complet;Tour et fiche;Écran unique de réconciliation, résumé seulement ailleurs;#/operations;5;traité;e2e/fiche.spec.js
+RED-19;Argent;Deux chemins d'encaissement (écran éditeur « Renouveler » avec montant et fiche « Encaisser »);écran éditeur;Montant retiré de l'écran éditeur (D1-3);fiche › Encaisser;1;traité;e2e/securite.spec.js
+RED-20;Argent;Renouveler sans paiement et prolonger : un seul bouton pour deux gestes;fiche;Deux gestes distincts, motif obligatoire (D5-4);fiche › Plus;5;traité;e2e/fiche.spec.js et e2e/securite.spec.js
+RED-21;Argent;Trois lectures différentes d'un montant saisi (« 1 000 » valait 0 dans une);lib/logic.js, facturation/invoice.js, lib/tresorerie.js;Règle unique R1;src/lib/finances.js;6;traité;tests/finances.test.js
+RED-22;Argent;« Encaissé du mois » calculé séparément dans la Tour, Finances et Charges;accueil.js, Finances.jsx, Charges.jsx;Règle unique R4;src/lib/finances.js;6;traité;tests/finances.test.js
+RED-23;Argent;Dépenses du mois recalculées dans Charges (deux fois);Charges.jsx;Règle unique R5;src/lib/finances.js;6;traité;tests/finances.test.js
+RED-24;Argent;Symbole « FCFA » écrit en dur (13 endroits) à côté du réglage de devise;Plateforme.jsx;Affichage par argent(v, devise);src/lib/argent.js;4;traité;tests/accueil.test.js
+RED-25;Argent;Règles d'échéance de licence écrites à plusieurs endroits;écrans d'encaissement et de prolongation;Règles partagées (L1, L2);src/modules/plateforme/licence.js;1;traité;tests/securite.test.js
+RED-26;Formulaires;Confirmations par window.confirm et fenêtres maison;plusieurs écrans;Composant unique confirmer / DangerAction;src/ui.jsx;1;traité;e2e/securite.spec.js
+RED-27;Formulaires;Chaque fenêtre gérait Échap à sa façon;plusieurs écrans;Pile unique des fenêtres;src/lib/couches.js;1;traité;e2e/securite.spec.js
+RED-28;Formulaires;Protection contre la perte de saisie absente ou au cas par cas;fenêtres de saisie;Règle commune dans Modal (avertir avant de fermer et de quitter);src/ui.jsx;6;traité;e2e/formulaires.spec.js
+RED-29;Formulaires;Protection contre le double clic au cas par cas;boutons d'envoi;Règle commune dans Modal, en plus des états « Envoi… »;src/ui.jsx;6;traité;e2e/formulaires.spec.js
+RED-30;Design;Deux styles d'action principale (marine et or);.btn.primary et .btn.gold;Un seul style bleu accent (D3-3);src/saas-premium.css;3;traité;e2e/design.spec.js
+RED-31;Design;Variables de couleur différentes pour le CRM et les écrans éditeur;index.css et src/saas;Mêmes jetons pour les deux;src/saas-premium.css;3;traité;e2e/design.spec.js
+RED-32;Audit;71 redondances de l'audit du 2026-10-21 (identifiants d'origine);audit absent;Bloqué : audit absent. Rapprochement à faire dès son dépôt (D0-1);docs/superadmin-v2/audit/LISEZMOI.md;6;bloqué;JOURNAL Bloqué lot 0

@@ -4,6 +4,7 @@ import { Icon } from '../icons'
 import { Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc, confirmer } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
+import { encaisse as encaisseDe } from '../lib/finances'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { totals, paiementsDe, num } from '../modules/facturation/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
@@ -483,7 +484,7 @@ export function DepensesTab({ nouveau }) {
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   }, [toutes, periode, q, data])
   const total = liste.reduce((m, a) => m + num(a.montant), 0)
-  const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && inPeriode(a.date, periode)).reduce((m, a) => m + num(a.montant), 0)
+  const encaisse = encaisseDe(actions.filter((a) => inPeriode(a.date, periode)))
   const fixes = chargesFixesMois(settings.depensesFixes)
 
   return (
