@@ -198,3 +198,52 @@ Lot 4 : tableau de bord unique sur la Tour de contrôle (4 indicateurs, 5 états
 ### Prochaine étape
 Lot 5 : fiche client unique à onglets, gestes séparés et tracés, création guidée, mot de passe en un seul chemin,
 encaissement en deux temps (PR plateforme non appliquée pour la clé d'idempotence et les motifs).
+
+---
+
+## Lot 5 — Fiche client unique et encaissement en deux temps (2026-10-21)
+
+### Fait
+- **Fiche client unique** (`#/plateforme-client/<id>`) à 7 onglets : Résumé, Établissements, Licences et paiements,
+  Modules, Comptes, Assistance, Réglages avancés. L'onglet est dans l'adresse (`?onglet=`). L'ancienne page client de
+  l'éditeur (`#/editeur/clients/<id>`) y mène ; ses écrans (identité, dirigeants, nouvel établissement, apparence) sont
+  dans « Réglages avancés », chargés seulement à l'ouverture de l'onglet. Rien n'est supprimé.
+- **Densité** : en tête, 1 action principale (Encaisser), 3 secondaires (Prolonger, Facturer, Plus) ; Message,
+  Assister, Bloquer le client, Relier, Renouveler sans encaissement et les gestes par établissement sont dans « Plus ».
+- **Gestes séparés et tracés** (chacun confirmé, avec motif quand il ne s'agit pas d'un paiement, noté au journal) :
+  encaisser + renouveler (Encaisser) · renouveler sans encaissement (nouveau dans la fiche : période normale, motif,
+  récapitulatif) · prolongation commerciale gratuite (Prolonger : quelques jours, motif) · suspendre / réactiver la
+  licence · bloquer / débloquer le client et l'établissement. Échéance jamais antérieure à l'actuelle (règles partagées
+  `licence.js`).
+- **Création guidée** : « Nouveau client » sur la liste des clients du logiciel ; la fiche affiche « Mise en route »
+  (client → établissement → licence → compte du gérant → mise en service) avec « Étape suivante ».
+- **Un seul chemin pour le mot de passe** : fiche › Comptes › « Mot de passe » (mot de passe provisoire généré,
+  « Copier » et « Copier le message »). Le bouton « Nouveau mot de passe » de l'équipe d'un établissement, côté éditeur,
+  mène à ce même chemin (`?onglet=comptes&mdp=<id>`).
+- **`editeur_comptes`** n'est plus lu à chaque ouverture de fiche : seulement à l'ouverture de l'onglet Comptes, puis
+  gardé 2 minutes (bouton Actualiser).
+- **Encaissement en deux temps** : réconciliation complète sur `#/operations` (« Opérations et réconciliation », espace
+  Clients logiciel) : à reprendre en tête, journal filtrable (à reprendre, encaissements, autres gestes, tout),
+  recherche, états. La devise de l'opération est gardée.
+- **PR plateforme non appliquée** (`agence-elite-platform`, migration `20261021000150_idempotence_encaissement_motifs`) :
+  clé d'idempotence (`OP-…` unique, vérifiée sous le verrou de la licence : deux onglets au même instant ne doublent
+  plus) et motif facultatif pour `definir_statut_client`, `definir_statut_etablissement`, `definir_module_etablissement`
+  (gardé dans `journal_audit`). Tests PGlite dans la PR. **Non fusionnée, non appliquée** : accord écrit requis.
+- Tests : `e2e/fiche.spec.js` (9 × 2 formats), `tests/navigation.test.js` (redirections). Le parcours e2e « plateforme »
+  passe maintenant par « Plus › Bloquer le client » (même geste, nouvelle place). Résultats : oxlint 0 erreur, vitest
+  170/170, Playwright 117 réussis + 1 sauté (le même).
+
+### Décisions
+- **D5-1** La fiche du CRM (`plateforme-client`) est la fiche unique, pas celle de l'éditeur : c'est elle qui relie
+  plateforme et CRM (paiements, factures, opérations). Les écrans éditeur restent accessibles dans « Réglages avancés »
+  et la page d'établissement éditeur reste (Hubs, équipe, mise en service, licence détaillée).
+- **D5-2** Tant que la migration plateforme n'est pas appliquée, le CRM n'envoie pas `p_motif` (l'appel échouerait) :
+  le motif reste dans le journal du CRM. Après application : ajouter `p_motif` aux trois appels (une ligne chacun).
+- **D5-3** Le journal des gestes reste sur l'appareil (200 entrées) ; la trace durable est côté plateforme
+  (`licence_evenements`, `journal_audit`). Un journal partagé dans la base CRM demanderait une migration CRM (accord).
+- **D5-4** « Renouveler sans encaissement » et « Prolongation commerciale gratuite » sont deux gestes distincts : le
+  premier pour une période normale déjà réglée autrement (motif type « avoir »), le second pour quelques jours offerts.
+
+### Prochaine étape
+Lot 6 : `08_FINANCIAL_RULES.md` et module de calcul unique, doublons (`04_REDUNDANCY_RESOLUTION.csv`), densité,
+formulaires (un seul mode d'enregistrement, avertir avant de quitter, double clic, erreurs en rouge).

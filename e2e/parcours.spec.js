@@ -304,7 +304,9 @@ test('plateforme : tour de contrôle, fiche client et encaissement (données fic
   expect(appels.find((a) => a.nom === 'renouveler_licence').corps).toMatchObject({ p_licence_id: 'l1', p_montant: 25000, p_reference: expect.stringMatching(/^OP-/) })
   await expect(page.getByRole('heading', { name: 'Histoire du client' })).toBeVisible()
   if (process.env.CAPTURES) await page.screenshot({ path: `${process.env.CAPTURES}/fiche-${test.info().project.name}.png`, fullPage: true })
-  await page.getByRole('button', { name: 'Bloquer', exact: true }).click()
+  // Bloquer le client : rangé dans « Plus » (densité, lot 5) et dans « Réglages avancés »
+  await page.getByRole('button', { name: 'Plus', exact: true }).click()
+  await page.getByRole('dialog', { name: /Plus/ }).getByRole('button', { name: 'Bloquer le client' }).click()
   await page.getByRole('dialog').getByRole('textbox', { name: /Motif/ }).fill('Impayé fictif')
   await page.getByRole('dialog').getByRole('button', { name: 'Bloquer' }).click()
   await expect.poll(() => appels.find((a) => a.nom === 'definir_statut_client')?.corps).toEqual({ p_client_id: 'c1', p_statut: 'suspendu' })

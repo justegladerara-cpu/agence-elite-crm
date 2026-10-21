@@ -2254,3 +2254,13 @@ button.indicateur:hover { border-color: var(--gold-line); box-shadow: var(--shad
 .squelette-bloc span { display: block; height: 14px; border-radius: 6px; background: var(--line-2); }
 .squelette-bloc span:nth-child(2) { width: 80%; }
 .squelette-bloc span:nth-child(3) { width: 55%; }
+
+/* ---------- Fiche client unique (lot 5) ---------- */
+.mise-en-route .etapes { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.mise-en-route .etapes li { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.mise-en-route .etapes li.fait { color: var(--text); }
+.mise-en-route .etapes li.suivante { color: var(--text); font-weight: 700; }
+.mise-en-route .etape-pt { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line); display: inline-grid; place-items: center; font-size: 11px; flex-shrink: 0; }
+.mise-en-route li.fait .etape-pt { background: var(--green); border-color: var(--green); color: #fff; }
+.mise-en-route li.suivante .etape-pt { border-color: var(--gold); }
+.zone-danger { border-color: var(--red-soft); border-left: 3px solid var(--red); }

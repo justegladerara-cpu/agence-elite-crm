@@ -172,7 +172,7 @@ export async function executer(op, deps) {
 // La plateforme garde aussi sa propre trace (journal_audit), sans le motif pour les gestes qui n'en prennent pas.
 export const GESTES = {
   encaisser: 'Encaissement',
-  prolonger: 'Prolongation sans paiement',
+  prolonger: 'Prolongation commerciale gratuite',
   bloquer_client: 'Client bloqué',
   debloquer_client: 'Client débloqué',
   bloquer_etablissement: 'Établissement bloqué',

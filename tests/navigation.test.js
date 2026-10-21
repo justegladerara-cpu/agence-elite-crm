@@ -45,6 +45,10 @@ describe('navigation en 6 espaces', () => {
     expect(redirection('editeur')).toBe('editeur/tableau')
     expect(redirection('parametres?x=1')).toBe('parametres/identite?x=1')
     expect(redirection('factures?filtre=impayees')).toBe(null)
+    // Lot 5 : la page client de l'éditeur mène à la fiche client unique ; la liste des clients reste
+    expect(redirection('editeur/clients/abc')).toBe('plateforme-client/abc?onglet=avance')
+    expect(redirection('editeur/clients')).toBe(null)
+    expect(redirection('')).toBe('controle')
     for (const cible of Object.values(REDIRECTIONS)) expect(redirection(cible)).toBe(null)
   })
   it('clé et espace de la page affichée', () => {
