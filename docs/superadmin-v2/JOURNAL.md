@@ -120,3 +120,40 @@ Lot 2 : navigation en 6 espaces (une seule liste pour menu, Ctrl K et titres mob
 
 ### Prochaine étape
 Lot 3 : design clair (jetons du § 9, navigation bleu nuit, contenu clair), écrans éditeur au même style.
+
+---
+
+## Lot 3 — Design SaaS premium (2026-10-21)
+
+### Fait
+- `src/saas-premium.css` : interface par défaut, limitée à `:root[data-ui="saas"]`. Jetons du § 9 (nav `#0B1424`,
+  nav2 `#13233B`, accent `#2563EB`, fond `#F6F8FC`, surface, texte, bordure, succès, avertissement, erreur), espacements
+  4 à 48, contrôles 40 px (44 px au doigt), cibles 44 px, transitions 120–220 ms, `prefers-reduced-motion`, focus visible.
+  Les anciennes variables (`--navy`, `--gold`, `--muted`…) sont réassociées : tout l'existant suit sans réécriture.
+- Écrans éditeur (`src/saas`, `.saas-admin`) : leurs variables reçoivent les mêmes jetons (même fichier).
+- `docs/DESIGN_SYSTEM.md` : nouvelle section 0 (jetons, règles, contrôle), mise à jour dans le même commit.
+- Corrections trouvées par le contrôle de toutes les pages : contraste du texte secondaire, lien-bouton illisible
+  (Documents), bouton clair devenu foncé (Ma journée), champs sans nom (Textes des scripts), tableaux défilants
+  inaccessibles au clavier (8 tableaux), débordement de 2 px à 320 px (Conversion), pages sans titre h1 (Tour de
+  contrôle et Clients du logiciel avant connexion, Elite Store en démo).
+- `GardeErreur` (`src/ui.jsx`) autour de chaque page et des écrans éditeur : une erreur d'affichage montre
+  « Réessayer » au lieu d'un écran blanc (constat du lot 1).
+- Tests : `e2e/design.spec.js` (11 tests × 2 formats) : jetons, interfaces au choix, 6 pages × 11 largeurs sans
+  défilement horizontal, axe page entière sans violation grave ou critique sur toutes les pages du menu et deux écrans
+  éditeur, garde d'erreur. Résultats : oxlint 0 erreur, vitest 161/161, Playwright 83 réussis + 1 sauté (le même).
+- JS initial : 417,7 ko (gzip 131,0 ko), sous la mesure du lot 0 (422,0 ko).
+
+### Décisions
+- **D3-1** Nouvelle clé de réglage `ui` (défaut `saas`) au lieu de l'ancienne `interface` : beaucoup de réglages ont
+  `interface: 'palantir'` enregistré, ils auraient gardé l'ancien design. Salle de contrôle et Classique restent au choix
+  (Paramètres › Identité › Interface) : rien n'est supprimé.
+- **D3-2** Texte secondaire : le jeton `#64748B` ne donne que 4,47:1 sur le fond `#F6F8FC` (AA exige 4,5:1). Le jeton
+  est gardé pour les icônes et traits ; le texte secondaire utilise `#5B6779` (même teinte, 5,4:1). Même règle pour les
+  couleurs d'état écrites en texte (vert `#15803D`, orange `#B45309`, rouge `#B91C1C`) ; les jetons purs servent aux fonds
+  et pastilles.
+- **D3-3** `.btn.primary` et `.btn.gold` sont tous deux bleu accent : l'ancienne distinction marine/or n'a plus de sens
+  dans ce design ; la règle « une action principale par zone » est traitée au lot 6 (densité).
+- **D3-4** `src/saas/saas.css` (généré) n'est pas modifié : l'alignement passe par les variables, dans `saas-premium.css`.
+
+### Prochaine étape
+Lot 4 : tableau de bord unique sur la Tour de contrôle (4 indicateurs, 5 états par bloc, filtre visible, vraie devise).

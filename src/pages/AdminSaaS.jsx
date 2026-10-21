@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { clientPlateforme, sessionValide } from '../modules/plateforme'
 import { ConnexionPlateforme } from '../modules/plateforme/ui'
+import { GardeErreur } from '../ui'
 import { FournisseurEspace } from '../saas/noyau/espace.jsx'
 import { PLATEFORME_BRANCHEE, SAAS_ORIGINE } from '../lib/porte'
 import { MESSAGE_NON_BRANCHEE } from '../modules/plateforme/connexion'
@@ -83,7 +84,9 @@ function AdminSaaSBranche({ route }) {
   return (
     <div className={`saas-admin${sombre ? ' sombre' : ''}`}>
       <FournisseurEspace api={api} contexte={contexte} onRecharger={() => setVersion((v) => v + 1)} onDeconnexion={() => setConnecte(false)}>
-        <EspaceEditeur route={route} naviguer={naviguer} />
+        <GardeErreur cle={route}>
+          <EspaceEditeur route={route} naviguer={naviguer} />
+        </GardeErreur>
       </FournisseurEspace>
     </div>
   )

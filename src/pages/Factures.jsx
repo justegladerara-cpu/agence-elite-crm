@@ -103,7 +103,7 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
             {docs.length === 0 ? (type === 'facture' ? 'Aucune facture pour le moment.' : 'Aucun devis pour le moment.') : 'Rien dans ce filtre.'}
           </Empty>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0}>
             <table className="t zt">
               <thead>
                 <tr>

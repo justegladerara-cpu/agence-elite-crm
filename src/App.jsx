@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
+import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost, GardeErreur } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, roleActif, moiActif } from './lib/store'
 import { refusDe, ROLES } from './core/permissions'
 import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './modules/commercial'
@@ -720,7 +720,9 @@ function Crm() {
               ))}
             </nav>
           )}
-          <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
+          <GardeErreur cle={route}>
+            <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
+          </GardeErreur>
         </main>
         <nav className="bottom-nav" aria-label="Navigation principale">
           {BAS.filter((n) => n.cta || n.route === 'espace' || espaces.some((e) => e.id === n.espace)).map((n) => {

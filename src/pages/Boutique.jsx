@@ -47,7 +47,15 @@ function useStore() {
 export default function Boutique({ onglet: demande }) {
   const [onglet, setOnglet] = useTab('boutique', 'commandes', demande)
   const [s, recharger] = useStore()
-  if (!supabase) return <Empty>La boutique nécessite la connexion au CRM en ligne.</Empty>
+  if (!supabase)
+    return (
+      <div className="stack">
+        <div className="page-head">
+          <h1>Elite Store</h1>
+        </div>
+        <Empty>La boutique nécessite la connexion au CRM en ligne.</Empty>
+      </div>
+    )
   const attente = s.commandes.filter((c) => c.statut === 'en_attente' && !c.demo).length
   const vraies = s.commandes.filter(CA)
   const stock = s.cles.filter((k) => !k.commande_id).length

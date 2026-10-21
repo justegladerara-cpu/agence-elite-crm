@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Component, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from './icons'
 import { ChiffreAnime } from './animations'
@@ -590,4 +590,31 @@ export function BoutonCopier({ texte, libelle = 'Copier', className = 'btn' }) {
       </span>
     </>
   )
+}
+
+// Garde d'erreur : une erreur dans un écran ou un bloc affiche un message et « Réessayer » au lieu d'un écran blanc.
+// cle : quand elle change (ex. la page), la garde repart à zéro.
+export class GardeErreur extends Component {
+  state = { erreur: null, cle: this.props.cle }
+  static getDerivedStateFromError(erreur) {
+    return { erreur }
+  }
+  static getDerivedStateFromProps(props, state) {
+    return props.cle !== state.cle ? { erreur: null, cle: props.cle } : null
+  }
+  componentDidCatch(erreur) {
+    console.error('Erreur affichée par GardeErreur :', erreur)
+  }
+  render() {
+    if (!this.state.erreur) return this.props.children
+    return (
+      <div className="card empty garde-erreur" role="alert">
+        <p className="bold">{this.props.titre || 'Cette partie n’a pas pu s’afficher.'}</p>
+        <p className="small muted">Les données ne sont pas touchées. Réessaie ; si le problème revient, note la page et l’heure.</p>
+        <button type="button" className="btn primary" onClick={() => this.setState({ erreur: null })}>
+          Réessayer
+        </button>
+      </div>
+    )
+  }
 }

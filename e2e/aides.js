@@ -11,7 +11,7 @@ export async function avecExemples(page) {
 // Plateforme : données fictives servies à la place de la base du SaaS (aucune donnée réelle)
 export const FICTIF = {
   editeur_vue: {
-    offres: [{ id: 'standard', prix_mensuel: 25000, prix_annuel: 240000 }],
+    offres: [{ id: 'standard', nom: 'Standard', description: 'Offre fictive', modules: ['stock'], devise: 'XAF', actif: true, prix_acquisition: 0, prix_mensuel: 25000, prix_annuel: 240000, prix_mise_en_service: 0, prix_support_mensuel: 0 }],
     clients: [
       { id: 'c1', nom: 'Bar Fictif', statut: 'actif', pays: 'CG', contact: { telephone: '+242000000000' }, etablissements: [{ id: 'e1', nom: 'Bar Fictif', statut: 'actif', mis_en_service_le: '2026-10-01', membres_actifs: 3, licence: { id: 'l1', offre: 'Standard', offre_id: 'standard', formule: 'mensuel', statut: 'active', valide: true, jours_restants: -2, echeance: '2026-10-16', montant: 25000 } }] },
       { id: 'c2', nom: 'Hôtel Fictif', statut: 'actif', etablissements: [{ id: 'e2', nom: 'Hôtel Fictif', statut: 'actif', mis_en_service_le: '2026-10-01', membres_actifs: 5, licence: { id: 'l2', offre: 'Standard', offre_id: 'standard', formule: 'annuel', statut: 'active', valide: true, jours_restants: 200, echeance: '2027-05-01', montant: 240000 } }] },
