@@ -51,6 +51,7 @@ export const ESPACES_NAV = [
         sub: [['?filtre=danger', 'En danger'], ['?filtre=licence', 'Licence à régler'], ['?filtre=bloques', 'Bloqués']],
         pages: ['plateforme-client', 'editeur/clients', 'editeur/etablissements'],
       },
+      { route: 'plateforme-echeances', label: 'Échéances des licences', ico: 'calendar', sub: [['?onglet=traiter', 'À traiter'], ['?onglet=demandes', 'Demandes'], ['?onglet=calendrier', 'Calendrier']] },
       { route: 'operations', label: 'Opérations et réconciliation', ico: 'repeat' },
       { route: 'editeur/comptes', label: 'Comptes et accès', ico: 'users' },
       { route: 'editeur/hubs', label: 'Points de vente (Hubs)', ico: 'layers' },
