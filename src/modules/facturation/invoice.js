@@ -1,12 +1,9 @@
 // Factures et devis : numérotation, totaux, statut, montant en lettres.
 import { today, addDays } from '../../lib/dates'
+import { montant as num } from '../../lib/finances'
 
-// Nombre saisi : accepte « 150 000 », « 12,5 »… (espaces et virgule)
-export const num = (v) => {
-  if (v === null || v === undefined || v === '') return 0
-  const n = Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
+// Nombre saisi : accepte « 150 000 », « 12,5 »… (règle unique R1, lib/finances.js)
+export { montant as num } from '../../lib/finances'
 
 export const TYPES = {
   facture: { label: 'Facture', titre: 'FACTURE', prefixe: 'prefixeFacture' },
