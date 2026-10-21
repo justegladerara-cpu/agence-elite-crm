@@ -1,5 +1,5 @@
 # Instantané de la plateforme (fictive)
 
-Copié du dépôt `agence-elite-platform`, commit 6c04e59 2026-10-18 Merge pull request #69 from justegladerara-cpu/claude/pilotage-crm.
-97 migrations, données de démonstration fictives, simulateur Supabase (tests/sql) et moteur PGlite.
+Copié du dépôt `agence-elite-platform`, commit 43363b1 2026-10-21 Elite License Guard : alertes d'échéance, caisse jamais bloquée par une échéance, Mon abonnement et demandes de renouvellement.
+98 migrations, données de démonstration fictives, simulateur Supabase (tests/sql) et moteur PGlite.
 Ne pas modifier à la main : relancer `node scripts/plateforme-fictive/synchroniser.mjs`.

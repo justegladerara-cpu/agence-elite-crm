@@ -14,6 +14,7 @@ import { pageAccessible } from '../core/modules'
 import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
 import { A_REPRENDRE, ETATS, GESTES, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
+import { ETATS_DEMANDE, ETATS_ECHEANCE, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
 // Montant dans sa vraie devise ; sans devise connue (paiement du CRM), celle réglée dans Paramètres
@@ -1798,5 +1799,307 @@ export function DeconnexionPlateforme() {
         <Icon n="logout" size={14} /> Déconnecter la plateforme
       </button>
     </div>
+  )
+}
+
+// Échéances des licences (Elite License Guard) : à traiter, calendrier, demandes de renouvellement, alertes envoyées,
+// réglages. Rien ici ne prolonge une licence : le renouvellement passe toujours par « Encaisser » (paiement réel).
+const ONGLETS_ECHEANCES = [
+  ['traiter', 'À traiter'],
+  ['calendrier', 'Calendrier'],
+  ['demandes', 'Demandes'],
+  ['alertes', 'Alertes envoyées'],
+  ['reglages', 'Réglages'],
+]
+export function EcheancesPlateforme({ onglet: ongletDemande }) {
+  const p = usePlateforme()
+  const { toast } = useNoyau()
+  const [onglet, setOnglet] = useState(ONGLETS_ECHEANCES.some(([k]) => k === ongletDemande) ? ongletDemande : 'traiter')
+  const [vue, setVue] = useState(null)
+  const [erreur, setErreur] = useState('')
+  const [simulation, setSimulation] = useState(null)
+  const [demande, setDemande] = useState(null)
+  const charger = useCallback(() => {
+    appeler('editeur_echeances', {})
+      .then((v) => {
+        setVue(v)
+        setErreur('')
+      })
+      .catch((e) => setErreur(baseEnRetard(e.message) ? 'La base de la plateforme n’a pas encore reçu la mise à jour « Elite License Guard » (migration 151). Rien n’est cassé : l’écran s’allumera dès qu’elle sera appliquée.' : e.message))
+  }, [])
+  useEffect(() => {
+    if (p.connecte) charger()
+  }, [p.connecte, charger])
+  const changer = (o) => {
+    setOnglet(o)
+    window.history.replaceState(null, '', `#/plateforme-echeances${o !== 'traiter' ? `?onglet=${o}` : ''}`)
+  }
+  const simuler = async () => {
+    try {
+      setSimulation(await appeler('simuler_alertes_echeances', {}))
+    } catch (e) {
+      toast(e.message)
+    }
+  }
+  const licences = vue?.licences || []
+  const urgentes = aTraiter(licences)
+  const demandes = vue?.demandes || []
+  const etat = erreur ? { etat: 'erreur', raison: erreur } : vue ? { etat: 'donnees' } : { etat: 'chargement' }
+  return (
+    <Garde p={p} titre="Échéances des licences">
+      <div className="stack pf">
+        <div className="page-head">
+          <div>
+            <h1>Échéances des licences</h1>
+            <div className="sub">Les gérants, leurs partenaires et l’équipe sont prévenus automatiquement chaque matin. Une licence échue ne bloque jamais la caisse du client.</div>
+          </div>
+          <div className="row">
+            <button className="btn sm" onClick={simuler} disabled={!vue}>
+              <Icon n="eye" size={14} /> Simuler les alertes du jour
+            </button>
+            <button className="btn sm" onClick={charger}>
+              <Icon n="rotate" size={14} /> Actualiser
+            </button>
+          </div>
+        </div>
+        <div className="indicateurs" aria-label="Échéances">
+          <Indicateur label="Expirées" etat={etat} valeur={vue?.compteurs?.expiree || 0} ton={vue?.compteurs?.expiree ? 'rouge' : 'vert'} onClick={() => changer('traiter')} />
+          <Indicateur label="Délai de grâce" etat={etat} valeur={vue?.compteurs?.grace || 0} ton={vue?.compteurs?.grace ? 'rouge' : 'vert'} onClick={() => changer('traiter')} />
+          <Indicateur label="À renouveler (7 j)" etat={etat} valeur={(vue?.compteurs?.urgent || 0) + (vue?.compteurs?.aujourdhui || 0)} ton={vue?.compteurs?.urgent ? 'orange' : 'vert'} onClick={() => changer('traiter')} />
+          <Indicateur label="Demandes ouvertes" etat={etat} valeur={demandes.length} ton={demandes.length ? 'orange' : 'vert'} onClick={() => changer('demandes')} />
+        </div>
+        {simulation && (
+          <Bloc id="simulation" titre={`Simulation du ${date(simulation.jour)} : ${simulation.liste?.length || 0} alerte(s) partiraient`} etat={{ etat: 'donnees' }}>
+            {!simulation.actif ? (
+              <p className="small muted">Les alertes sont coupées dans les réglages.</p>
+            ) : simulation.liste.length === 0 ? (
+              <Empty>Aucune alerte à envoyer aujourd’hui.</Empty>
+            ) : (
+              <ul className="pf-liste">
+                {simulation.liste.map((a) => (
+                  <li key={`${a.licence_id}-${a.palier}`} className="pf-fil">
+                    <span className="pf-alerte-txt">
+                      <strong>{a.etablissement}</strong> <span className="muted">· {a.client} · {libellePalier(a.palier)}</span>
+                      <span className="bloc small">{a.titre} · {a.destinataires} responsable(s){a.partenaire ? ` · partenaire ${a.partenaire}` : ''}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button className="btn sm ghost" onClick={() => setSimulation(null)}>Fermer la simulation</button>
+          </Bloc>
+        )}
+        <Tabs items={ONGLETS_ECHEANCES.map(([k, l]) => [k, l, k === 'traiter' ? urgentes.length : k === 'demandes' ? demandes.length : undefined])} value={onglet} onChange={changer} />
+        {onglet === 'traiter' && (
+          <Bloc id="traiter" titre="À traiter" etat={etat.etat === 'donnees' && !urgentes.length ? { etat: 'vide' } : etat} vide="Aucune licence à renouveler dans les 7 jours." onReessayer={charger}>
+            <TableEcheances liste={urgentes} />
+          </Bloc>
+        )}
+        {onglet === 'calendrier' && (
+          <Bloc id="calendrier" titre={vue ? `Du ${date(vue.debut)} au ${date(vue.fin)}` : 'Calendrier'} etat={etat.etat === 'donnees' && !licences.some((l) => l.echeance) ? { etat: 'vide' } : etat} vide="Aucune échéance sur la période." onReessayer={charger}>
+            {parMois(licences).map((m) => (
+              <div key={m.cle} className="stack">
+                <h3 className="section">{nomMois(m.cle)} · {m.liste.length}</h3>
+                <TableEcheances liste={m.liste} />
+              </div>
+            ))}
+          </Bloc>
+        )}
+        {onglet === 'demandes' && (
+          <Bloc id="demandes" titre="Demandes de renouvellement" etat={etat.etat === 'donnees' && !demandes.length ? { etat: 'vide' } : etat} vide="Aucune demande en attente." onReessayer={charger}>
+            <ul className="pf-liste">
+              {demandes.map((d) => (
+                <li key={d.id} className="pf-alerte orange">
+                  <span className="pf-point" />
+                  <span className="pf-alerte-txt">
+                    <strong>{d.client}</strong>
+                    {d.etablissement !== d.client && <span className="muted"> · {d.etablissement}</span>}
+                    <span className="bloc small">
+                      {date(d.cree_le)} · {d.formule} · {ETATS_DEMANDE[d.statut]}
+                      {d.demandeur ? ` · ${d.demandeur}` : ''}
+                      {d.telephone ? ` · ${d.telephone}` : ''}
+                      {d.message ? ` · « ${d.message} »` : ''}
+                      {d.note ? ` · note : ${d.note}` : ''}
+                    </span>
+                  </span>
+                  <span className="row">
+                    <button className="btn sm primary" onClick={() => go(`/plateforme-client/${d.client_id}?faire=encaisser`)}>Encaisser</button>
+                    <button className="btn sm" onClick={() => setDemande(d)}>Traiter</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Bloc>
+        )}
+        {onglet === 'alertes' && (
+          <Bloc id="alertes" titre="50 dernières alertes envoyées" etat={etat.etat === 'donnees' && !vue.alertes.length ? { etat: 'vide' } : etat} vide="Aucune alerte envoyée pour l’instant." onReessayer={charger}>
+            <div className="table-wrap" tabIndex={0} role="region" aria-label="Alertes envoyées">
+              <table className="t">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Établissement</th>
+                    <th>Palier</th>
+                    <th>Échéance</th>
+                    <th className="num">Responsables prévenus</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(vue?.alertes || []).map((a, i) => (
+                    <tr key={i}>
+                      <td className="nowrap">{date(a.date)}</td>
+                      <td>{a.etablissement}</td>
+                      <td>{libellePalier(a.palier)} <span className={`badge ${ETATS_ECHEANCE[a.etat]?.[1] || 'b-navy'}`}>{ETATS_ECHEANCE[a.etat]?.[0] || a.etat}</span></td>
+                      <td className="nowrap">{date(a.echeance)}</td>
+                      <td className="num">{a.destinataires}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Bloc>
+        )}
+        {onglet === 'reglages' && vue && (
+          <ReglagesEcheances
+            reglages={vue.reglages}
+            onFait={(m) => {
+              toast(`${m} ✓`)
+              charger()
+            }}
+          />
+        )}
+        {demande && (
+          <TraiterDemande
+            d={demande}
+            onFermer={() => setDemande(null)}
+            onFait={(m) => {
+              setDemande(null)
+              toast(`${m} ✓`)
+              charger()
+            }}
+          />
+        )}
+      </div>
+    </Garde>
+  )
+}
+
+function TableEcheances({ liste }) {
+  return (
+    <div className="table-wrap" tabIndex={0} role="region" aria-label="Licences">
+      <table className="t">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Échéance</th>
+            <th>État</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {liste.map((l) => (
+            <tr key={l.licence_id}>
+              <td>
+                <a href={`#/plateforme-client/${l.client_id}?onglet=licences`}>{l.client}</a>
+                {l.etablissement !== l.client && <span className="tiny muted"> · {l.etablissement}</span>}
+                <span className="bloc tiny muted">
+                  {l.offre} · {l.formule}
+                  {l.montant > 0 ? ` · ${enDevise(l.montant, l.devise)}` : ''}
+                  {l.partenaire ? ` · partenaire ${l.partenaire}${l.partenaire_telephone ? ` (${l.partenaire_telephone})` : ''}` : ''}
+                </span>
+              </td>
+              <td className="nowrap">
+                {date(l.echeance)} <span className="bloc tiny muted">{joursTexte(l.jours)}</span>
+              </td>
+              <td>
+                <span className={`badge ${ETATS_ECHEANCE[l.etat]?.[1] || 'b-navy'}`}>{ETATS_ECHEANCE[l.etat]?.[0] || l.etat}</span>
+              </td>
+              <td>
+                {l.statut === 'active' && l.formule !== 'acquisition' && (
+                  <button className="btn sm" onClick={() => go(`/plateforme-client/${l.client_id}?faire=encaisser`)}>
+                    Encaisser
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TraiterDemande({ d, onFermer, onFait }) {
+  const CHOIX = { 'En cours (client rappelé)': 'en_cours', 'Traitée (paiement encaissé)': 'traitee', Abandonnée: 'abandonnee' }
+  const libelles = Object.keys(CHOIX).filter((k) => CHOIX[k] !== d.statut)
+  const [choix, setChoix] = useState(libelles[0])
+  const [note, setNote] = useState('')
+  const { occupe, erreur, envoyer } = useEnvoi(onFait)
+  const statut = CHOIX[choix]
+  return (
+    <Modal title={`Demande de ${d.etablissement}`} onClose={onFermer}>
+      <form
+        className="stack"
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          envoyer(() => appeler('traiter_demande_licence', { p_demande_id: d.id, p_statut: statut, p_note: note }), 'Demande mise à jour')
+        }}
+      >
+        <Field label="Nouvel état">
+          <Chips options={libelles} value={choix} onChange={(v) => setChoix(v || choix)} small allowEmpty={false} />
+        </Field>
+        {statut === 'traitee' && <p className="small muted">« Traitée » n’est accepté qu’après un vrai renouvellement (bouton Encaisser, avec la référence du paiement). La plateforme le vérifie.</p>}
+        <Field label={statut === 'abandonnee' ? 'Motif (obligatoire)' : 'Note (facultative)'}>
+          <textarea rows={2} maxLength={600} value={note} onChange={(ev) => setNote(ev.target.value)} required={statut === 'abandonnee'} />
+        </Field>
+        <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok="Enregistrer" />
+      </form>
+    </Modal>
+  )
+}
+
+function ReglagesEcheances({ reglages, onFait }) {
+  const [actif, setActif] = useState(Boolean(reglages?.actif))
+  const [paliers, setPaliers] = useState((reglages?.paliers || []).join(', '))
+  const [partenaire, setPartenaire] = useState(Boolean(reglages?.prevenir_partenaire))
+  const [equipe, setEquipe] = useState(String(reglages?.prevenir_equipe_jours ?? 7))
+  const { occupe, erreur, envoyer } = useEnvoi(onFait)
+  const lu = lirePaliers(paliers)
+  const annuler = () => {
+    setActif(Boolean(reglages?.actif))
+    setPaliers((reglages?.paliers || []).join(', '))
+    setPartenaire(Boolean(reglages?.prevenir_partenaire))
+    setEquipe(String(reglages?.prevenir_equipe_jours ?? 7))
+  }
+  return (
+    <Bloc id="reglages" titre="Réglages des alertes" etat={{ etat: 'donnees' }}>
+      <form
+        className="stack"
+        style={{ maxWidth: 560 }}
+        onSubmit={(ev) => {
+          ev.preventDefault()
+          if (!lu.paliers) return
+          envoyer(
+            () => appeler('enregistrer_reglages_alertes_licences', { p: { actif, paliers: lu.paliers, prevenir_partenaire: partenaire, prevenir_equipe_jours: Number(equipe) } }),
+            'Réglages enregistrés',
+          )
+        }}
+      >
+        <label className="small row">
+          <input type="checkbox" checked={actif} onChange={(ev) => setActif(ev.target.checked)} /> Envoyer les alertes chaque matin (07:00 UTC)
+        </label>
+        <Field label="Paliers (jours avant l’échéance ; 0 = le jour J ; négatif = après)" hint={lu.paliers ? lu.paliers.map(libellePalier).join(' · ') : lu.erreur}>
+          <input value={paliers} onChange={(ev) => setPaliers(ev.target.value)} />
+        </Field>
+        <label className="small row">
+          <input type="checkbox" checked={partenaire} onChange={(ev) => setPartenaire(ev.target.checked)} /> Prévenir aussi le partenaire Elite Partners du client
+        </label>
+        <Field label="Prévenir l’équipe Agence Elite à partir de (jours avant l’échéance)">
+          <input type="number" min={-60} max={120} step={1} value={equipe} onChange={(ev) => setEquipe(ev.target.value)} style={{ maxWidth: 120 }} required />
+        </Field>
+        <p className="small muted">Réservé au super admin. Une alerte part une seule fois par palier ; la caissière n’est jamais prévenue.</p>
+        <Pied occupe={occupe} erreur={erreur} onFermer={annuler} ok="Enregistrer" />
+      </form>
+    </Bloc>
   )
 }
