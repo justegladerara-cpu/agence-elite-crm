@@ -278,8 +278,8 @@ function BoutonsRapides() {
       <button className="btn" onClick={() => go('/paiements')}>
         <Icon n="coins" size={14} /> Paiements
       </button>
-      <button className="btn" onClick={() => go('/plateforme-outils')}>
-        <Icon n="grid" size={14} /> Boîte à outils
+      <button className="btn" onClick={() => go('/espace')}>
+        <Icon n="grid" size={14} /> Tous les espaces
       </button>
     </div>
   )
@@ -683,9 +683,9 @@ function Encaisser({ c, fiche, onFermer, onFait }) {
   if (!e)
     return (
       <Modal title="Encaisser" onClose={onFermer}>
-        <p>Ce client n’a pas encore de licence. Attribue-la depuis la boîte à outils, puis encaisse.</p>
-        <button className="btn primary" onClick={() => go('/plateforme-outils')}>
-          Boîte à outils
+        <p>Ce client n’a pas encore de licence. Attribue-la depuis la fiche de son établissement, puis encaisse.</p>
+        <button className="btn primary" onClick={() => go(c.etablissements[0] ? `/editeur/etablissements/${c.etablissements[0].id}` : '/editeur/clients')}>
+          Attribuer une licence
         </button>
       </Modal>
     )
@@ -1261,51 +1261,29 @@ function MotDePasse({ u, onFermer, onFait }) {
   )
 }
 
-// ——— Boîte à outils : les fonctions moins fréquentes de l'administration ———
-const OUTILS = [
-  ['Nouveau client', 'Créer un client et son établissement', 'user-plus', 'editeur/clients'],
-  ['Comptes', 'Toutes les personnes, rôles et identifiants', 'users', 'editeur/comptes'],
-  ['Hubs', 'Points de vente, stocks et caisses', 'layers', 'editeur/hubs'],
-  ['Catalogue des modules', 'Modules, catégories, dépendances', 'grid', 'editeur/modules'],
-  ['Offres et prix', 'Formules, prix mensuels et annuels', 'tag', 'editeur/offres'],
-  ['Elite Partners', 'Partenaires, commissions, paiements', 'handshake', 'editeur/partenaires'],
-  ['Identité et apparence', 'Nom, logo et couleurs de la plateforme', 'star', 'editeur/identite'],
-  ['Adresses web', 'Adresses de connexion des clients', 'globe', 'editeur/adresses'],
-  ['Sites clients', 'Sites publics des clients', 'folder', 'editeur/sites'],
-  ['Copier des articles', 'D’un client à un autre, bibliothèque', 'copy', 'editeur/copie-articles'],
-  ['Tableau détaillé', 'Chiffres détaillés de la plateforme', 'chart', 'editeur/tableau'],
-]
-export function OutilsPlateforme() {
-  const p = usePlateforme()
+// Déconnecter la plateforme sans quitter le CRM (ancienne boîte à outils, désormais dans l'espace Administration)
+export function DeconnexionPlateforme() {
+  const [connecte, setConnecte] = useState(false)
+  useEffect(() => {
+    let actif = true
+    sessionValide().then((ok) => actif && setConnecte(ok), () => {})
+    return () => {
+      actif = false
+    }
+  }, [])
+  if (!connecte) return null
   return (
-    <div className="stack pf">
-      <div className="pf-tete">
-        <div>
-          <h1 className="pf-titre">Boîte à outils</h1>
-          <p className="small muted">Les réglages moins fréquents de la plateforme, directement ici dans le CRM.</p>
-        </div>
-        {p.connecte && (
-          <button
-            className="btn sm"
-            onClick={async () => {
-              await deconnecter()
-              oublierPlateforme()
-              p.setConnecte(false)
-            }}
-          >
-            <Icon n="logout" size={14} /> Déconnecter la plateforme
-          </button>
-        )}
-      </div>
-      <div className="pf-outils">
-        {OUTILS.map(([nom, desc, ico, route]) => (
-          <a key={route} className="card pf-outil" href={`#/${route}`}>
-            <Icon n={ico} size={20} />
-            <strong>{nom}</strong>
-            <span className="small muted">{desc}</span>
-          </a>
-        ))}
-      </div>
+    <div className="row" style={{ marginTop: 24 }}>
+      <button
+        className="btn sm"
+        onClick={async () => {
+          await deconnecter()
+          oublierPlateforme()
+          setConnecte(false)
+        }}
+      >
+        <Icon n="logout" size={14} /> Déconnecter la plateforme
+      </button>
     </div>
   )
 }
