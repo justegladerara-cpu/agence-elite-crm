@@ -18,7 +18,7 @@ import { peutGerer, ROLES, refusDe } from '../core/permissions'
 import { AVERTISSEMENT_DONNEES } from '../lib/csv'
 import Securite from './Securite'
 import { LIBELLES } from '../navigation'
-import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
+import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage, INTERFACES, interfaceDe } from '../lib/theme'
 
 const NUM_GROUPS = [
   ['🎯 Objectifs du mois', 'objectifsMois', [['appels', 'Appels / mois'], ['dm', 'DM / mois'], ['rdv', 'RDV / mois'], ['clients', 'Clients signés / mois'], ['ca', 'CA signé / mois (€)']]],
@@ -234,19 +234,16 @@ function ApparenceCard({ s, change }) {
 
       <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Interface</div>
       <div className="theme-list">
-        {[
-          ['palantir', 'Salle de contrôle (sombre)'],
-          ['classique', 'Classique (claire)'],
-        ].map(([id, label]) => (
-          <button key={id} type="button" className={`theme-opt ${(a.interface || 'palantir') === id ? 'on' : ''}`} onClick={() => set({ interface: id })}>
-            <span className="theme-sw" style={{ background: id === 'palantir' ? '#111418' : '#f5f6f8' }}>
-              <i style={{ background: id === 'palantir' ? '#4c90f0' : '#b8903f' }} />
+        {INTERFACES.map(([id, label]) => (
+          <button key={id} type="button" className={`theme-opt ${interfaceDe(a) === id ? 'on' : ''}`} onClick={() => set({ ui: id })}>
+            <span className="theme-sw" style={{ background: { saas: '#0B1424', palantir: '#111418', classique: '#f5f6f8' }[id] }}>
+              <i style={{ background: { saas: '#2563EB', palantir: '#4c90f0', classique: '#b8903f' }[id] }} />
             </span>
             {label}
           </button>
         ))}
       </div>
-      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM{a.interface !== 'classique' && ' (interface classique seulement)'}</div>
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM{interfaceDe(a) !== 'classique' && ' (interface classique seulement)'}</div>
       <div className="theme-list">
         {THEMES.map((t) => {
           const tc = t.id === 'perso' ? { principal: a.principal, accent: a.accent } : t
@@ -732,12 +729,12 @@ export default function Parametres({ section }) {
       {(s[key] || []).map((x, i) => (
         <div key={i} style={{ marginBottom: 12 }}>
           <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
-            <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
+            <input className="input" aria-label={`Titre du message ${i + 1}`} style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
             <button className="icon-btn" title="Retirer" aria-label="Retirer" onClick={() => change({ ...s, [key]: s[key].filter((_, j) => j !== i) })}>
               <Icon n="x" size={14} />
             </button>
           </div>
-          <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+          <textarea rows={4} aria-label={`Texte du message ${i + 1} (${x.titre})`} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
         </div>
       ))}
       {(s[key] || []).length < max && (

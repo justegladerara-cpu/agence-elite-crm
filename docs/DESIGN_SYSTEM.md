@@ -7,6 +7,7 @@ Référence permanente commune à Claude, GPT et Codex. Elle décrit **le design
 - Si tu modifies le design system (jeton, composant, pattern), mets ce fichier à jour dans le même commit.
 
 Sommaire :
+0. Interface SaaS premium (jetons SUPERADMIN 2.0, défaut)
 1. Identité et philosophie
 2. Structure de l'application (coquille)
 3. Jetons : couleurs, typographie, espacements, rayons, ombres, couches
@@ -21,6 +22,41 @@ Sommaire :
 12. Instructions prêtes à transmettre à GPT
 
 ---
+
+## 0. Interface SaaS premium (SUPERADMIN 2.0, depuis le 2026-10-21) — à lire d'abord
+
+**Interface par défaut.** Fichier : `src/saas-premium.css`, limité à `:root[data-ui="saas"]`. Choix dans Paramètres ›
+Identité › Interface (`src/lib/theme.js`, `INTERFACES`, clé de réglage `ui`) : `saas` (défaut), `palantir`
+(salle de contrôle sombre, `palantir-base.css` + `palantir.css` généré) et `classique` (couleurs du thème, § 3).
+L'ancienne clé `interface` n'est plus lue (voir JOURNAL SUPERADMIN 2.0, D3-1). Navigation bleu nuit, contenu clair.
+
+| Jeton | Valeur | Rôle |
+|---|---|---|
+| `--c-nav` | `#0B1424` | menu de gauche, barre du haut et du bas sur téléphone |
+| `--c-nav-2` | `#13233B` | survol et entrée active du menu, séparateurs sur fond nuit |
+| `--c-accent` | `#2563EB` | action principale, focus, lien, indicateur actif |
+| `--c-fond` | `#F6F8FC` | fond de page |
+| `--c-surface` | `#FFFFFF` | cartes, fenêtres, champs |
+| `--c-texte` | `#111827` | texte |
+| `--c-texte-2` | `#64748B` | icônes, traits, texte secondaire sur blanc ; **texte** secondaire : `--muted` = `--c-texte-2-lisible` `#5B6779` (4,47:1 seulement sur le fond, AA exige 4,5:1) |
+| `--c-bordure` | `#E2E8F0` | bordures |
+| `--c-succes` | `#16A34A` | succès (fonds, pastilles) ; texte vert : `--green` `#15803D` (contraste AA) |
+| `--c-avertissement` | `#D97706` | attention (fonds, pastilles) ; texte : `--orange` `#B45309` |
+| `--c-erreur` | `#DC2626` | erreur, bouton de zone danger ; texte rouge : `--red` `#B91C1C` |
+
+- Espacements : `--e-1`…`--e-7` = 4, 8, 12, 16, 24, 32, 48 px. Aucune autre valeur dans un nouveau style.
+- Contrôles : `--h-controle` 40 px (boutons, champs, listes) ; au doigt (`pointer: coarse`) `--h-controle-l` 44 px et
+  cibles `--cible` 44 px (boutons-icônes, barre du bas). Petits boutons `.btn.sm` : 32 px (40 px au doigt).
+- Mouvement : `--t-court` 120 ms (survol), `--t-moyen` 180 ms, `--t-long` 220 ms (ouverture). Sous
+  `prefers-reduced-motion: reduce`, animations et transitions sont coupées.
+- Focus : contour 2 px `--c-accent`, décalé de 2 px, sur tout élément atteint au clavier.
+- Les variables historiques (`--navy`, `--gold`, `--bg`, `--muted`…) sont **réassociées** à ces jetons : un composant
+  existant suit sans réécriture. `.btn.primary` et `.btn.gold` sont tous deux bleus ; une seule action principale par zone.
+- Écrans éditeur (`src/saas`, classe `.saas-admin`) : leurs variables (`--fond`, `--accent`, `--menu`…) reçoivent les
+  mêmes jetons dans le même fichier. Ne pas modifier `src/saas/saas.css` à la main (fichier généré).
+- Contrôle : `e2e/design.spec.js` (jetons, 11 largeurs sans défilement horizontal, axe sans violation grave ou critique).
+- Navigation : une seule liste, `src/navigation.js` (6 espaces) ; voir `docs/superadmin-v2/01_ARCHITECTURE_V2.md`.
+  Les § 2.1 à 2.5 ci-dessous décrivent l'ancienne coquille (NAV, APPS), remplacée au lot 2.
 
 ## 1. Identité et philosophie
 
@@ -139,7 +175,7 @@ Gris d'interface utilisés en dur (à remplacer par des jetons si tu touches la 
 - Badges d'étape du pipeline (`index.css:186-198`) — fond doux + texte de la même teinte :
   Nouveau gris `#eef0f4/#4b5570` · Contacté bleu · Qualifié violet `#f0eafb/#6c46bb` · Audit/Démo turquoise `#e2f3f5/#11788a` · RDV or doux · Proposition orange · Gagné vert · Perdu gris.
 - Graphiques : palette catégorielle **fixe et ordonnée** `COULEURS` (`src/charts.jsx:7`) `#2a78d6, #eb6834, #1baf7a, #eda100, #e87ba4, #008300, #4a3aa7, #e34948` + « Autres » `#a3a9b8`. Une entité garde sa couleur partout.
-- Pas de mode sombre dans l'appli (le menu est sombre, le contenu clair). Le thème se change par Paramètres › Identité.
+- Interface classique : pas de mode sombre (le menu est sombre, le contenu clair). Le thème se change par Paramètres › Identité. L'interface par défaut est SaaS premium (§ 0).
 
 ### 3.2 Typographie
 - Inter, 14px, interligne 1.5. Chiffres : `font-variant-numeric: tabular-nums` sur KPI, montants, colonnes (`index.css:1108` et suivantes).

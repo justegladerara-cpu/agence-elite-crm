@@ -1048,6 +1048,7 @@ button.pipe-row:hover, .pipe-row.hl { background: var(--gold-soft); }
 .pipe-row .pr-n { font-weight: 700; }
 .pipe-row svg { color: var(--muted); }
 @media (max-width: 600px) { .pipe-row { grid-template-columns: 10px 1fr 78px 84px 13px; } .pipe-row .pr-pond { display: none; } .pipe-row { gap: 8px; } }
+@media (max-width: 380px) { .pipe-row { grid-template-columns: 10px minmax(0, 1fr) 62px 70px 13px; gap: 6px; padding: 8px 4px; } .pipe-row > span:nth-child(2) { overflow-wrap: anywhere; } }
 
 /* Carte de chaleur jours × heures */
 .hm-wrap { overflow-x: auto; }

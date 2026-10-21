@@ -75,29 +75,45 @@ function usePlateforme() {
 }
 
 // Garde commune : connexion, chargement, erreur
-function Garde({ p, children }) {
-  if (p.connecte === null) return <div className="chargement" aria-busy="true" aria-label="Connexion à la plateforme" />
+// Avant les données : un titre de page (h1) reste affiché pendant la connexion, le chargement ou l'erreur
+function Garde({ p, titre, children }) {
+  const tete = <h1 className="pf-titre">{titre}</h1>
+  if (p.connecte === null)
+    return (
+      <div className="stack pf">
+        {tete}
+        <div className="chargement" aria-busy="true" aria-label="Connexion à la plateforme" />
+      </div>
+    )
   if (!p.connecte)
     return (
-      <div style={{ maxWidth: 440, margin: '30px auto' }}>
-        <ConnexionPlateforme
-          onConnecte={() => {
-            p.setConnecte(true)
-            p.recharger()
-          }}
-        />
+      <div className="stack pf">
+        {tete}
+        <div style={{ maxWidth: 440, margin: '12px auto', width: '100%' }}>
+          <ConnexionPlateforme
+            onConnecte={() => {
+              p.setConnecte(true)
+              p.recharger()
+            }}
+          />
+        </div>
       </div>
     )
   if (!p.etat?.clients)
-    return p.etat?.erreur ? (
-      <div className="card empty">
-        <p>{p.etat.erreur}</p>
-        <button className="btn primary" onClick={p.recharger}>
-          Réessayer
-        </button>
+    return (
+      <div className="stack pf">
+        {tete}
+        {p.etat?.erreur ? (
+          <div className="card empty" role="alert">
+            <p>{p.etat.erreur}</p>
+            <button className="btn primary" onClick={p.recharger}>
+              Réessayer
+            </button>
+          </div>
+        ) : (
+          <div className="chargement" aria-busy="true" aria-label="Chargement de la plateforme" />
+        )}
       </div>
-    ) : (
-      <div className="chargement" aria-busy="true" aria-label="Chargement de la plateforme" />
     )
   return children
 }
@@ -152,7 +168,7 @@ export function Controle() {
   const impayees = documents.filter((d) => d.type === 'facture' && ['En attente', 'En retard', 'Partiellement payée'].includes(statutDe(d, actions)))
   const enRetard = impayees.filter((d) => statutDe(d, actions) === 'En retard').length
   return (
-    <Garde p={p}>
+    <Garde p={p} titre="Tour de contrôle">
       <TourDeControle p={p} encaisse={encaisse} impayees={impayees.length} enRetard={enRetard} />
     </Garde>
   )
@@ -289,7 +305,7 @@ function BoutonsRapides() {
 export function ClientsPlateforme({ filtre: filtreInitial }) {
   const p = usePlateforme()
   return (
-    <Garde p={p}>
+    <Garde p={p} titre="Clients du logiciel">
       <ListeClients p={p} filtreInitial={filtreInitial} />
     </Garde>
   )
@@ -309,7 +325,7 @@ function ListeClients({ p, filtreInitial }) {
   return (
     <div className="stack pf">
       <div className="pf-tete">
-        <h1 className="pf-titre">Clients de la plateforme</h1>
+        <h1 className="pf-titre">Clients du logiciel</h1>
         <div className="row">
           <input className="pf-recherche" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher un client…" aria-label="Chercher un client" />
           <label className="small muted row" style={{ gap: 6 }}>
@@ -368,7 +384,7 @@ function ListeClients({ p, filtreInitial }) {
 export function FichePlateforme({ id, faire }) {
   const p = usePlateforme()
   return (
-    <Garde p={p}>
+    <Garde p={p} titre="Fiche client">
       <Fiche360 key={id} p={p} id={id} faire={faire} />
     </Garde>
   )
@@ -408,7 +424,7 @@ function Fiche360({ p, id, faire }) {
   return (
     <div className="stack pf">
       <button className="btn sm ghost pf-retour" onClick={() => go('/plateforme')}>
-        ← Clients de la plateforme
+        ← Clients du logiciel
       </button>
       <section className={`card pf-bandeau ${c.sante.ton}`}>
         <div className="pf-bandeau-nom">

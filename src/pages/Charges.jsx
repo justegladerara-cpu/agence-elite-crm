@@ -120,7 +120,7 @@ export function ChargesVue() {
         <h2 className="section">
           <span className="sec-ic"><Icon n="coins" size={16} /></span> Six derniers mois
         </h2>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="t charges-histo">
             <thead>
               <tr>

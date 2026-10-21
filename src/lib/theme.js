@@ -18,8 +18,11 @@ export const APPARENCE_DEFAUT = {
   afficherNom: true,
   logo: '',
   logoSombre: '',
-  // 'palantir' = interface sombre « salle de contrôle » (par défaut) ; 'classique' = l'ancienne interface claire
-  interface: 'palantir',
+  // Interface (SUPERADMIN 2.0) : 'saas' = SaaS premium, navigation bleu nuit et contenu clair (par défaut) ;
+  // 'palantir' = salle de contrôle sombre ; 'classique' = l'ancienne interface claire aux couleurs du thème.
+  // Nouvelle clé « ui » : l'ancienne clé « interface » (souvent enregistrée à 'palantir') n'est plus lue,
+  // pour que tout le monde passe au nouveau design ; les deux autres restent au choix.
+  ui: 'saas',
   theme: 'marine-or',
   principal: '#0c1833',
   accent: '#b8903f',
@@ -81,16 +84,24 @@ export function palette(principal, accent) {
   }
 }
 
+export const INTERFACES = [
+  ['saas', 'SaaS premium (par défaut)'],
+  ['palantir', 'Salle de contrôle (sombre)'],
+  ['classique', 'Classique (claire)'],
+]
+export const interfaceDe = (a) => (INTERFACES.some(([id]) => id === a?.ui) ? a.ui : 'saas')
+
 // Applique les couleurs (thème d'origine : on garde les valeurs du CSS)
 let appliquees = []
 export function applyTheme(a) {
   const root = document.documentElement
   appliquees.forEach((k) => root.style.removeProperty(k))
   appliquees = []
-  if (a?.interface !== 'classique') {
-    // Salle de contrôle : sa palette est dans palantir-base.css, les couleurs du thème ne s'appliquent pas
-    root.dataset.ui = 'palantir'
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0b0e12')
+  const ui = interfaceDe(a)
+  if (ui !== 'classique') {
+    // SaaS premium et salle de contrôle : leur palette est dans leur CSS, les couleurs du thème ne s'appliquent pas
+    root.dataset.ui = ui
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', ui === 'saas' ? '#0B1424' : '#0b0e12')
     return
   }
   root.dataset.ui = 'classique'

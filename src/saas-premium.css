@@ -1,0 +1,154 @@
+/* Interface « SaaS premium » (SUPERADMIN 2.0, lot 3) : navigation bleu nuit, contenu clair.
+   Interface par défaut. Les interfaces « salle de contrôle » (palantir) et « classique » restent au choix
+   dans Paramètres › Identité. Jetons et règles : docs/DESIGN_SYSTEM.md, section « Interface SaaS premium ». */
+:root[data-ui="saas"] {
+  color-scheme: light;
+  /* Jetons de la mission (§ 9) */
+  --c-nav: #0B1424;
+  --c-nav-2: #13233B;
+  --c-accent: #2563EB;
+  --c-fond: #F6F8FC;
+  --c-surface: #FFFFFF;
+  --c-texte: #111827;
+  --c-texte-2: #64748B;
+  --c-bordure: #E2E8F0;
+  --c-succes: #16A34A;
+  --c-avertissement: #D97706;
+  --c-erreur: #DC2626;
+  /* Espacements, tailles, mouvement */
+  --e-1: 4px; --e-2: 8px; --e-3: 12px; --e-4: 16px; --e-5: 24px; --e-6: 32px; --e-7: 48px;
+  --h-controle: 40px;
+  --h-controle-l: 44px;
+  --cible: 44px;
+  --t-court: 120ms;
+  --t-moyen: 180ms;
+  --t-long: 220ms;
+
+  /* Correspondance avec les variables historiques (tout l'existant suit sans réécriture) */
+  --navy: var(--c-nav);
+  --navy-2: var(--c-nav-2);
+  --navy-3: #1D3354;
+  --navy-ink: var(--c-texte);
+  --navy-deep: #070E1A;
+  --navy-rgb: 11, 20, 36;
+  --gold: var(--c-accent);
+  --gold-2: #93B4F5;
+  --gold-3: #1D4ED8;
+  --gold-soft: #EFF4FF;
+  --gold-line: #C7D7FB;
+  --gold-ink: #1D4ED8;
+  --gold-rgb: 37, 99, 235;
+  --gold-2-rgb: 147, 180, 245;
+  --on-dark: #C3CEDF;
+  --on-dark-2: #94A3B8;
+  --on-accent: #FFFFFF;
+  --bg: var(--c-fond);
+  --card: var(--c-surface);
+  --text: var(--c-texte);
+  /* Texte secondaire : #64748B (jeton) n'atteint que 4,47:1 sur le fond #F6F8FC ; le texte prend une nuance
+     un peu plus foncée de la même teinte (5,4:1 sur le fond, 4,9:1 sur les gris) — JOURNAL D3-2 */
+  --c-texte-2-lisible: #5B6779;
+  --muted: var(--c-texte-2-lisible);
+  --line: var(--c-bordure);
+  --line-2: #EDF1F7;
+  /* Les couleurs d'état servent aussi de texte : versions foncées pour un contraste AA sur fond clair */
+  --red: #B91C1C;
+  --red-soft: #FEF2F2;
+  --orange: #B45309;
+  --orange-soft: #FFF7ED;
+  --green: #15803D;
+  --green-soft: #F0FDF4;
+  --blue: var(--c-accent);
+  --blue-soft: #EFF4FF;
+  --radius: 12px;
+  --r-btn: 8px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 16px 40px -16px rgba(15, 23, 42, 0.28);
+}
+
+/* Menu et barres : bleu nuit */
+:root[data-ui="saas"] .sidebar { background: var(--c-nav); border-right-color: var(--c-nav-2); }
+:root[data-ui="saas"] .nav-item { min-height: 36px; transition: background var(--t-court), color var(--t-court); }
+:root[data-ui="saas"] .nav-item:hover { background: var(--c-nav-2); }
+:root[data-ui="saas"] .nav-item.active { background: var(--c-nav-2); box-shadow: inset 3px 0 0 var(--c-accent); }
+:root[data-ui="saas"] .nav-item.cta { background: var(--c-accent); color: #fff; }
+:root[data-ui="saas"] .nav-item.cta .ico { color: #fff; }
+:root[data-ui="saas"] .page-head h1 { color: var(--c-texte); }
+:root[data-ui="saas"] .page-head h1::after { display: none; }
+:root[data-ui="saas"] h2.section { color: var(--c-texte); }
+:root[data-ui="saas"] h2.section .count { background: var(--gold-soft); color: var(--gold-ink); }
+:root[data-ui="saas"] .kpi::before { display: none; }
+:root[data-ui="saas"] .kpi-value { color: var(--c-texte); }
+:root[data-ui="saas"] .card, :root[data-ui="saas"] .kpi { box-shadow: var(--shadow); border-color: var(--c-bordure); }
+
+/* Contrôles : 40 px de haut (44 px au doigt), action principale en bleu */
+:root[data-ui="saas"] .btn { min-height: var(--h-controle); padding: 0 var(--e-4); transition: background var(--t-court), border-color var(--t-court), filter var(--t-court); }
+:root[data-ui="saas"] .btn.sm { min-height: 32px; padding: 0 var(--e-3); }
+:root[data-ui="saas"] .btn.primary, :root[data-ui="saas"] .btn.gold { background: var(--c-accent); border-color: var(--c-accent); color: #fff; }
+:root[data-ui="saas"] .btn.primary:hover, :root[data-ui="saas"] .btn.gold:hover { background: #1D4ED8; border-color: #1D4ED8; filter: none; }
+:root[data-ui="saas"] .btn.danger { color: var(--red); }
+:root[data-ui="saas"] .btn.danger.primary { background: var(--c-erreur); border-color: var(--c-erreur); color: #fff; }
+:root[data-ui="saas"] .icon-btn { width: 36px; height: 36px; transition: background var(--t-court), border-color var(--t-court); }
+:root[data-ui="saas"] .icon-btn:hover { background: var(--gold-soft); border-color: var(--gold-line); color: var(--gold-ink); }
+:root[data-ui="saas"] .input,
+:root[data-ui="saas"] .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+:root[data-ui="saas"] .field select { min-height: var(--h-controle); }
+:root[data-ui="saas"] .input:focus,
+:root[data-ui="saas"] .field input:focus,
+:root[data-ui="saas"] .field select:focus,
+:root[data-ui="saas"] .field textarea:focus { border-color: var(--c-accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18); }
+:root[data-ui="saas"] :focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+:root[data-ui="saas"] .chip { min-height: 32px; }
+
+/* Lien-bouton : bleu lisible sur fond clair ; reste clair sur les blocs foncés (objectif du jour) */
+:root[data-ui="saas"] .linkish { color: var(--gold-ink); }
+:root[data-ui="saas"] .principal .linkish { color: var(--gold-2); }
+
+/* Au doigt : cibles d'au moins 44 px */
+@media (pointer: coarse) {
+  :root[data-ui="saas"] .btn,
+  :root[data-ui="saas"] .input,
+  :root[data-ui="saas"] .field input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  :root[data-ui="saas"] .field select { min-height: var(--h-controle-l); }
+  :root[data-ui="saas"] .btn.sm, :root[data-ui="saas"] .chip { min-height: 40px; }
+  :root[data-ui="saas"] .icon-btn { width: var(--cible); height: var(--cible); }
+  :root[data-ui="saas"] .bottom-nav button { min-height: var(--cible); }
+}
+@media (max-width: 860px) {
+  :root[data-ui="saas"] .mobile-top { background: var(--c-nav); border-bottom-color: var(--c-nav-2); }
+  :root[data-ui="saas"] .bottom-nav { background: rgba(11, 20, 36, 0.96); border-top-color: var(--c-nav-2); }
+  :root[data-ui="saas"] .bottom-nav button.cta .ico { background: var(--c-accent); color: #fff; box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.7), 0 0 0 4px var(--c-nav); }
+}
+
+/* Moins de mouvement si le système le demande */
+@media (prefers-reduced-motion: reduce) {
+  :root[data-ui="saas"] *, :root[data-ui="saas"] *::before, :root[data-ui="saas"] *::after {
+    animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important;
+  }
+}
+
+/* Écrans éditeur (src/saas) : mêmes jetons */
+:root[data-ui="saas"] .saas-admin {
+  --fond: var(--c-fond);
+  --surface: var(--c-surface);
+  --surface-douce: #F8FAFC;
+  --bordure: var(--c-bordure);
+  --bordure-forte: #CBD5E1;
+  --texte: var(--c-texte);
+  --texte-doux: var(--c-texte-2-lisible);
+  --texte-faible: var(--c-texte-2-lisible);
+  --accent: var(--c-accent);
+  --accent-fort: #1D4ED8;
+  --accent-doux: #EFF4FF;
+  --vert: #15803D;
+  --vert-doux: #F0FDF4;
+  --orange: #B45309;
+  --orange-doux: #FFF7ED;
+  --rouge: #B91C1C;
+  --rouge-doux: #FEF2F2;
+  --bleu-doux: #EFF4FF;
+  --menu: var(--c-nav);
+  --menu-texte: #C3CEDF;
+  --menu-actif: var(--c-nav-2);
+}
+:root[data-ui="saas"] .saas-admin button { transition-duration: var(--t-court); }
