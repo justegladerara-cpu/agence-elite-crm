@@ -5,8 +5,15 @@
 // Le jeton n'est jamais gardé : seule la date d'expiration de l'autorisation est enregistrée.
 // Les données du CRM restent protégées par sa propre connexion (Supabase du CRM) : la porte s'ajoute, elle ne remplace rien.
 
-export const PLATEFORME_URL = import.meta.env.VITE_PLATEFORME_URL || 'https://xrlfedosaqtffraadmgk.supabase.co'
-export const PLATEFORME_CLE = import.meta.env.VITE_PLATEFORME_CLE || 'sb_publishable_fpHQmPBtF_4pFMaOnBIKXQ_7KcmvjeX'
+// Base de la plateforme : celle de production seulement quand le CRM est lui-même branché sur sa base de production.
+// En mode démo ou en aperçu, seule une plateforme fictive explicitement fournie (VITE_PLATEFORME_URL) est utilisée :
+// sans elle, l'espace plateforme reste vide plutôt que de lire de vraies données.
+const CRM_BRANCHE = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
+export const PLATEFORME_URL = import.meta.env.VITE_PLATEFORME_URL || (CRM_BRANCHE ? 'https://xrlfedosaqtffraadmgk.supabase.co' : '')
+export const PLATEFORME_CLE = import.meta.env.VITE_PLATEFORME_CLE || (CRM_BRANCHE ? 'sb_publishable_fpHQmPBtF_4pFMaOnBIKXQ_7KcmvjeX' : '')
+export const PLATEFORME_BRANCHEE = !!(PLATEFORME_URL && PLATEFORME_CLE)
+// Fonctions serveur du SaaS (/api/…) : même règle, jamais le vrai site depuis une démo ou un aperçu
+export const SAAS_ORIGINE = import.meta.env.VITE_SAAS_ORIGINE || (CRM_BRANCHE ? 'https://saas.agence-elite.fr' : '')
 export const DUREE_MS = 12 * 60 * 60 * 1000
 const CLE = 'aecrm-porte'
 

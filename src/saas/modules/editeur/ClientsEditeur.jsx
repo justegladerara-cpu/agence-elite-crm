@@ -3,10 +3,11 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate } from '../../noyau/format.js';
 import { lireParametres } from '../../noyau/routes.js';
 import {
-  Badge, Bouton, Confirmation, DataTable, EmptyState, Erreur, MenuActions, Modale, PageHeader, Section, Squelette, StatCard, StatusBadge, Tabs,
+  Badge, Bouton, DataTable, ModaleMotif, EmptyState, Erreur, MenuActions, Modale, PageHeader, Section, Squelette, StatCard, StatusBadge, Tabs,
 } from '../../ui/composants.jsx';
 import { CopierTexte, messageInvitation } from '../etablissement/Equipe.jsx';
 import { ApparenceClient } from './ApparenceEditeur.jsx';
+import { journalOperations, noterGeste } from '../../../modules/plateforme/index.js';
 import { BadgeLicence, FORMULES, FormulaireClient, FormulaireEtablissement, STATUTS, useAction } from './Editeur.jsx';
 
 const fil = (...suite) => [{ libelle: 'Agence Elite', href: '#/editeur' }, { libelle: 'Clients', href: '#/editeur/clients' }, ...suite];
@@ -232,13 +233,13 @@ export function PageClient({ clientId, naviguer }) {
         />
       )}
       {modale?.type === 'statut' && (
-        <Confirmation
+        <ModaleMotif
           titre={modale.titre}
-          texte={modale.statut === 'actif' ? 'Le client et ses établissements retrouvent l’écriture (selon leur licence).' : 'Aucune donnée n’est supprimée : les établissements passent en consultation seule.'}
+          texte={`${client.nom} · ${modale.statut === 'actif' ? 'Le client et ses établissements retrouvent l’écriture (selon leur licence).' : 'Aucune donnée n’est supprimée : les établissements passent en consultation seule.'}`}
           libelleAction="Confirmer"
-          danger={modale.statut !== 'actif'}
-          onValider={async () => {
+          onValider={async (motif) => {
             await api.rpc('definir_statut_client', { p_client_id: client.id, p_statut: modale.statut });
+            noterGeste(journalOperations(), { type: modale.statut === 'actif' ? 'debloquer_client' : 'bloquer_client', client, motif });
             notifier(`Client : ${STATUTS[modale.statut].toLowerCase()}`);
             recharger();
           }}

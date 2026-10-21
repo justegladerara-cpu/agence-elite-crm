@@ -1,7 +1,9 @@
 // Vocabulaire commun des actions (rang, prospection, réponse, montants) et liens de contact.
 // Le pipeline commercial est dans modules/commercial/pipeline.js, les statistiques dans modules/dashboard/stats.js.
 
-export const num = (v) => (v === null || v === undefined || v === '' || isNaN(Number(v)) ? 0 : Number(v))
+// Lecture d'un nombre saisi : règle unique R1 (lib/finances.js), « 1 000 » et « 12,5 » compris
+export { montant as num } from './finances'
+import { montant as num } from './finances'
 
 export function sortActions(actions) {
   return [...actions].sort(

@@ -2,6 +2,9 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { createPortal } from 'react-dom';
 import { lireParametres } from '../noyau/routes.js';
 import { useLignesNouvelles } from '../motion/lignes.js';
+import { empiler } from '../../lib/couches.js';
+import { celluleCsv, AVERTISSEMENT_DONNEES } from '../../lib/csv.js';
+import { confirmer } from '../../ui.jsx';
 
 const CHEMINS = {
   tableau: 'M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z',
@@ -78,7 +81,8 @@ export function Icone({ nom, taille = 18 }) {
 
 export function Bouton({ variante = 'secondaire', icone, children, chargement, ...props }) {
   return (
-    <button className={`bouton ${variante}`} disabled={chargement || props.disabled} aria-busy={chargement ? true : undefined} {...props}>
+    // Les props d'abord : « disabled » passé par l'appelant ne doit jamais annuler le blocage pendant l'envoi
+    <button {...props} className={`bouton ${variante}`} disabled={Boolean(chargement || props.disabled)} aria-busy={chargement ? true : undefined}>
       {icone && <Icone nom={icone} taille={16} />}
       {children && <span>{chargement ? 'Patientez…' : children}</span>}
     </button>
@@ -143,7 +147,6 @@ export function Modale({ titre, onFermer, children, pied, large }) {
     const premier = dialogue.current?.querySelector('input, select, textarea, button, [tabindex]:not([tabindex="-1"])');
     premier?.focus();
     const touche = (e) => {
-      if (e.key === 'Escape') fermer.current?.();
       if (e.key !== 'Tab') return;
       const elements = [...(dialogue.current?.querySelectorAll('input, select, textarea, button, [href], [tabindex]:not([tabindex="-1"])') ?? [])]
         .filter((element) => !element.disabled && element.offsetParent !== null);
@@ -154,7 +157,10 @@ export function Modale({ titre, onFermer, children, pied, large }) {
       else if (!e.shiftKey && document.activeElement === dernierElement) { e.preventDefault(); premierElement.focus(); }
     };
     window.addEventListener('keydown', touche);
+    // Échap ne ferme que la fenêtre du dessus (pile commune au CRM, lib/couches.js)
+    const retirer = empiler(() => fermer.current?.());
     return () => {
+      retirer();
       window.removeEventListener('keydown', touche);
       elementPrecedent.current?.focus?.();
     };
@@ -415,13 +421,13 @@ export function MenuActions({ actions, libelle = 'Plus d’actions' }) {
   useEffect(() => {
     if (!ouvert) return undefined;
     const fermer = (e) => {
-      if (e.type === 'keydown' ? e.key === 'Escape' : !zone.current?.contains(e.target)) setOuvert(false);
+      if (!zone.current?.contains(e.target)) setOuvert(false);
     };
     window.addEventListener('mousedown', fermer);
-    window.addEventListener('keydown', fermer);
+    const retirer = empiler(() => setOuvert(false));
     return () => {
       window.removeEventListener('mousedown', fermer);
-      window.removeEventListener('keydown', fermer);
+      retirer();
     };
   }, [ouvert]);
   const visibles = actions.filter(Boolean);
@@ -472,10 +478,7 @@ export function valeurExport(colonne, ligne) {
 }
 
 export function csvDepuisTable(colonnes, lignes) {
-  const cellule = (v) => {
-    const texte = v == null ? '' : String(v);
-    return /[";\n]/.test(texte) ? `"${texte.replace(/"/g, '""')}"` : texte;
-  };
+  const cellule = celluleCsv;
   const exportables = colonnes.filter((c) => c.libelle && c.exporter !== false);
   return [exportables.map((c) => cellule(c.libelle)).join(';'),
     ...lignes.map((l) => exportables.map((c) => cellule(valeurExport(c, l))).join(';'))].join('\n');
@@ -529,7 +532,8 @@ export function DataTable({
   const filtresActifs = Boolean(texte.trim()) || Object.values(valeursFiltres).some(Boolean);
   const pageCourante = Math.min(page, pages - 1);
   const visibles = impression ? resultat : resultat.slice(pageCourante * parPage, (pageCourante + 1) * parPage);
-  const exporter = () => {
+  const exporter = async () => {
+    if (!(await confirmer(AVERTISSEMENT_DONNEES, { titre: `Exporter ${resultat.length} ligne${resultat.length > 1 ? 's' : ''} ?`, ok: 'Exporter' }))) return;
     const contenu = `\ufeff${csvDepuisTable(colonnes, resultat)}`;
     const url = URL.createObjectURL(new Blob([contenu], { type: 'text/csv;charset=utf-8' }));
     const lien = document.createElement('a');

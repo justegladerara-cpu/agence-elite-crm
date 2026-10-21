@@ -30,6 +30,7 @@ export function creerApi(supabase, origineSaas) {
     async serveur(chemin, { methode = 'GET', corps } = {}) {
       const j = await jeton();
       if (!j) throw new Error('Session expirée : reconnectez-vous');
+      if (!origineSaas) throw new Error('Service du SaaS non branché en mode démo');
       const rep = await fetch(`${origineSaas}${chemin}`, {
         method: methode,
         headers: { authorization: `Bearer ${j}`, 'content-type': 'application/json' },

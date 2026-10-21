@@ -1,0 +1,26 @@
+id;ecran;action;niveau;place;regle;lot;verification
+ACT-01;Fiche client (bandeau);Encaisser;principale;bouton bleu en tête;1 action principale par zone;5;e2e/fiche.spec.js densité
+ACT-02;Fiche client (bandeau);Prolonger (prolongation commerciale gratuite);secondaire;en tête;motif obligatoire, quelques jours;5;e2e/securite.spec.js SEC-09
+ACT-03;Fiche client (bandeau);Facturer;secondaire;en tête;—;5;e2e/fiche.spec.js densité
+ACT-04;Fiche client (bandeau);Plus;secondaire;en tête (menu);regroupe le reste;5;e2e/fiche.spec.js densité
+ACT-05;Fiche client › Plus;Renouveler sans encaissement;menu Plus;menu;motif obligatoire, récapitulatif, montant 0;5;e2e/fiche.spec.js
+ACT-06;Fiche client › Plus;Message;menu Plus;menu;—;5;revue
+ACT-07;Fiche client › Plus;Assister (assistance);menu Plus;menu;—;5;revue
+ACT-08;Fiche client › Plus;Relier à une fiche CRM;menu Plus;menu;—;5;revue
+ACT-09;Fiche client › Plus;Bloquer / débloquer le client;menu Plus (zone danger);menu;confirmation avec motif;5;e2e/parcours.spec.js plateforme
+ACT-10;Fiche client › Licences;Encaisser et renouveler (par établissement);principale de l'onglet;ligne de licence;ouvre l'encaissement sur le bon établissement;5;e2e/fiche.spec.js licences
+ACT-11;Fiche client › Licences;Suspendre / réactiver la licence;menu de la ligne;menu;confirmation avec motif;5;revue
+ACT-12;Fiche client › Comptes;Mot de passe;bouton de la ligne;ligne de compte;un seul chemin, « Copier » et « Copier le message »;5;e2e/fiche.spec.js comptes
+ACT-13;Fiche client › Modules;Activer / retirer un module;interrupteur;ligne de module;retirer = confirmation avec motif;1;e2e/securite.spec.js SEC-05
+ACT-14;Clients du logiciel;Nouveau client;principale;en-tête de la liste;création guidée puis « Mise en route »;5;e2e/fiche.spec.js création guidée
+ACT-15;Opérations et réconciliation;Reprendre;principale de la ligne;ligne à reprendre;rien n'est fait deux fois (OP-…);5;e2e/securite.spec.js SEC-03
+ACT-16;Opérations et réconciliation;Marquer comme réglée;secondaire de la ligne;ligne à reprendre;motif obligatoire;5;tests/securite.test.js
+ACT-17;Tour de contrôle;Indicateur (4);lien;en tête;chaque indicateur mène à sa liste;4;e2e/tableau.spec.js
+ACT-18;Tour de contrôle;Réessayer;dans le bloc en erreur;bloc;recharge seulement ce bloc;4;e2e/tableau.spec.js erreur
+ACT-19;Tour de contrôle;Réinitialiser les filtres;secondaire;barre des filtres actifs;filtre actif toujours visible;4;e2e/tableau.spec.js
+ACT-20;Toutes les fenêtres de saisie;Fermer (Échap, fond, croix);fermeture;en-tête de fenêtre;confirmation si saisie commencée;6;e2e/formulaires.spec.js
+ACT-21;Toutes les fenêtres de saisie;Envoyer / Enregistrer;principale;pied de fenêtre;second clic d'un double clic ignoré;6;e2e/formulaires.spec.js
+ACT-22;Écran éditeur › établissement;Renouveler sans encaissement;principale;licence détaillée;plus de montant saisi (SEC-04);1;e2e/securite.spec.js SEC-04
+ACT-23;Écran éditeur › équipe;Nouveau mot de passe;lien;ligne de membre;mène à la fiche › Comptes;5;e2e/fiche.spec.js
+ACT-24;Paramètres › Sécurité;Restaurer une sauvegarde;zone danger;section sauvegardes;fichier vérifié, confirmation;1;e2e/securite.spec.js SEC-11
+ACT-25;Paramètres › Import / Export;Remplacer;zone danger;import;sauvegarde d'abord, confirmation tapée REMPLACER;1;tests/securite.test.js SEC-02

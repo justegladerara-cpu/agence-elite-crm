@@ -6,10 +6,10 @@ import { useNoyau, useDonnees } from '../core/contexte'
 
 import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
 import { num } from '../modules/facturation'
+import { encaisse as encaisseDe, depenses, depensesDans } from '../lib/finances'
 import { today, fmtDate, fmtMonth, monthKey, prevMonth, addDays, diffDays } from '../lib/dates'
 
 const PERIODE_NOM = Object.fromEntries(PERIODICITES.map(([k, l]) => [k, l.replace('Par ', '/ ')]))
-const dansLeMois = (a, key) => (a.date || '').slice(0, 7) === key
 
 // ---------- Vue d'ensemble ----------
 export function ChargesVue() {
@@ -19,9 +19,9 @@ export function ChargesVue() {
   const jour = today()
   const cle = monthKey(jour)
   const fixes = chargesFixesMois(liste)
-  const depMois = actions.filter((a) => a.action === 'Dépense' && dansLeMois(a, cle))
-  const variables = depMois.reduce((m, a) => m + num(a.montant), 0)
-  const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && dansLeMois(a, cle)).reduce((m, a) => m + num(a.montant), 0)
+  const depMois = depensesDans(actions, { mois: cle })
+  const variables = depenses(actions, { mois: cle })
+  const encaisse = encaisseDe(actions, { mois: cle })
   const total = fixes + variables
   const echeances = echeancesEntre(liste, jour, addDays(jour, 30))
   // Répartition du mois : charges fixes (au prorata du mois) et dépenses notées, par catégorie
@@ -43,8 +43,8 @@ export function ChargesVue() {
       k = prevMonth(k)
     }
     return mois.map((key) => {
-      const entre = actions.filter((a) => a.action === 'Paiement reçu' && dansLeMois(a, key)).reduce((m, a) => m + num(a.montant), 0)
-      const note = actions.filter((a) => a.action === 'Dépense' && dansLeMois(a, key)).reduce((m, a) => m + num(a.montant), 0)
+      const entre = encaisseDe(actions, { mois: key })
+      const note = depenses(actions, { mois: key })
       return { key, entre, sorti: note + fixes, reste: entre - note - fixes }
     })
   })()
@@ -120,7 +120,7 @@ export function ChargesVue() {
         <h2 className="section">
           <span className="sec-ic"><Icon n="coins" size={16} /></span> Six derniers mois
         </h2>
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0}>
           <table className="t charges-histo">
             <thead>
               <tr>
@@ -297,7 +297,7 @@ function AbonnementForm({ poste, onSave, onDelete }) {
         </button>
         <span className="spacer" />
         {onDelete && (
-          <button className="btn ghost sm danger" onClick={onDelete}>
+          <button className="ecriture btn ghost sm danger" onClick={onDelete}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
         )}

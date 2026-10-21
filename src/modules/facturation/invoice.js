@@ -1,12 +1,9 @@
 // Factures et devis : numérotation, totaux, statut, montant en lettres.
 import { today, addDays } from '../../lib/dates'
+import { montant as num } from '../../lib/finances'
 
-// Nombre saisi : accepte « 150 000 », « 12,5 »… (espaces et virgule)
-export const num = (v) => {
-  if (v === null || v === undefined || v === '') return 0
-  const n = Number(String(v).replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'))
-  return isNaN(n) ? 0 : n
-}
+// Nombre saisi : accepte « 150 000 », « 12,5 »… (règle unique R1, lib/finances.js)
+export { montant as num } from '../../lib/finances'
 
 export const TYPES = {
   facture: { label: 'Facture', titre: 'FACTURE', prefixe: 'prefixeFacture' },
@@ -14,17 +11,19 @@ export const TYPES = {
 }
 
 // Numéro suivant : préfixe + année + 6 chiffres (ex. FAC-2026000204)
-export function nextNumero(documents, type, fact, date = today()) {
+// dejaPris : numéros qui ne doivent jamais revenir même si leur document n'existe plus (paiements qui citent
+// une facture supprimée, documents de la corbeille) : un numéro n'est jamais réattribué (SEC-08)
+export function nextNumero(documents, type, fact, date = today(), dejaPris = []) {
   const prefix = `${fact[TYPES[type].prefixe] || ''}${date.slice(0, 4)}`
   let max = 0
   // Même préfixe pour factures et devis : une seule suite de numéros
   const memePrefixe = (fact.prefixeFacture || '') === (fact.prefixeDevis || '')
-  documents
-    .filter((d) => (d.type === type || (memePrefixe && TYPES[d.type])) && (d.numero || '').startsWith(prefix))
-    .forEach((d) => {
-      const n = parseInt(d.numero.slice(prefix.length), 10)
-      if (!isNaN(n)) max = Math.max(max, n)
-    })
+  const lire = (numero) => {
+    const n = parseInt(String(numero).slice(prefix.length), 10)
+    if (!isNaN(n)) max = Math.max(max, n)
+  }
+  documents.filter((d) => (d.type === type || (memePrefixe && TYPES[d.type])) && (d.numero || '').startsWith(prefix)).forEach((d) => lire(d.numero))
+  dejaPris.filter((x) => typeof x === 'string' && x.startsWith(prefix)).forEach(lire)
   const n = Math.max(max + 1, num(fact.premierNumero) || 1)
   return `${prefix}${String(n).padStart(6, '0')}`
 }
@@ -36,6 +35,13 @@ export function totals(d) {
   const base = Math.max(0, sousTotal - remise)
   const taxes = Math.round((base * num(d.tva)) / 100)
   return { lignes, sousTotal, remise, taxes, total: base + taxes }
+}
+
+// Numéros à ne jamais réattribuer : ceux que citent des paiements, et ceux des documents mis à la corbeille
+export function numerosDejaPris(actions = [], corbeille = []) {
+  const cites = actions.filter((a) => a.facture).map((a) => String(a.facture).trim())
+  const jetes = corbeille.flatMap((x) => (x.contenu?.documents || []).map((d) => d.numero)).filter(Boolean)
+  return [...cites, ...jetes]
 }
 
 // Paiements rattachés : actions « Paiement reçu » portant le numéro de la facture

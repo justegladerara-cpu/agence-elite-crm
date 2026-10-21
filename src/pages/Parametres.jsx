@@ -3,6 +3,7 @@ import { Field, eur, lbl, DEVISES, confirmer, go } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon, withIcon } from '../icons'
 import { supabase, isLocal, clearOffline, syncStatus } from '../lib/store'
+import { quitter } from '../modules/plateforme'
 import { DEFAULT_SETTINGS, LIST_CAPACITY, MAX_PROSPECTS } from '../lib/defaults'
 import { SOURCES } from '../modules/commercial'
 import { today } from '../lib/dates'
@@ -13,9 +14,11 @@ import { mensuel, estActif } from '../lib/tresorerie'
 import Modules from './Modules'
 import Membres from './Membres'
 import { sectionAccessible } from '../core/modules'
-import { peutGerer, ROLES } from '../core/permissions'
+import { peutGerer, ROLES, refusDe } from '../core/permissions'
+import { AVERTISSEMENT_DONNEES } from '../lib/csv'
 import Securite from './Securite'
-import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage } from '../lib/theme'
+import { LIBELLES } from '../navigation'
+import { THEMES, APPARENCE_DEFAUT, couleursDe, applyTheme, lireImage, INTERFACES, interfaceDe } from '../lib/theme'
 
 const NUM_GROUPS = [
   ['🎯 Objectifs du mois', 'objectifsMois', [['appels', 'Appels / mois'], ['dm', 'DM / mois'], ['rdv', 'RDV / mois'], ['clients', 'Clients signés / mois'], ['ca', 'CA signé / mois (€)']]],
@@ -231,19 +234,16 @@ function ApparenceCard({ s, change }) {
 
       <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Interface</div>
       <div className="theme-list">
-        {[
-          ['palantir', 'Salle de contrôle (sombre)'],
-          ['classique', 'Classique (claire)'],
-        ].map(([id, label]) => (
-          <button key={id} type="button" className={`theme-opt ${(a.interface || 'palantir') === id ? 'on' : ''}`} onClick={() => set({ interface: id })}>
-            <span className="theme-sw" style={{ background: id === 'palantir' ? '#111418' : '#f5f6f8' }}>
-              <i style={{ background: id === 'palantir' ? '#4c90f0' : '#b8903f' }} />
+        {INTERFACES.map(([id, label]) => (
+          <button key={id} type="button" className={`theme-opt ${interfaceDe(a) === id ? 'on' : ''}`} onClick={() => set({ ui: id })}>
+            <span className="theme-sw" style={{ background: { saas: '#0B1424', palantir: '#111418', classique: '#f5f6f8' }[id] }}>
+              <i style={{ background: { saas: '#2563EB', palantir: '#4c90f0', classique: '#b8903f' }[id] }} />
             </span>
             {label}
           </button>
         ))}
       </div>
-      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM{a.interface !== 'classique' && ' (interface classique seulement)'}</div>
+      <div className="tiny muted bold" style={{ margin: '16px 0 8px' }}>Couleurs du CRM{interfaceDe(a) !== 'classique' && ' (interface classique seulement)'}</div>
       <div className="theme-list">
         {THEMES.map((t) => {
           const tc = t.id === 'perso' ? { principal: a.principal, accent: a.accent } : t
@@ -581,6 +581,9 @@ export default function Parametres({ section }) {
   }
 
   const exportXlsx = async () => {
+    const refus = refusDe(role, 'exporter')
+    if (refus) return toast(refus, true)
+    if (!(await confirmer(AVERTISSEMENT_DONNEES, { titre: 'Exporter vers Excel ?', ok: 'Exporter' }))) return
     setBusy('export')
     try {
       const res = await fetch(`${import.meta.env.BASE_URL}template/Agence_Elite_Pilotage.xlsx`)
@@ -609,12 +612,20 @@ export default function Parametres({ section }) {
     try {
       const { parseExcel } = await import('../lib/excel')
       const parsed = await parseExcel(new Uint8Array(await file.arrayBuffer()))
-      setImp({ ...parsed, file: file.name, replace: prospects.length === 0, withSettings: true })
+      setImp({ ...parsed, file: file.name, replace: prospects.length === 0 && !refusDe(role, 'remplacer'), withSettings: true })
     } catch (err) {
       toast(err.message, true)
     }
   }
   const runImport = async () => {
+    // Remplacer efface toutes les données actuelles : confirmation tapée, sauvegarde automatique avant
+    if (imp.replace && (prospects.length || actions.length)) {
+      const ok = await confirmer(
+        `Une sauvegarde de tes données actuelles sera téléchargée d'abord. Les nouvelles lignes sont ajoutées avant que les anciennes soient retirées : si l'import échoue, rien n'est perdu.`,
+        { titre: 'Remplacer toutes tes données ?', objet: `${prospects.length} prospects et ${actions.length} actions remplacés par ${imp.prospects.length} prospects et ${imp.actions.length} actions`, effet: 'annulable', ok: 'Remplacer', danger: true, saisie: 'REMPLACER' }
+      )
+      if (!ok) return
+    }
     setBusy('import')
     try {
       let list = imp.prospects
@@ -718,12 +729,12 @@ export default function Parametres({ section }) {
       {(s[key] || []).map((x, i) => (
         <div key={i} style={{ marginBottom: 12 }}>
           <div className="row" style={{ flexWrap: 'nowrap', marginBottom: 6 }}>
-            <input className="input" style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
+            <input className="input" aria-label={`Titre du message ${i + 1}`} style={{ flex: 1, fontWeight: 600 }} value={x.titre} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, titre: e.target.value } : y)) })} />
             <button className="icon-btn" title="Retirer" aria-label="Retirer" onClick={() => change({ ...s, [key]: s[key].filter((_, j) => j !== i) })}>
               <Icon n="x" size={14} />
             </button>
           </div>
-          <textarea rows={4} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
+          <textarea rows={4} aria-label={`Texte du message ${i + 1} (${x.titre})`} value={x.texte} onChange={(e) => change({ ...s, [key]: s[key].map((y, j) => (j === i ? { ...y, texte: e.target.value } : y)) })} />
         </div>
       ))}
       {(s[key] || []).length < max && (
@@ -743,7 +754,7 @@ export default function Parametres({ section }) {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Paramètres</h1>
+          <h1>{LIBELLES[`parametres/${sec}`] || 'Paramètres'}</h1>
           <div className="sub">{SECTIONS.find((x) => x[0] === sec)[2]}</div>
           {!peutGerer(role) && (
             <div className="small muted" data-reglages="lecture">
@@ -905,10 +916,10 @@ export default function Parametres({ section }) {
           Paramètres à jour). L'import reprend ce que tu as saisi dans le fichier Excel.
         </p>
         <div className="row">
-          <button className="btn primary" disabled={!!busy} onClick={exportXlsx}>
+          <button className="btn primary" disabled={!!busy} onClick={exportXlsx} hidden={!!refusDe(role, 'exporter')}>
             {busy === 'export' ? 'Préparation…' : <><Icon n="download" size={16} /> Exporter vers Excel</>}
           </button>
-          <button className="btn" disabled={!!busy} onClick={() => fileRef.current.click()}>
+          <button className="ecriture btn" disabled={!!busy} onClick={() => fileRef.current.click()}>
             <Icon n="upload" size={16} /> Importer un fichier Excel
           </button>
           <input ref={fileRef} type="file" accept=".xlsx" hidden onChange={pickFile} />
@@ -929,7 +940,7 @@ export default function Parametres({ section }) {
               <input type="radio" checked={!imp.replace} onChange={() => setImp({ ...imp, replace: false })} /> Ajouter à mes données actuelles
             </label>
             <label className="row small" style={{ marginBottom: 6 }}>
-              <input type="radio" checked={imp.replace} onChange={() => setImp({ ...imp, replace: true })} /> Remplacer toutes mes données
+              <input type="radio" checked={imp.replace} disabled={!!refusDe(role, 'remplacer')} onChange={() => setImp({ ...imp, replace: true })} /> Remplacer toutes mes données
               ({prospects.length} prospects, {actions.length} actions seront supprimés)
             </label>
             {imp.settings && (
@@ -984,7 +995,7 @@ export default function Parametres({ section }) {
                 const n = syncStatus.get().pending
                 if (n && !(await confirmer(`${n} modification${n > 1 ? 's' : ''} pas encore synchronisée${n > 1 ? 's' : ''} ser${n > 1 ? 'ont' : 'a'} perdue${n > 1 ? 's' : ''}. Se déconnecter quand même ?`, { ok: 'Se déconnecter', danger: true }))) return
                 clearOffline()
-                await supabase.auth.signOut()
+                await quitter(() => supabase.auth.signOut())
               }}
             >
               Se déconnecter

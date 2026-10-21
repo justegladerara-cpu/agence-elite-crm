@@ -326,7 +326,8 @@ function ModaleMembre({ etablissementId, membre, catalogue, modulesActifs, roles
 }
 
 // Gestion d'équipe, utilisée par le gérant et par l'espace éditeur.
-export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, roleActuel, hubs = [] }) {
+// surMotDePasse : chemin unique imposé par l'hôte (CRM : fiche client › Comptes) au lieu de la fenêtre locale
+export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs, peutGerer, roleActuel, hubs = [], surMotDePasse }) {
   const { api, notifier } = useEspace();
   const { donnees, chargement, erreur, recharger } = useDonnees(async () => {
     const [equipe, permissions, rolePermissions, modules, restrictions, catalogueRoles] = await Promise.all([
@@ -401,7 +402,7 @@ export function GestionEquipe({ etablissementId, nomEtablissement, modulesActifs
                   <td className="actions-ligne">
                     {peutGerer && !m.moi && <button className="lien" onClick={() => setMembre(m)}>Modifier</button>}
                     {peutGerer && !m.moi && (rangActuel == null || (donnees.roles.find((r) => r.id === m.role_id)?.ordre ?? 0) > rangActuel) && (
-                      <button className="lien" onClick={() => setMotDePasse(m)}>Nouveau mot de passe</button>
+                      <button className="lien" onClick={() => (surMotDePasse ? surMotDePasse(m) : setMotDePasse(m))}>Nouveau mot de passe</button>
                     )}
                     {m.moi && <span className="texte-doux">vous</span>}
                   </td>

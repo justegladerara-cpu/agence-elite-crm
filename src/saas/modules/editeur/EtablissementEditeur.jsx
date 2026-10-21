@@ -116,6 +116,10 @@ export function PageEtablissementEditeur({ etablissementId, naviguer }) {
           modulesActifs={detail.modules.filter((m) => m.actif).map((m) => m.id)}
           hubs={hubs.filter((h) => h.actif)}
           peutGerer
+          surMotDePasse={(m) => {
+            // Un seul chemin pour le mot de passe : la fiche client unique, onglet Comptes (SUPERADMIN 2.0, lot 5)
+            window.location.hash = `#/plateforme-client/${detail.client.id}?onglet=comptes&mdp=${m.user_id}`;
+          }}
         />
       )}
       {onglet === 'service' && (

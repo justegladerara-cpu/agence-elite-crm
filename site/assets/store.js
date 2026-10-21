@@ -81,6 +81,8 @@
   // ---------- Accès à la base ----------
   var api = function (chemin, options) {
     options = options || {}
+    // Aperçu de branche : aucune base branchée, la boutique affiche son état « indisponible »
+    if (!C.url) return Promise.reject(new Error('Boutique indisponible dans cet aperçu'))
     return fetch(C.url + '/rest/v1/' + chemin, {
       method: options.method || 'GET',
       headers: { apikey: C.cle, Authorization: 'Bearer ' + C.cle, 'Content-Type': 'application/json' },

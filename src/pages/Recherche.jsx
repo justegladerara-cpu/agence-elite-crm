@@ -1,7 +1,7 @@
 // Recherche globale (Ctrl/⌘ + K ou « / ») : potentiels, clients, perdus, factures et devis, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { go, eur, StageBadge } from '../ui'
+import { go, eur, StageBadge, useCouche } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../modules/facturation'
@@ -23,10 +23,8 @@ export default function Recherche({ onClose, pages = [] }) {
   const input = useRef(null)
   useEffect(() => {
     input.current?.focus()
-    const k = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', k)
-    return () => window.removeEventListener('keydown', k)
-  }, [onClose])
+  }, [])
+  useCouche(true, onClose)
 
   const res = useMemo(() => {
     const s = norm(q.trim()).replace(/^@/, '')
@@ -38,8 +36,8 @@ export default function Recherche({ onClose, pages = [] }) {
       { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
     ]
     const pagesRes = pages.flatMap((n) => [
-      { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: '', ico: n.ico, path: `/${n.path}` },
-      ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
+      { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: n.espace || '', ico: n.ico, path: `/${n.path}` },
+      ...(n.sub || []).map(([qs, l]) => ({ key: `p-${n.path}${qs}`, groupe: 'Pages', titre: `${n.label} › ${l}`, sous: n.espace || '', ico: n.ico, path: `/${n.path}${qs}`, sousPage: true })),
     ])
     if (!s) return [...rapides, ...pagesRes.filter((r) => !r.sousPage)]
     const chiffres = s.replace(/\D/g, '')

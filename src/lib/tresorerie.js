@@ -1,6 +1,6 @@
 // Argent de la période : paiements reçus et dépenses, reliés entre eux et aux clients.
 // Une dépense peut être rattachée à un paiement (reference « paiement:<id> »), ex. le taxi d'un dépannage.
-const num = (v) => Number(String(v ?? '').replace(/\s/g, '').replace(',', '.')) || 0
+import { montant as num } from './finances'
 
 export const REF_PAIEMENT = 'paiement:'
 export const paiementLie = (a) => (String(a?.reference || '').startsWith(REF_PAIEMENT) ? a.reference.slice(REF_PAIEMENT.length) : null)

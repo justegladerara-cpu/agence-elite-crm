@@ -1,9 +1,10 @@
 // Paiements reçus et dépenses (onglets du menu Factures)
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc } from '../ui'
+import { Field, Kpi, Empty, Modal, Repartition, eur, nb, lbl, LienProspect, LienDoc, confirmer } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { REF_PAIEMENT, chargesFixesMois } from '../lib/tresorerie'
+import { encaisse as encaisseDe } from '../lib/finances'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { totals, paiementsDe, num } from '../modules/facturation/invoice'
 import { today, fmtDate, monthKey, prevMonth } from '../lib/dates'
@@ -221,7 +222,9 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
         </div>
       </div>
     )
+  // Argent : confirmation avec le montant rappelé, annulable depuis le message qui suit
   const remove = async () => {
+    if (!(await confirmer('Il part dans la corbeille de cet appareil ; « Annuler » reste possible juste après.', { titre: 'Supprimer ce paiement ?', objet: `${eur(edit.montant)} · ${edit.date || ''}${edit.facture ? ` · ${edit.facture}` : ''}`, effet: 'annulable', ok: 'Supprimer', danger: true }))) return
     await api.deleteAction(edit.id)
     onDone()
   }
@@ -272,7 +275,7 @@ export function PaiementForm({ prefill = {}, edit, onDone }) {
         </button>
         <span className="spacer" />
         {edit && (
-          <button className="btn ghost sm danger" onClick={remove}>
+          <button className="ecriture btn ghost sm danger" onClick={remove}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
         )}
@@ -306,7 +309,9 @@ export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
       setBusy(false)
     }
   }
+  // Argent : confirmation avec le montant rappelé, annulable depuis le message qui suit
   const remove = async () => {
+    if (!(await confirmer('Il part dans la corbeille de cet appareil ; « Annuler » reste possible juste après.', { titre: 'Supprimer cette dépense ?', objet: `${eur(edit.montant)} · ${edit.date || ''}${edit.categorie ? ` · ${edit.categorie}` : ''}`, effet: 'annulable', ok: 'Supprimer', danger: true }))) return
     await api.deleteAction(edit.id)
     onDone()
   }
@@ -376,7 +381,7 @@ export function DepenseForm({ prefill = {}, edit, lie, onDone }) {
         </button>
         <span className="spacer" />
         {edit && (
-          <button className="btn ghost sm danger" onClick={remove}>
+          <button className="ecriture btn ghost sm danger" onClick={remove}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
         )}
@@ -479,7 +484,7 @@ export function DepensesTab({ nouveau }) {
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
   }, [toutes, periode, q, data])
   const total = liste.reduce((m, a) => m + num(a.montant), 0)
-  const encaisse = actions.filter((a) => a.action === 'Paiement reçu' && inPeriode(a.date, periode)).reduce((m, a) => m + num(a.montant), 0)
+  const encaisse = encaisseDe(actions.filter((a) => inPeriode(a.date, periode)))
   const fixes = chargesFixesMois(settings.depensesFixes)
 
   return (

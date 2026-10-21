@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Icon, Logo } from './icons'
-import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost } from './ui'
+import { Modal, useToast, go, setDevise, DEVISES, ConfirmHost, GardeErreur } from './ui'
 import { db, supabase, isLocal, syncStatus, hasOfflineCache, flush, roleActif, moiActif } from './lib/store'
 import { refusDe, ROLES } from './core/permissions'
 import { computeAll, appelEnCours, oublierAppel, pastillesCommercial } from './modules/commercial'
@@ -39,13 +39,16 @@ const SiteDemandes = lazy(() => import('./pages/SiteWeb').then((m) => ({ default
 const SitePages = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePages })))
 const SitePhotos = lazy(() => import('./pages/SiteWeb').then((m) => ({ default: m.SitePhotos })))
 const Controle = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.Controle })))
+const Operations = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.Operations })))
 const ClientsPlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.ClientsPlateforme })))
 const FichePlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.FichePlateforme })))
-const OutilsPlateforme = lazy(() => import('./pages/Plateforme').then((m) => ({ default: m.OutilsPlateforme })))
 import Applications from './pages/Applications'
+import { BAS, LIBELLES, cleDePage, espaceDe, espacesActifs, pagesRecherche, redirection, entreeDe } from './navigation'
 import { syncRappels } from './lib/rappels'
 import { QuickForm, AppelSheet } from './pages/Rapide'
 import { corbeille } from './lib/corbeille'
+import { telechargerSauvegarde } from './lib/sauvegarde'
+import { remplacerDonnees } from './lib/remplacer'
 import { messageErreur, installerSuiviErreurs } from './lib/erreurs'
 import Raccourcis from './pages/Raccourcis'
 import { NoyauCtx, DonneesCtx } from './core/contexte'
@@ -54,156 +57,17 @@ import { emettre, evenementDAction, evenementDeDocument } from './core/events'
 
 installerSuiviErreurs()
 
-// Menu groupé : piloter, vendre, facturer, régler
-const NAV = [
-  {
-    titre: 'Pilotage',
-    items: [
-      {
-        path: 'journee',
-        memo: 'journee',
-        label: 'Ma journée',
-        ico: 'sun',
-        sub: [['?onglet=jour', "Aujourd'hui"], ['?onglet=chauds', 'Prospects chauds'], ['?onglet=alertes', 'Alertes'], ['?onglet=routine', 'Ma routine'], ['?onglet=historique', 'Bilan de la semaine']],
-      },
-      {
-        path: 'dashboard',
-        memo: 'dashboard',
-        label: 'Tableau de bord',
-        ico: 'chart',
-        sub: [['?onglet=vue', "Vue d'ensemble"], ['?onglet=acquisition', 'Acquisition'], ['?onglet=conversion', 'Conversion'], ['?onglet=finances', 'Finances']],
-      },
-      { path: 'calendrier', label: 'Calendrier', ico: 'calendar' },
-    ],
-  },
-  {
-    titre: 'Commercial',
-    items: [
-      { path: 'acquisition', memo: 'acquisition', label: 'Prospects', ico: 'target', sub: [['?onglet=potentiels', 'En cours'], ['?onglet=perdus', 'Perdus']] },
-      {
-        path: 'clients',
-        memo: 'hub',
-        label: 'Clients',
-        ico: 'briefcase',
-        sub: [['?onglet=nouveaux', 'Nouveaux clients'], ['?onglet=actifs', 'Clients actifs'], ['?onglet=anciens', 'Anciens clients'], ['?onglet=tous', 'Tous les clients']],
-      },
-      { path: 'session', label: "Session d'appels", ico: 'phone' },
-      { path: 'scripts', label: 'Scripts', ico: 'message' },
-    ],
-  },
-  {
-    titre: 'Documents',
-    items: [{ path: 'documents', label: 'Documents et modèles', ico: 'folder' }],
-  },
-  {
-    titre: 'Site web',
-    items: [
-      { path: 'site', label: "Vue d'ensemble", ico: 'globe' },
-      { path: 'site-demandes', memo: 'site-demandes', label: 'Demandes', ico: 'mail', sub: [['?onglet=atraiter', 'À traiter'], ['?onglet=traitees', 'Traitées']] },
-      { path: 'site-pages', label: 'Pages du site', ico: 'layers' },
-      { path: 'site-photos', label: 'Photos du site', ico: 'layers' },
-      {
-        path: 'boutique',
-        memo: 'boutique',
-        label: 'Elite Store',
-        ico: 'tag',
-        sub: [['?onglet=commandes', 'Commandes'], ['?onglet=produits', 'Produits'], ['?onglet=cles', 'Clés de licence']],
-      },
-    ],
-  },
-  {
-    titre: 'Finances',
-    items: [
-      { path: 'devis', memo: 'liste-devis', label: 'Devis', ico: 'clipboard', sub: [['?filtre=toutes', 'Tous'], ['?filtre=attente', 'En attente'], ['?filtre=acceptes', 'Acceptés'], ['?filtre=refuses', 'Refusés']] },
-      {
-        path: 'factures',
-        memo: 'liste-facture',
-        label: 'Factures',
-        ico: 'file',
-        sub: [['?filtre=toutes', 'Toutes'], ['?filtre=impayees', 'Impayées'], ['?filtre=retard', 'En retard'], ['?filtre=payees', 'Payées']],
-      },
-      { path: 'paiements', label: 'Paiements reçus', ico: 'coins' },
-    ],
-  },
-  {
-    titre: 'Charges',
-    items: [
-      { path: 'charges', label: "Vue d'ensemble", ico: 'chart' },
-      { path: 'depenses', label: 'Dépenses', ico: 'wallet' },
-      { path: 'abonnements', label: 'Abonnements', ico: 'repeat' },
-    ],
-  },
-]
 const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
-const PAGES = Object.fromEntries(NAV.flatMap((g) => g.items).map((n) => [n.path, n.label]))
-PAGES.parametres = 'Paramètres'
-const PARAMETRES = {
-  path: 'parametres',
-  label: 'Paramètres',
-  ico: 'settings',
-  sub: [['/identite', 'Identité'], ['/facturation', 'Facturation'], ['/objectifs', 'Objectifs'], ['/listes', 'Listes'], ['/scripts', 'Scripts'], ['/rappels', 'Rappels'], ['/excel', 'Import / Export'], ['/modules', 'Modules'], ['/membres', 'Membres'], ['/securite', 'Sécurité'], ['/compte', 'Compte']],
-}
-PAGES.saisie = 'Nouvelle action'
-PAGES.controle = 'Tour de contrôle'
-PAGES.plateforme = 'Clients de la plateforme'
-PAGES['plateforme-client'] = 'Fiche client'
-PAGES['plateforme-outils'] = 'Boîte à outils'
-PAGES.editeur = 'Administration de la plateforme'
-PAGES.apps = 'Applications'
-
-// Applications (façon Odoo / Zoho One) : chaque module a son icône, sa couleur et ses propres pages
-const ITEM = Object.fromEntries([...NAV.flatMap((g) => g.items), PARAMETRES].map((n) => [n.path, n]))
-const SECTIONS_DASH = [
-  ['dashboard', "Vue d'ensemble"],
-  ['dashboard/acquisition', 'Acquisition'],
-  ['dashboard/conversion', 'Conversion'],
-  ['dashboard/finances', 'Finances'],
-]
-const APPS = [
-  // Menu court, façon salle de contrôle : la plateforme d'abord, puis 5 rubriques de travail, puis les outils
-  {
-    id: 'plateforme',
-    nom: 'Plateforme',
-    desc: 'Tour de contrôle, clients du SaaS, actions et boîte à outils',
-    ico: 'radio',
-    couleur: '#8a6620',
-    pages: ['controle', 'plateforme', 'plateforme-client', 'plateforme-outils', 'editeur'],
-    entrees: [
-      ['controle', 'Tour de contrôle'],
-      ['plateforme', 'Clients'],
-      ['plateforme-outils', 'Boîte à outils'],
-    ],
-  },
-  { id: 'jour', nom: "Aujourd'hui", desc: 'Objectifs, relances et alertes du jour', ico: 'sun', couleur: '#4c90f0', pages: ['journee'] },
-  {
-    id: 'commercial',
-    nom: 'Contacts',
-    desc: 'Prospects et clients',
-    ico: 'briefcase',
-    couleur: '#2f6fed',
-    pages: ['acquisition', 'clients', 'session', 'scripts'],
-    entrees: [['acquisition', 'Prospects'], ['clients', 'Clients']],
-  },
-  { id: 'facturation', nom: 'Argent', desc: 'Factures, devis, paiements et dépenses', ico: 'coins', couleur: '#18a058', pages: ['factures', 'devis', 'paiements', 'charges', 'depenses', 'abonnements'] },
-  { id: 'analytics', nom: 'Analyse', desc: 'Chiffres, conversion et finances', ico: 'chart', couleur: '#7a4cdb', pages: ['dashboard'], entrees: SECTIONS_DASH },
-  { id: 'agenda', nom: 'Agenda', desc: 'Rendez-vous, relances et échéances', ico: 'calendar', couleur: '#0e9aa7', pages: ['calendrier'] },
-  { id: 'documents', nom: 'Documents', desc: 'Contrats, modèles, papier à en-tête et textes légaux', ico: 'folder', couleur: '#d90000', pages: ['documents'], outil: true },
-  { id: 'site', nom: 'Site web', desc: 'Audience, demandes de contact, pages et Elite Store', ico: 'globe', couleur: '#10151f', pages: ['site', 'site-demandes', 'site-pages', 'site-photos', 'boutique'], outil: true },
-  { id: 'parametres', nom: 'Paramètres', desc: 'Identité, facturation, objectifs, compte', ico: 'settings', couleur: '#5b6475', pages: ['parametres'], entrees: PARAMETRES.sub.map(([h, l]) => [`parametres${h}`, l]), outil: true },
-].map((a) => ({ ...a, route: a.pages[0], entrees: (a.entrees || a.pages.map((x) => [x, ITEM[x].label])).map(([route, label]) => ({ route, label, badge: route.split('/')[0] === route ? route : null })) }))
 // Sections du tableau de bord ; les anciens noms d'onglets mènent au nouvel équivalent
 const ONGLET_DASH = { vue: 'vue', acquisition: 'acquisition', conversion: 'conversion', finances: 'finances', prospection: 'acquisition', marche: 'acquisition', ventes: 'finances', clients: 'finances' }
-const APP_DE = Object.fromEntries(APPS.flatMap((a) => a.pages.map((x) => [x, a])))
 // Pastilles fournies par les modules (App est le seul endroit qui les assemble)
 const PASTILLES = { commercial: pastillesCommercial, facturation: pastillesFacturation }
-// Sections du tableau de bord qui lisent les données d'un module : masquées si ce module est désactivé
-const MODULE_ENTREE = { 'dashboard/acquisition': 'commercial', 'dashboard/conversion': 'commercial', 'dashboard/finances': 'facturation' }
-const entreeActive = (route, settings) =>
-  pageAccessible(route.split('/')[0], settings) && (!MODULE_ENTREE[route] || settings?.modules?.[MODULE_ENTREE[route]] !== false) && (!route.startsWith('parametres/') || sectionAccessible(route.slice(11), settings))
-function appsActives(settings) {
-  return APPS.map((a) => ({ ...a, pages: a.pages.filter((p) => pageAccessible(p, settings)), entrees: a.entrees.filter((e) => entreeActive(e.route, settings)) }))
-    .filter((a) => a.pages.length)
-    .map((a) => ({ ...a, route: a.pages[0] }))
+// Entrée de menu visible : module actif (Paramètres › Modules) et section de réglages accessible
+const accessibleAvec = (settings) => (route, entree = {}) => {
+  const page = route.split('/')[0]
+  if (!pageAccessible(page, settings)) return false
+  if (entree.module && settings?.modules?.[entree.module] === false) return false
+  return !route.startsWith('parametres/') || sectionAccessible(route.slice(11), settings)
 }
 // Page d'un module désactivé : ses données sont gardées, il suffit de le réactiver
 function ModuleInactif({ nom }) {
@@ -217,14 +81,6 @@ function ModuleInactif({ nom }) {
     </div>
   )
 }
-// Barre du bas sur téléphone : Journée, Clients, Saisir (au centre), Stats, Réglages
-const BOTTOM = [
-  { path: 'dashboard', short: 'Analyse', ico: 'chart' },
-  { path: 'journee', short: 'Journée', ico: 'sun' },
-  { path: 'saisie', short: 'Noter', ico: 'plus', cta: true },
-  { path: 'acquisition', short: 'Prospects', ico: 'target' },
-  { path: 'clients', short: 'Clients', ico: 'briefcase' },
-]
 // Un champ de saisie a le focus : les raccourcis clavier ne s'appliquent pas
 const enSaisie = (e) => {
   const t = e.target
@@ -242,7 +98,7 @@ function Attente() {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || (isLocal ? 'dashboard' : 'controle')
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'controle'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -276,10 +132,13 @@ function PorteFermee({ onOuverte }) {
   )
 }
 
+// La porte se rouvre seulement si la session plateforme est toujours valable (vérifiée à chaque ouverture) ;
+// l'autorisation de 12 h ne sert plus que hors ligne. Se déconnecter ferme la porte (SEC-06).
 const etatPorteInitial = () => {
   if (isLocal) return 'ok'
   if (/^#porte=/.test(window.location.hash)) return 'verif'
-  return porteOuverte() ? 'ok' : 'session'
+  if (typeof navigator !== 'undefined' && navigator.onLine === false && porteOuverte()) return 'ok'
+  return 'session'
 }
 
 export default function App() {
@@ -344,6 +203,9 @@ function Crm() {
     const [chemin, query = ''] = route.split('?')
     const q = new URLSearchParams(query)
     if (chemin === 'prospects' || (chemin === 'clients' && q.get('filtre') && !q.get('onglet'))) window.location.replace(`#/${lienHub(chemin, q)}`)
+    // Anciennes adresses (boîte à outils, applications, éditeur sans page) : leur nouvelle place dans les 6 espaces
+    const cible = redirection(route)
+    if (cible) window.location.replace(`#/${cible}`)
   }, [route])
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
@@ -386,10 +248,25 @@ function Crm() {
       window.removeEventListener('crm-appel', lance)
     }
   }, [])
+  // La recherche Ctrl K est chargée à l'avance, quand le navigateur est libre, puis affichée sans passer par
+  // Suspense (qui retarde un premier affichage d'environ 300 ms) : elle s'ouvre en moins de 300 ms
+  const [RechercheChargee, setRechercheChargee] = useState(null)
+  useEffect(() => {
+    const charger = () =>
+      import('./pages/Recherche')
+        .then((m) => setRechercheChargee(() => m.default))
+        .catch(() => {})
+    if (window.requestIdleCallback) {
+      const id = window.requestIdleCallback(charger, { timeout: 3000 })
+      return () => window.cancelIdleCallback?.(id)
+    }
+    const t = setTimeout(charger, 1500)
+    return () => clearTimeout(t)
+  }, [])
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action, ? pour l'aide, G puis une lettre pour naviguer
   useEffect(() => {
     let g = 0
-    const ALLER = { j: 'journee', p: 'acquisition', c: 'clients', f: 'factures', d: 'dashboard', a: 'apps', s: 'session' }
+    const ALLER = { j: 'journee', p: 'acquisition', c: 'clients', f: 'factures', d: 'dashboard', a: 'espace', s: 'session', t: 'controle' }
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -597,6 +474,14 @@ function Crm() {
       }))
       toast(`${item.libelle} restauré ✓`)
     }),
+    // Restaurer une sauvegarde (SEC-11) : remet les lignes du fichier avec leurs identifiants d'origine.
+    // Rien n'est effacé : une ligne déjà présente (même identifiant) reprend la valeur de la sauvegarde.
+    restaurerSauvegarde: wrap(async (contenu) => {
+      garde('remplacer')
+      await db.restaurer(contenu)
+      await reload()
+      toast(`Sauvegarde restaurée ✓ (${contenu.prospects.length} fiches, ${contenu.actions.length} actions, ${contenu.documents.length} documents)`)
+    }),
     uploadRecu: wrap(async (dataUrl, ext, type) => {
       garde('ecrire')
       return db.uploadRecu(dataUrl, ext, type)
@@ -608,11 +493,26 @@ function Crm() {
       await db.saveSettings(settings)
       setState((s) => ({ ...s, settings }))
     }),
+    // Remplacer (SEC-02) : sauvegarde téléchargée d'abord, puis les nouvelles lignes sont ajoutées, et seulement
+    // si tout est passé, les anciennes sont retirées une par une (par identifiant). Un échec à l'ajout retire ce qui
+    // vient d'être ajouté : les données d'avant restent intactes. Les anciennes lignes vont dans la corbeille.
     bulkImport: wrap(async (prospects, actions, replace) => {
       garde(replace ? 'remplacer' : 'ecrire')
-      if (replace) await db.wipe()
-      await db.bulkImport(prospects, actions)
+      if (!replace) {
+        await db.bulkImport(prospects, actions)
+        return reload()
+      }
+      const avant = { prospects: state.prospects, actions: state.actions }
+      telechargerSauvegarde(state)
+      try {
+        await remplacerDonnees(db, avant, prospects, actions)
+      } catch (e) {
+        await reload().catch(() => {})
+        throw e
+      }
+      const cid = corbeille.ajouter('import', `Données remplacées par un import (${avant.prospects.length} prospects, ${avant.actions.length} actions)`, avant)
       await reload()
+      if (cid) toast('Données remplacées ✓ · les anciennes sont dans la corbeille', false, { annuler: () => api.restaurer(cid) })
     }),
     loadSeed: wrap(async () => {
       garde('ecrire')
@@ -662,12 +562,23 @@ function Crm() {
     settings,
     api,
     toast,
-    openAction: (prefill) => setActionModal(prefill || {}),
-    saisirArgent: (modal) => setArgent(modal),
+    // Rôle sans droit d'écriture (SEC-10) : la saisie ne s'ouvre pas, un message explique pourquoi
+    openAction: (prefill) => {
+      const refus = refusDe(roleActif(), 'ecrire')
+      if (refus) return toast(refus, true)
+      setActionModal(prefill || {})
+    },
+    saisirArgent: (modal) => {
+      const refus = refusDe(roleActif(), 'ecrire')
+      if (refus) return toast(refus, true)
+      setArgent(modal)
+    },
     live: { direct, majLe, sync, reload },
     role: roleActif(),
   }
   const donnees = { ...donneesEtat, data }
+  // Rôle affiché sur la page : les boutons marqués « ecriture » sont masqués pour un lecteur (SEC-10)
+  if (typeof document !== 'undefined' && document.body.dataset.role !== noyau.role) document.body.dataset.role = noyau.role
 
   const [chemin, query = ''] = route.split('?')
   const [page, arg = ''] = chemin.split(/\/(.*)/s)
@@ -680,16 +591,17 @@ function Crm() {
     page === 'prospect' ? (estClient(arg) ? 'clients' : 'acquisition') : page === 'prospects' || ongletAcq ? 'acquisition' : page === 'facture' ? (docType === 'devis' ? 'devis' : 'factures') : page
   // Entrée du menu à surligner : section du tableau de bord ou des paramètres, sinon la page
   const ongletDash = ONGLET_DASH[arg || q.get('onglet')] || ''
-  const cle = page === 'dashboard' ? (ongletDash && ongletDash !== 'vue' ? `dashboard/${ongletDash}` : 'dashboard') : page === 'parametres' ? `parametres/${arg || 'identite'}` : current
+  const cle = ['dashboard', 'parametres', 'editeur'].includes(page) ? cleDePage(page, arg, q) : current
   // Pastilles du menu : chaque module actif déclare ce qui attend une action dans ses pages
   const etatPastilles = { data, documents: state.documents || [], actions: state.actions }
   const badges = Object.assign({}, ...Object.entries(PASTILLES).filter(([m]) => estActif(m, state.settings)).map(([, f]) => f(etatPastilles)))
-  // Application ouverte : son menu, sa couleur ; sans application (accueil, saisie) le menu liste les applications
+  // Espace ouvert (un des 6) : son menu et sa couleur. Modules désactivés : leurs pages sortent de la navigation.
   const basculerRubrique = (id, ouvert) => setOuverts((m) => ({ ...m, [id]: !ouvert }))
-  // Modules désactivés (Paramètres › Modules) : leurs pages sortent du menu et de la navigation
-  const apps = appsActives(state.settings)
-  const appliBrute = page === 'apps' || page === 'saisie' ? null : APP_DE[current] || APP_DE.dashboard
-  const appli = appliBrute && (apps.find((a) => a.id === appliBrute.id) || appliBrute)
+  const accessible = accessibleAvec(state.settings)
+  const espaces = espacesActifs(accessible)
+  const espaceBrut = page === 'espace' ? (arg ? { id: arg } : null) : espaceDe(cle)
+  const appli = espaceBrut && espaces.find((e) => e.id === espaceBrut.id)
+  const titrePage = entreeDe(cle)?.label || LIBELLES[cle] || LIBELLES[current] || brand.sousTitre
   let content
   if (!pageAccessible(page, state.settings)) content = <ModuleInactif nom={moduleDePage(page).nom} />
   else if (page === 'saisie') content = <Saisie key={route} prospectId={arg} />
@@ -722,11 +634,11 @@ function Crm() {
   else if (page === 'site-photos') content = <SitePhotos />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'controle') content = <Controle />
+  else if (page === 'operations') content = <Operations />
   else if (page === 'plateforme') content = <ClientsPlateforme key={route} filtre={q.get('filtre')} />
-  else if (page === 'plateforme-client') content = <FichePlateforme key={route} id={arg} faire={q.get('faire')} />
-  else if (page === 'plateforme-outils') content = <OutilsPlateforme />
+  else if (page === 'plateforme-client') content = <FichePlateforme key={arg} id={arg} faire={q.get('faire')} onglet={q.get('onglet')} mdp={q.get('mdp')} />
   else if (page === 'editeur') content = <AdminSaaS route={chemin} />
-  else if (page === 'apps') content = <Applications apps={apps} pastilles={(a) => a.pages.map((x) => badges[x]).find((b) => b && b[0])} />
+  else if (page === 'espace') content = <Applications espaces={espaces} actif={arg} pastilles={(e) => e.entrees.map((x) => badges[x.route]).find((b) => b && b[0])} />
   else content = <Dashboard onglet={ongletDash || 'vue'} />
   const pastille = (path) => {
     const [n, cls, t] = badges[path] || []
@@ -758,48 +670,30 @@ function Crm() {
           </button>
           <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
             {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
-            {apps.map((a, i) => [
-              a.outil && !apps[i - 1]?.outil ? <div className="nav-sep" key={`sep-${a.id}`}>Outils</div> : null,
-              (() => {
+            {espaces.map((a) => {
               const actif = appli?.id === a.id
-              if (a.lien)
-                return (
-                  <button key={a.id} className="nav-item" onClick={() => window.open(a.lien, '_blank', 'noopener')}>
-                    <span className="ico"><Icon n={a.ico} size={17} /></span>
-                    {a.nom}
-                  </button>
-                )
-              if (a.entrees.length === 1)
-                return (
-                  <button key={a.id} className={`nav-item ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => go(`/${a.route}`)}>
-                    <span className="ico"><Icon n={a.ico} size={17} /></span>
-                    {a.nom}
-                    {pastille(a.pages[0])}
-                  </button>
-                )
               const ouvert = ouverts[a.id] ?? actif
               return (
                 <div key={a.id} className={`nav-rubrique ${ouvert ? 'open' : ''}`}>
                   <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => basculerRubrique(a.id, ouvert)}>
                     <span className="ico"><Icon n={a.ico} size={17} /></span>
                     {a.nom}
-                    {!ouvert && pastille(a.entrees.map((e) => e.badge).find((x) => badges[x]?.[0]))}
+                    {!ouvert && pastille(a.entrees.map((e) => e.route).find((x) => badges[x]?.[0]))}
                     <span className="nav-chev" aria-hidden="true"><Icon n="chevron" size={12} /></span>
                   </button>
                   {ouvert && (
                     <div className="nav-enfants">
                       {a.entrees.map((e) => (
-                        <button key={e.route} className={`nav-item nav-enfant ${cle === e.route ? 'active' : ''}`} aria-current={cle === e.route ? 'page' : undefined} onClick={() => go(`/${e.route}`)}>
+                        <button key={e.route} className={`nav-item nav-enfant ${cle === e.route || entreeDe(cle)?.route === e.route ? 'active' : ''}`} aria-current={cle === e.route || entreeDe(cle)?.route === e.route ? 'page' : undefined} onClick={() => go(`/${e.route}`)}>
                           {e.label}
-                          {pastille(e.badge)}
+                          {pastille(e.route)}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
               )
-              })(),
-            ])}
+            })}
           </nav>
           <div className={`sidebar-foot ${syncCls}`}>{isLocal ? 'Mode démo : données dans ce navigateur' : syncTxt}</div>
         </aside>
@@ -808,12 +702,12 @@ function Crm() {
             <Logo size={32} />
             <div style={{ minWidth: 0 }}>
               {avecNom && <div className="brand-name">{brand.nom}</div>}
-              <div className="brand-sub">{appli && appli.entrees.length > 1 ? `${appli.nom} · ${appli.entrees.find((e) => e.route === cle)?.label || PAGES[current]}` : appli ? appli.nom : PAGES[current] || brand.sousTitre}</div>
+              <div className="brand-sub">{appli ? (page === 'espace' ? appli.nom : `${appli.nom} · ${titrePage}`) : page === 'espace' ? 'Tous les espaces' : titrePage}</div>
             </div>
             <button className="icon-btn mobile-settings" aria-label="Rechercher" onClick={() => setRecherche(true)}>
               <Icon n="search" size={18} />
             </button>
-            <button className={`icon-btn mobile-settings mobile-gear ${page === 'apps' ? 'on' : ''}`} aria-label="Toutes les applications" onClick={() => go('/apps')}>
+            <button className={`icon-btn mobile-settings mobile-gear ${page === 'espace' ? 'on' : ''}`} aria-label="Tous les espaces" onClick={() => go('/espace')}>
               <Icon n="grid" size={18} />
             </button>
           </header>
@@ -830,29 +724,34 @@ function Crm() {
               {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
             </div>
           )}
-          {isLocal && (route === '' || route.startsWith('dashboard')) && (
+          {isLocal && (route === '' || route.startsWith('controle') || route.startsWith('dashboard')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
-          {appli && appli.entrees.length > 1 && (
+          {appli && page !== 'espace' && appli.entrees.length > 1 && (
             <nav className="app-onglets" aria-label={`Menu ${appli.nom}`}>
               {appli.entrees.map((e) => (
-                <button key={e.route} className={cle === e.route ? 'on' : ''} onClick={() => go(`/${e.route}`)}>
+                <button key={e.route} className={cle === e.route || entreeDe(cle)?.route === e.route ? 'on' : ''} aria-current={cle === e.route || entreeDe(cle)?.route === e.route ? 'page' : undefined} onClick={() => go(`/${e.route}`)}>
                   {e.label}
-                  {pastille(e.badge)}
+                  {pastille(e.route)}
                 </button>
               ))}
             </nav>
           )}
-          <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
+          <GardeErreur cle={route}>
+            <Suspense fallback={<div className="chargement" aria-busy="true" aria-label="Chargement" />}>{content}</Suspense>
+          </GardeErreur>
         </main>
         <nav className="bottom-nav" aria-label="Navigation principale">
-          {BOTTOM.filter((n) => pageAccessible(n.path, state.settings)).map((n) => (
-            <button key={n.path} className={`${n.cta ? 'cta' : ''} ${current === n.path ? 'active' : ''}`} aria-current={current === n.path ? 'page' : undefined} onClick={() => (n.cta ? setActionModal({}) : go(`/${n.path}`))}>
-              <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
-              {n.short}
-              {!n.cta && pastille(n.path)}
-            </button>
-          ))}
+          {BAS.filter((n) => n.cta || n.route === 'espace' || espaces.some((e) => e.id === n.espace)).map((n) => {
+            const actif = n.route === 'espace' ? page === 'espace' || (appli && !BAS.some((b) => b.espace === appli.id)) : appli?.id === n.espace && page !== 'espace'
+            const cible = n.espace ? espaces.find((e) => e.id === n.espace).entrees[0].route : n.route
+            return (
+              <button key={n.short} className={`${n.cta ? 'cta' : ''} ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => (n.cta ? noyau.openAction() : go(`/${n.espace && accessible(n.route) ? n.route : cible}`))}>
+                <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
+                {n.short}
+              </button>
+            )
+          })}
         </nav>
       </div>
       {actionModal && !actionModal.edit && !actionModal.complet && ARGENT[actionModal.action] ? (
@@ -886,11 +785,14 @@ function Crm() {
       )}
       {aide && <Raccourcis onClose={() => setAide(false)} />}
       <ConfirmHost />
-      {recherche && (
-        <Suspense fallback={null}>
-          <Recherche onClose={() => setRecherche(false)} pages={[...NAV.flatMap((g) => g.items), PARAMETRES].filter((n) => pageAccessible(n.path, state.settings))} />
-        </Suspense>
-      )}
+      {recherche &&
+        (RechercheChargee ? (
+          <RechercheChargee onClose={() => setRecherche(false)} pages={pagesRecherche(accessible)} />
+        ) : (
+          <Suspense fallback={null}>
+            <Recherche onClose={() => setRecherche(false)} pages={pagesRecherche(accessible)} />
+          </Suspense>
+        ))}
       {toastNode}
       </DonneesCtx.Provider>
     </NoyauCtx.Provider>

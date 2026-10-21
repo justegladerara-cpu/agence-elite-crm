@@ -5,7 +5,11 @@ import { mkdirSync, writeFileSync, cpSync, rmSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { markdownEnHtml } from '../src/lib/markdown.js'
-import { SITE, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS } from './data.mjs'
+import { SITE as SITE_DONNEES, FAMILLES, SOLUTIONS, SECTEURS, VALEURS, PARTENAIRES, PHOTOS, CREDITS_PHOTOS } from './data.mjs'
+import { estApercu } from '../scripts/apercu.mjs'
+
+// Aperçu de branche : le site ne parle pas à la base de production (visites, demandes, boutique, photos)
+const SITE = estApercu() ? { ...SITE_DONNEES, supabaseUrl: '', supabaseCle: '' } : SITE_DONNEES
 
 const ici = dirname(fileURLToPath(import.meta.url))
 const OUT = process.argv[2] || join(ici, '..', 'site-dist')
@@ -212,7 +216,7 @@ ${corps(r)}
   <div class="conteneur pied-bas"><span>© ${new Date().getFullYear()} Agence Elite, enseigne de GROUPE 7M SERVICES SARL. Tous droits réservés.</span><span class="pied-legal"><a href="${r('mentions-legales/')}">Mentions légales</a><a href="${r('confidentialite/')}">Confidentialité</a><a href="${r('cookies/')}">Cookies</a><a href="${r('cgv/')}">CGV</a><a href="${r('boutique/cgv/')}">CGV Elite Store</a><a href="${r('recrutement/cgu')}">Elite Emploi</a></span></div>
 </footer>
 <a class="wa-flottant" href="${waLink('Bonjour Agence Elite, je souhaite parler de mon projet.')}" target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp">${SOCIAL.whatsapp}</a>
-<script>window.AE_SITE = ${JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle })}</script>
+<script>window.AE_SITE = ${SITE.supabaseUrl ? JSON.stringify({ url: SITE.supabaseUrl, cle: SITE.supabaseCle }) : 'null'}</script>
 <script src="${r('assets/site.js')}?v=${VERSION}" defer></script>
 ${MOTION ? `<script src="${r('assets/motion.js')}?v=${VERSION}" defer></script>` : ''}
 ${scripts ? scripts(r) : ''}

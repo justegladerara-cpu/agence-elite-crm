@@ -460,7 +460,7 @@ function Editeur({ doc, ongletInitial, societe, demo, onRetour, onEnregistrer, o
               </button>
             )}
             {!demo && doc.perso && (
-              <button className="btn" onClick={onSupprimer}>
+              <button className="ecriture btn" onClick={onSupprimer}>
                 <Icon n="trash" size={15} /> Retirer
               </button>
             )}

@@ -3,6 +3,8 @@ import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { formatDate, formatDateHeure, ROLES, ROLES_PLATEFORME } from '../../noyau/format.js';
 import { Avatar, Badge, Bouton, Champ, DataTable, Erreur, MenuActions, Modale, PageHeader } from '../../ui/composants.jsx';
 import { useVueEditeur } from './ClientsEditeur.jsx';
+import { confirmer } from '../../../ui.jsx';
+import { journalOperations, noterGeste } from '../../../modules/plateforme/index.js';
 
 const DOMAINE_IDENTIFIANTS = 'identifiants.agence-elite.fr';
 
@@ -181,10 +183,20 @@ export default function ComptesEditeur() {
     notifier(message);
     recharger();
   };
+  // Donner ou retirer un rôle Agence Elite (SEC-05) : confirmation avec motif, jamais en un clic
   const definirRole = async (c, role, actif) => {
     setErreurAction('');
+    const qui = c.nom ?? c.identifiant ?? c.email;
+    const r = await confirmer(
+      actif
+        ? `${qui} pourra ${role === 'admin' ? 'administrer tous les clients de la plateforme (licences, comptes, modules)' : 'consulter les clients de la plateforme pour les aider'}.`
+        : `${qui} n’aura plus accès à l’espace Agence Elite.`,
+      { titre: actif ? `Donner le rôle ${ROLES_PLATEFORME[role]} ?` : 'Retirer de l’équipe Agence Elite ?', objet: `${qui} · ${c.email}`, effet: 'Vous pourrez revenir en arrière à tout moment.', ok: actif ? 'Donner le rôle' : 'Retirer', danger: true, motif: true }
+    );
+    if (!r) return;
     try {
       await api.rpc('definir_admin_plateforme', { p_user_id: c.id, p_role: role, p_actif: actif });
+      noterGeste(journalOperations(), { type: 'role_admin', motif: r.motif, detail: `${c.email} : ${actif ? `+${role}` : `-${role}`}` });
       fait(actif ? `Rôle ${ROLES_PLATEFORME[role]} donné` : 'Accès Agence Elite retiré');
     } catch (err) {
       setErreurAction(err.message);
