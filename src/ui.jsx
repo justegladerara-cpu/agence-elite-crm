@@ -5,6 +5,7 @@ import { ChiffreAnime } from './animations'
 
 import { useDonnees } from './core/contexte'
 import { empiler } from './lib/couches'
+import { DEVISES } from './lib/argent'
 
 // Fenêtre, menu ou liste ouverts : Échap ne ferme que le dernier ouvert (voir lib/couches.js)
 export function useCouche(actif, fermer) {
@@ -16,14 +17,7 @@ export function useCouche(actif, fermer) {
 }
 
 // Devise d'affichage, réglée dans Paramètres (settings.devise)
-export const DEVISES = [
-  { code: 'XAF', label: 'Franc CFA Afrique centrale (XAF)', sym: 'FCFA', parEuro: 655.957 },
-  { code: 'XOF', label: 'Franc CFA Afrique de l’Ouest (XOF)', sym: 'FCFA', parEuro: 655.957 },
-  { code: 'EUR', label: 'Euro (€)', sym: '€', parEuro: 1 },
-  { code: 'USD', label: 'Dollar US ($)', sym: '$', parEuro: 1.08 },
-  { code: 'MAD', label: 'Dirham marocain (MAD)', sym: 'MAD', parEuro: 10.8 },
-  { code: 'CAD', label: 'Dollar canadien (CAD)', sym: 'CAD', parEuro: 1.47 },
-]
+export { DEVISES }
 export const EURO = DEVISES.find((d) => d.code === 'EUR')
 let devise = EURO
 export function setDevise(code) {
@@ -617,4 +611,65 @@ export class GardeErreur extends Component {
       </div>
     )
   }
+}
+
+// Bloc de tableau de bord à 5 états : chargement, données, vide, accès refusé, erreur.
+// etat = { etat, raison } ; vide / refuse : textes ; action : bouton proposé en cas de refus (ex. se connecter).
+export function Bloc({ titre, id, etat = { etat: 'donnees' }, vide = 'Rien à afficher.', action, onReessayer, className = '', children, entete }) {
+  const idTitre = id ? `bloc-${id}` : undefined
+  let corps
+  if (etat.etat === 'chargement') corps = <div className="bloc-etat squelette-bloc" aria-busy="true" aria-label={`Chargement : ${titre}`}><span /><span /><span /></div>
+  else if (etat.etat === 'vide') corps = <p className="bloc-etat vide small muted">{vide}</p>
+  else if (etat.etat === 'refuse')
+    corps = (
+      <div className="bloc-etat refuse small">
+        <Icon n="lock" size={14} /> <span>{etat.raison || 'Accès refusé.'}</span>
+        {action}
+      </div>
+    )
+  else if (etat.etat === 'erreur')
+    corps = (
+      <div className="bloc-etat erreur small" role="alert">
+        <span>Impossible de charger : {etat.raison || 'erreur inconnue'}</span>
+        {onReessayer && (
+          <button type="button" className="btn sm" onClick={onReessayer}>
+            Réessayer
+          </button>
+        )}
+      </div>
+    )
+  else corps = children
+  return (
+    <section className={`card bloc ${className}`} aria-labelledby={idTitre} data-etat={etat.etat}>
+      <div className="bloc-tete">
+        <h2 className="section" id={idTitre}>
+          {titre}
+        </h2>
+        {etat.etat === 'donnees' && entete}
+      </div>
+      {corps}
+    </section>
+  )
+}
+
+// Indicateur du haut du tableau de bord, avec les mêmes 5 états
+export function Indicateur({ label, etat = { etat: 'donnees' }, valeur, sous, ton = '', onClick, vide = 'Aucun' }) {
+  const e = etat.etat
+  const contenu =
+    e === 'chargement' ? <span className="ind-v squelette-ligne" aria-label="Chargement">&nbsp;</span>
+    : e === 'refuse' ? <span className="ind-s"><Icon n="lock" size={12} /> {etat.raison || 'Accès refusé'}</span>
+    : e === 'erreur' ? <span className="ind-s rouge" role="alert">Erreur : {etat.raison}</span>
+    : (
+      <>
+        <span className="ind-v">{e === 'vide' ? vide : valeur}</span>
+        {sous && <span className="ind-s">{sous}</span>}
+      </>
+    )
+  const Balise = onClick && e === 'donnees' ? 'button' : 'div'
+  return (
+    <Balise className={`indicateur ${e === 'donnees' ? ton : ''}`} data-etat={e} {...(Balise === 'button' ? { type: 'button', onClick } : {})}>
+      <span className="ind-l">{label}</span>
+      {contenu}
+    </Balise>
+  )
 }

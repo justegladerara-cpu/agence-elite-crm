@@ -97,7 +97,7 @@ function Attente() {
 }
 
 function useRoute() {
-  const get = () => window.location.hash.replace(/^#\/?/, '') || (isLocal ? 'dashboard' : 'controle')
+  const get = () => window.location.hash.replace(/^#\/?/, '') || 'controle'
   const [route, setRoute] = useState(get)
   useEffect(() => {
     const f = () => {
@@ -707,7 +707,7 @@ function Crm() {
               {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
             </div>
           )}
-          {isLocal && (route === '' || route.startsWith('dashboard')) && (
+          {isLocal && (route === '' || route.startsWith('controle') || route.startsWith('dashboard')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
           {appli && page !== 'espace' && appli.entrees.length > 1 && (

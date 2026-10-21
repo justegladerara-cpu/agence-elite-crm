@@ -2,6 +2,8 @@
 // Entrée : ce que renvoie la plateforme (editeur_vue, pilotage_activite, pilotage_messages).
 // Sortie : clients prêts à afficher, avec leur santé, leurs raisons, et les alertes de la tour de contrôle.
 
+import { sommesParDevise } from '../../lib/argent'
+
 const JOUR = 86400000
 export const joursDepuis = (date, maintenant = Date.now()) => (date ? Math.floor((maintenant - new Date(date).getTime()) / JOUR) : null)
 const norm = (s) =>
@@ -59,7 +61,9 @@ export function construireVue(vue, activite = [], messages = [], maintenant = Da
   const clients = (vue?.clients || []).map((c) => {
     const etablissements = (c.etablissements || []).map((e) => {
       const act = parEtab[e.id] || {}
-      return { ...e, activite: act, sante: santeEtablissement(e, act, maintenant), mensuel: mensuelLicence(e.licence, offres) }
+      // Devise réelle : celle de la licence, sinon de l'établissement, sinon de la facturation du client
+      const devise = e.licence?.devise || e.devise || c.devise_facturation || null
+      return { ...e, devise, activite: act, sante: santeEtablissement(e, act, maintenant), mensuel: mensuelLicence(e.licence, offres) }
     })
     const actifs = etablissements.filter((e) => e.statut !== 'archive')
     const pire = actifs.reduce((m, e) => (!m || e.sante.note < m.sante.note ? e : m), null)
@@ -78,6 +82,7 @@ export function construireVue(vue, activite = [], messages = [], maintenant = Da
       ...c,
       demo: estDemo(c),
       etablissements,
+      devise: actifs.find((e) => e.devise)?.devise || c.devise_facturation || null,
       sante,
       mensuel: actifs.reduce((s, e) => s + e.mensuel, 0),
       ventesJour: somme('montant_jour'),
@@ -121,6 +126,8 @@ export function indicateurs(clients) {
     bloques: clients.filter((c) => c.statut === 'suspendu').length,
     etablissements: etabs.length,
     mensuel: actifs.reduce((s, c) => s + c.mensuel, 0),
+    mensuelParDevise: sommesParDevise(etabs.map((e) => ({ montant: e.mensuel, devise: e.devise }))),
+    ventesJourParDevise: sommesParDevise(etabs.map((e) => ({ montant: e.activite?.montant_jour, devise: e.devise }))),
     enRetard: etabs.filter((e) => e.licence && (e.licence.jours_restants ?? 0) < 0).length,
     finSemaine: etabs.filter((e) => e.licence?.jours_restants != null && e.licence.jours_restants >= 0 && e.licence.jours_restants <= 7).length,
     ventesJour: actifs.reduce((s, c) => s + c.ventesJour, 0),
