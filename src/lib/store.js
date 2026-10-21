@@ -33,6 +33,9 @@ export function cleanAction(a) {
   return out
 }
 
+const avecIdProspect = (p) => ({ created_at: nowIso(), ...p, id: p.id || uid() })
+const avecIdAction = (a) => ({ created_at: a.created_at || nowIso(), ...cleanAction(a), id: a.id || uid() })
+
 export function mergeSettings(s) {
   const m = { ...DEFAULT_SETTINGS, ...(s || {}) }
   m.alertes = { ...DEFAULT_SETTINGS.alertes, ...(m.alertes || {}) }
@@ -164,8 +167,21 @@ const local = {
   },
   async bulkImport(prospects, actions) {
     const db = readLocal()
-    db.prospects.push(...prospects.map((p) => ({ created_at: nowIso(), ...p })))
-    db.actions.push(...actions.map((a) => ({ id: uid(), created_at: nowIso(), ...cleanAction(a) })))
+    const p = prospects.map(avecIdProspect)
+    const a = actions.map(avecIdAction)
+    db.prospects.push(...p)
+    db.actions.push(...a)
+    writeLocal(db)
+    return { prospects: p.map((x) => x.id), actions: a.map((x) => x.id) }
+  },
+  // Supprime des lignes précises (par identifiant) : jamais « tout l'espace » d'un coup
+  async supprimerLot({ prospects = [], actions = [] }) {
+    const db = readLocal()
+    const p = new Set(prospects)
+    const a = new Set(actions)
+    db.actions = db.actions.filter((x) => !a.has(x.id) && !p.has(x.prospect_id))
+    db.prospects = db.prospects.filter((x) => !p.has(x.id))
+    db.documents = db.documents.map((d) => (p.has(d.prospect_id) ? { ...d, prospect_id: null } : d))
     writeLocal(db)
   },
   // Annulation d'une suppression : remet les lignes avec leurs identifiants d'origine
@@ -177,12 +193,6 @@ const local = {
     db.actions = [...db.actions.filter((x) => !aIds.has(x.id)), ...actions]
     const dIds = new Set(documents.map((d) => d.id))
     db.documents = [...(db.documents || []).filter((x) => !dIds.has(x.id)), ...documents]
-    writeLocal(db)
-  },
-  async wipe() {
-    const db = readLocal()
-    db.prospects = []
-    db.actions = []
     writeLocal(db)
   },
 }
@@ -277,16 +287,33 @@ const remote = {
     if (!w) throw new Error('auth : espace de travail introuvable, reconnecte-toi')
     check(await supabase.rpc('enregistrer_reglages', { w, p_data: settings }))
   },
+  // Import : chaque ligne reçoit son identifiant ici. En cas d'échec, l'erreur porte la liste de ce qui a déjà été
+  // inséré (e.inseres), pour pouvoir le retirer et revenir à l'état d'avant.
   async bulkImport(prospects, actions) {
     await espaceActif()
-    for (let i = 0; i < prospects.length; i += 500) check(await supabase.from('prospects').insert(prospects.slice(i, i + 500).map(dansEspace)))
-    const rows = actions.map((a) => dansEspace(cleanAction(a)))
-    for (let i = 0; i < rows.length; i += 500) check(await supabase.from('actions').insert(rows.slice(i, i + 500)))
+    const p = prospects.map((x) => dansEspace(avecIdProspect(x)))
+    const a = actions.map((x) => dansEspace(avecIdAction(x)))
+    const inseres = { prospects: [], actions: [] }
+    try {
+      for (let i = 0; i < p.length; i += 500) {
+        const lot = p.slice(i, i + 500)
+        check(await supabase.from('prospects').insert(lot))
+        inseres.prospects.push(...lot.map((x) => x.id))
+      }
+      for (let i = 0; i < a.length; i += 500) {
+        const lot = a.slice(i, i + 500)
+        check(await supabase.from('actions').insert(lot))
+        inseres.actions.push(...lot.map((x) => x.id))
+      }
+    } catch (e) {
+      throw Object.assign(e, { inseres })
+    }
+    return inseres
   },
-  async wipe() {
+  async supprimerLot({ prospects = [], actions = [] }) {
     await espaceActif()
-    check(await filtreEspace(supabase.from('actions').delete().not('id', 'is', null)))
-    check(await filtreEspace(supabase.from('prospects').delete().not('id', 'is', null)))
+    for (let i = 0; i < actions.length; i += 200) check(await supabase.from('actions').delete().in('id', actions.slice(i, i + 200)))
+    for (let i = 0; i < prospects.length; i += 200) check(await supabase.from('prospects').delete().in('id', prospects.slice(i, i + 200)))
   },
 }
 
@@ -589,12 +616,12 @@ const offline = {
   async bulkImport(prospects, actions) {
     if (!navigator.onLine) throw new Error("L'import Excel demande une connexion internet.")
     await flush()
-    await remote.bulkImport(prospects, actions)
+    return remote.bulkImport(prospects, actions)
   },
-  async wipe() {
+  async supprimerLot(lot) {
     if (!navigator.onLine) throw new Error('Cette opération demande une connexion internet.')
     await flush()
-    await remote.wipe()
+    await remote.supprimerLot(lot)
   },
 }
 

@@ -27,8 +27,10 @@ export const peutGerer = (role) => role === undefined || peut(role, 'settings.ed
 
 // Message de refus (ou null) avant d'envoyer une opération : l'interface explique au lieu d'échouer en silence.
 // op : 'ecrire' | 'supprimer' (auteur = user_id de l'élément) | 'reglages' | 'remplacer' (tout effacer / réimporter)
+// | 'exporter' (fichier CSV ou Excel avec des données personnelles, SEC-12)
 export function refusDe(role, op, auteur, moi) {
   if (!ROLES[role] || role === 'proprietaire' || role === 'admin') return null
+  if (op === 'exporter') return 'Seuls le propriétaire et les administrateurs exportent les données de cet espace (données personnelles).'
   if (role === 'lecteur') return 'Lecture seule : ton rôle dans cet espace ne permet pas de modifier les données.'
   if (op === 'reglages') return 'Seuls le propriétaire et les administrateurs modifient les réglages de cet espace.'
   if (op === 'remplacer') return 'Seuls le propriétaire et les administrateurs peuvent tout remplacer dans cet espace.'

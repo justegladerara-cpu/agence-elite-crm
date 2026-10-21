@@ -6,6 +6,8 @@ import { ADRESSE_SAAS } from '../../noyau/routes.js';
 import { useDonnees, useEspace } from '../../noyau/espace.jsx';
 import { Bouton, Champ, Erreur, Section, Squelette } from '../../ui/composants.jsx';
 import { ApercuMarque, ChampsApparence } from '../../ui/Marque.jsx';
+import { confirmer } from '../../../ui.jsx';
+import { journalOperations, noterGeste } from '../../../modules/plateforme/index.js';
 
 const CHAMPS_MARQUE = ['nom_logiciel', 'nom_court', 'sous_titre', 'logo_url', 'favicon_url', 'couleur_accent'];
 const versValeurs = (source, champs) => Object.fromEntries(champs.map((c) => [c, source?.[c] ?? '']));
@@ -53,7 +55,23 @@ function FormulairePlateforme({ initial, modifiable, recharger }) {
       <Erreur message={erreur} />
       {modifiable ? (
         <div className="actions">
-          <Bouton type="button" onClick={() => { const vide = versValeurs({}, CHAMPS_MARQUE); setValeurs(vide); enregistrer(vide); }}>Revenir à l’identité d’origine</Bouton>
+          <Bouton
+            type="button"
+            disabled={chargement}
+            onClick={async () => {
+              // SEC-05 : effacer l'identité touche l'écran de connexion de tous les clients sans identité propre
+              const r = await confirmer('Le nom, le logo et la couleur de la plateforme sont effacés et remplacés par ceux d’origine, pour tous les clients sans identité propre.', {
+                titre: 'Revenir à l’identité d’origine ?', objet: valeurs.nom_logiciel || 'Identité actuelle', effet: 'Pour annuler, il faudra ressaisir l’identité (logo, couleur…).', ok: 'Revenir à l’origine', danger: true, motif: true,
+              });
+              if (!r) return;
+              const vide = versValeurs({}, CHAMPS_MARQUE);
+              setValeurs(vide);
+              await enregistrer(vide);
+              noterGeste(journalOperations(), { type: 'identite', motif: r.motif, detail: 'Identité de la plateforme' });
+            }}
+          >
+            Revenir à l’identité d’origine
+          </Bouton>
           <Bouton type="submit" variante="principal" chargement={chargement}>Enregistrer</Bouton>
         </div>
       ) : <p className="texte-doux">Seul le Super Admin modifie l’identité de la plateforme.</p>}

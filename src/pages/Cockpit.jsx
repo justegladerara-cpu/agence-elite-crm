@@ -4,8 +4,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Icon } from '../icons'
 import { ChiffreAnime } from '../animations'
-import { eur, pct, nb, court, go, sym } from '../ui'
+import { eur, pct, nb, court, go, sym, confirmer } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
+import { refusDe } from '../core/permissions'
+import { versCsv, telechargerCsv, AVERTISSEMENT_DONNEES } from '../lib/csv'
 import { Gauge, useWidth } from '../charts'
 import { computeStats } from '../modules/dashboard/stats'
 import { detail } from '../modules/dashboard/drill'
@@ -342,20 +344,11 @@ function Parcours({ pc, sel, onSel, onListe }) {
 
 // ---------- Tableau détaillé : recherche, tri, colonnes, pages, sélection, export ----------
 function exporterCsv(nom, cols, lignes) {
-  const esc = (v) => {
-    const s = String(v ?? '')
-    return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const csv = [cols.map((c) => esc(c.label)).join(';'), ...lignes.map((l) => cols.map((c) => esc(c.csv ? c.csv(l) : c.val(l))).join(';'))].join('\n')
-  const url = URL.createObjectURL(new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' }))
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${nom}.csv`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  telechargerCsv(nom, versCsv(cols.map((c) => c.label), lignes.map((l) => cols.map((c) => (c.csv ? c.csv(l) : c.val(l))))))
 }
 function TableDetail({ actions, prospects, ouvrirAction }) {
   const { data } = useDonnees()
+  const { role } = useNoyau()
   const [onglet, setOnglet] = useState('actions')
   const [q, setQ] = useState('')
   const [tri, setTri] = useState({ k: 'date', dir: -1 })
@@ -449,7 +442,16 @@ function TableDetail({ actions, prospects, ouvrirAction }) {
             ))}
           </div>
         </details>
-        <button type="button" className="btn sm" disabled={!aExporter.length} onClick={() => exporterCsv(`tableau-de-bord-${onglet}-${today()}`, cols, aExporter)}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={!aExporter.length}
+          hidden={!!refusDe(role, 'exporter')}
+          onClick={async () => {
+            if (!(await confirmer(AVERTISSEMENT_DONNEES, { titre: `Exporter ${aExporter.length} ligne${aExporter.length > 1 ? 's' : ''} ?`, ok: 'Exporter' }))) return
+            exporterCsv(`tableau-de-bord-${onglet}-${today()}`, cols, aExporter)
+          }}
+        >
           <Icon n="download" size={14} /> {choix.size ? `Exporter la sélection (${choix.size})` : 'Exporter en CSV'}
         </button>
       </div>

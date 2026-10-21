@@ -1,14 +1,16 @@
 // Plateforme : le CRM est le centre d'administration d'Agence Elite (ce que faisait le super admin du SaaS).
 // Tour de contrôle (tout voir), Clients de la plateforme, fiche client complète avec ses boutons, boîte à outils.
 // Les données des clients restent dans la base de la plateforme : le CRM les lit et agit par ses fonctions.
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { Modal, Field, Chips, Empty, confirmer, go } from '../ui'
+import { Modal, Field, Chips, Empty, confirmer, go, BoutonCopier } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { appeler, deconnecter, sessionValide } from '../modules/plateforme/connexion'
 import { ConnexionPlateforme } from '../modules/plateforme/ui'
 import { alertes, clientsReels, construireVue, ficheLiee, indicateurs, lireCommande, LIBELLES_CHRONO } from '../modules/plateforme/calculs'
 import { statutDe } from '../modules/facturation'
+import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
+import { A_REPRENDRE, ETATS, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
 const fcfa = (v) => `${Math.round(Number(v) || 0).toLocaleString('fr-FR')} FCFA`
@@ -22,11 +24,6 @@ const quand = (d) => {
   return `il y a ${Math.floor(min / 1440)} j`
 }
 const aujourdhui = () => new Date().toISOString().slice(0, 10)
-const plusJours = (base, n) => {
-  const d = new Date(`${base}T12:00:00`)
-  d.setDate(d.getDate() + n)
-  return d.toISOString().slice(0, 10)
-}
 const TON_BADGE = { vert: 'b-green', orange: 'b-orange', rouge: 'b-red', gris: 'b-navy' }
 const MODES = ['Espèces', 'Mobile Money', 'Virement', 'Carte', 'Chèque']
 
@@ -189,6 +186,7 @@ function TourDeControle({ p, encaisse, impayees, enRetard }) {
         </div>
       </div>
       <Commande clients={clients} />
+      <OperationsAReconcilier onFait={() => p.recharger()} />
       <div className="pf-chiffres">
         <Chiffre label="Encaissé ce mois" valeur={fcfa(encaisse)} sous="paiements notés dans le CRM" onClick={() => go('/paiements')} />
         <Chiffre label="Abonnements par mois" valeur={fcfa(k.mensuel)} sous="licences actives" ton="or" />
@@ -378,7 +376,7 @@ export function FichePlateforme({ id, faire }) {
 
 function Fiche360({ p, id, faire }) {
   const c = p.etat.clients.find((x) => x.id === id)
-  const { settings, api, toast } = useNoyau()
+  const { settings, toast } = useNoyau()
   const { prospects = [], actions = [] } = useDonnees()
   const [chrono, setChrono] = useState(null)
   const [comptes, setComptes] = useState(null)
@@ -463,6 +461,7 @@ function Fiche360({ p, id, faire }) {
           </button>
         </div>
       </section>
+      <OperationsAReconcilier clientId={c.id} onFait={(m) => apres(m, true)} />
 
       <div className="pf-grille deux">
         <div className="stack">
@@ -577,7 +576,7 @@ function Fiche360({ p, id, faire }) {
         </section>
       </div>
 
-      {modale === 'encaisser' && <Encaisser c={c} fiche={fiche} api={api} onFermer={fermer} onFait={apres} />}
+      {modale === 'encaisser' && <Encaisser c={c} fiche={fiche} onFermer={fermer} onFait={apres} />}
       {modale === 'prolonger' && <Prolonger c={c} onFermer={fermer} onFait={apres} />}
       {(modale === 'bloquer' || modale === 'debloquer') && <Bloquer c={c} bloquer={modale === 'bloquer'} onFermer={fermer} onFait={apres} />}
       {modale === 'message' && <MessageClient c={c} onFermer={fermer} onFait={apres} />}
@@ -647,8 +646,27 @@ function ChoixEtablissement({ c, value, onChange, filtre = () => true }) {
   )
 }
 
-// Encaisser : la licence est prolongée sur la plateforme ET le paiement est noté dans le CRM, en un seul clic
-function Encaisser({ c, fiche, api, onFermer, onFait }) {
+// Encaisser : la licence est prolongée sur la plateforme ET le paiement est noté dans le CRM.
+// Deux bases : l'opération est suivie pas à pas (modules/plateforme/operations.js), avec un récapitulatif avant
+// l'envoi. Une opération coupée en route est gardée dans « Opérations à réconcilier » et se reprend sans doublon.
+const nombre = (v) => Number(String(v).replace(/[\s  ]/g, '').replace(',', '.'))
+function useDepsOperations() {
+  const { api } = useNoyau()
+  const { actions = [] } = useDonnees()
+  const ref = useRef(actions)
+  useEffect(() => {
+    ref.current = actions
+  }, [actions])
+  return {
+    journal: journalOperations(),
+    appeler,
+    lireHistorique: (id) => appeler('editeur_etablissement', { p_etablissement_id: id }).then((d) => d?.historique_licences || []),
+    lireActions: () => ref.current,
+    ajouterPaiement: (a) => api.addActions([a]),
+  }
+}
+function Encaisser({ c, fiche, onFermer, onFait }) {
+  const deps = useDepsOperations()
   const avecLicence = c.etablissements.filter((e) => e.licence && e.statut !== 'archive')
   const [etabId, setEtabId] = useState(avecLicence[0]?.id || '')
   const e = avecLicence.find((x) => x.id === etabId)
@@ -656,7 +674,12 @@ function Encaisser({ c, fiche, api, onFermer, onFait }) {
   const [mode, setMode] = useState('Mobile Money')
   const [jour, setJour] = useState(aujourdhui())
   const [reference, setReference] = useState('')
-  const { erreur, occupe, envoyer } = useEnvoi(onFait)
+  const proposee = e ? echeanceProposee(e.licence) : null
+  const [echeance, setEcheance] = useState(proposee || '')
+  const [recap, setRecap] = useState(false)
+  const [erreur, setErreur] = useState('')
+  const [occupe, setOccupe] = useState(false)
+  const verrou = useRef(false)
   if (!e)
     return (
       <Modal title="Encaisser" onClose={onFermer}>
@@ -666,52 +689,124 @@ function Encaisser({ c, fiche, api, onFermer, onFait }) {
         </button>
       </Modal>
     )
-  const valider = (ev) => {
+  const n = nombre(montant)
+  const verifier = (ev) => {
     ev.preventDefault()
-    const n = Number(String(montant).replace(/\s/g, '').replace(',', '.'))
-    envoyer(async () => {
-      if (!(n > 0)) throw new Error('Montant à saisir.')
-      const echeance = await appeler('renouveler_licence', { p_licence_id: e.licence.id, p_nouvelle_echeance: null, p_montant: n, p_reference: reference || `CRM ${mode}`, p_note: 'Encaissé depuis le CRM' })
-      try {
-        await api.addActions([{ prospect_id: fiche?.id || null, date: jour, canal: 'Autre', action: 'Paiement reçu', montant: n, mode, reference: reference || `Licence ${e.nom}`, notes: `Licence prolongée jusqu’au ${date(echeance)} (plateforme)` }])
-      } catch {
-        throw new Error(`Licence prolongée jusqu’au ${date(echeance)}, mais le paiement n’a pas pu être noté dans le CRM : note-le dans Paiements reçus.`)
-      }
-    }, 'Paiement encaissé et licence prolongée')
+    setErreur('')
+    if (!(n > 0)) return setErreur('Montant à saisir.')
+    const m = erreurEcheance(e.licence, echeance)
+    if (m) return setErreur(m)
+    setRecap(true)
+  }
+  const confirmerEnvoi = async () => {
+    if (verrou.current) return
+    verrou.current = true
+    setOccupe(true)
+    setErreur('')
+    try {
+      const op = preparerEncaissement({ client: c, etablissement: e, licence: e.licence, montant: n, mode, jour, reference, ficheId: fiche?.id, nouvelleEcheance: echeance === proposee ? null : echeance })
+      const fin = await executer(op, deps)
+      await onFait(`Paiement encaissé, licence prolongée jusqu’au ${date(fin.echeanceApres)}`)
+    } catch (x) {
+      setErreur(x.message)
+      if (x.operation && A_REPRENDRE.includes(x.operation.etat)) await onFait('Opération gardée dans « Opérations à réconcilier »', true).catch(() => {})
+    } finally {
+      verrou.current = false
+      setOccupe(false)
+    }
   }
   return (
     <Modal title={`Encaisser · ${c.nom}`} onClose={onFermer}>
-      <form className="stack" onSubmit={valider}>
-        <p className="small muted">La licence est prolongée d’une période ({e.licence.formule}) sur la plateforme, et le paiement est noté dans le CRM{fiche ? ` sur la fiche ${fiche.name}` : ''}.</p>
-        <ChoixEtablissement c={c} value={etabId} onChange={setEtabId} filtre={(x) => Boolean(x.licence)} />
-        <Field label="Montant reçu (FCFA)">
-          <input inputMode="decimal" value={montant} onChange={(ev) => setMontant(ev.target.value)} required autoFocus />
-        </Field>
-        <Field label="Moyen de paiement">
-          <Chips options={MODES} value={mode} onChange={(v) => setMode(v || mode)} small allowEmpty={false} />
-        </Field>
-        <div className="grid grid-2">
-          <Field label="Date">
-            <input type="date" value={jour} onChange={(ev) => setJour(ev.target.value)} />
-          </Field>
-          <Field label="Référence (facultatif)">
-            <input value={reference} onChange={(ev) => setReference(ev.target.value)} placeholder="N° de transaction" />
-          </Field>
+      {recap ? (
+        <div className="stack">
+          <p className="small muted">Vérifie avant d’envoyer. La licence est prolongée sur la plateforme, puis le paiement est noté dans le CRM.</p>
+          <dl className="pf-recap">
+            <dt>Établissement</dt>
+            <dd>{e.nom}</dd>
+            <dt>Montant reçu</dt>
+            <dd>
+              <strong>{fcfa(n)}</strong> · {mode}
+              {reference ? ` · réf. ${reference}` : ''}
+            </dd>
+            <dt>Date du paiement</dt>
+            <dd>{date(jour)}</dd>
+            <dt>Échéance</dt>
+            <dd>
+              {date(e.licence.echeance)} → <strong>{date(echeance)}</strong>
+            </dd>
+            <dt>Fiche CRM</dt>
+            <dd>{fiche ? fiche.name : 'aucune fiche reliée (paiement noté sans fiche)'}</dd>
+          </dl>
+          {erreur && (
+            <p className="pf-erreur" role="alert">
+              {erreur}
+            </p>
+          )}
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn" disabled={occupe} onClick={() => setRecap(false)}>
+              Modifier
+            </button>
+            <button type="button" className="btn primary" disabled={occupe} aria-busy={occupe || undefined} onClick={confirmerEnvoi}>
+              {occupe ? 'Envoi…' : 'Confirmer l’encaissement'}
+            </button>
+          </div>
         </div>
-        <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok="Encaisser" />
-      </form>
+      ) : (
+        <form className="stack" onSubmit={verifier}>
+          <ChoixEtablissement
+            c={c}
+            value={etabId}
+            onChange={(id) => {
+              setEtabId(id)
+              const x = avecLicence.find((y) => y.id === id)
+              setEcheance(echeanceProposee(x?.licence) || '')
+            }}
+            filtre={(x) => Boolean(x.licence)}
+          />
+          <Field label="Montant reçu (FCFA)">
+            <input inputMode="decimal" value={montant} onChange={(ev) => setMontant(ev.target.value)} required autoFocus />
+          </Field>
+          <Field label="Moyen de paiement">
+            <Chips options={MODES} value={mode} onChange={(v) => setMode(v || mode)} small allowEmpty={false} />
+          </Field>
+          <div className="grid grid-2">
+            <Field label="Date du paiement">
+              <input type="date" value={jour} onChange={(ev) => setJour(ev.target.value)} required />
+            </Field>
+            <Field label="Référence (facultatif)">
+              <input value={reference} onChange={(ev) => setReference(ev.target.value)} placeholder="N° de transaction" />
+            </Field>
+          </div>
+          <Field label="Nouvelle échéance" hint={`Actuelle : ${date(e.licence.echeance)}. Une période (${e.licence.formule}) est proposée.`}>
+            <input type="date" value={echeance} min={echeanceMinimum(e.licence)} onChange={(ev) => setEcheance(ev.target.value)} required />
+          </Field>
+          {erreur && (
+            <p className="pf-erreur" role="alert">
+              {erreur}
+            </p>
+          )}
+          <div className="row" style={{ justifyContent: 'flex-end', marginTop: 14 }}>
+            <button type="button" className="btn" onClick={onFermer}>
+              Annuler
+            </button>
+            <button className="btn primary">Vérifier</button>
+          </div>
+        </form>
+      )}
     </Modal>
   )
 }
 
-// Prolonger sans paiement : geste commercial ou délai accordé
+// Prolonger sans paiement : geste commercial ou délai accordé, avec un motif obligatoire.
+// La nouvelle échéance est toujours après l'actuelle (SEC-09).
 function Prolonger({ c, onFermer, onFait }) {
   const avecLicence = c.etablissements.filter((e) => e.licence && e.statut !== 'archive')
   const [etabId, setEtabId] = useState(avecLicence[0]?.id || '')
   const e = avecLicence.find((x) => x.id === etabId)
-  const base = e?.licence?.echeance && e.licence.echeance > aujourdhui() ? e.licence.echeance : aujourdhui()
+  const base = e ? baseRenouvellement(e.licence) : aujourdhui()
   const [jours, setJours] = useState('3 jours')
-  const [fin, setFin] = useState(plusJours(base, 3))
+  const [fin, setFin] = useState(plusJoursIso(base, 3))
+  const [motif, setMotif] = useState('')
   const { erreur, occupe, envoyer } = useEnvoi(onFait)
   const DUREES = { '3 jours': 3, '7 jours': 7, '1 mois': 30 }
   if (!e)
@@ -720,43 +815,138 @@ function Prolonger({ c, onFermer, onFait }) {
         <p>Ce client n’a pas de licence à prolonger.</p>
       </Modal>
     )
+  const probleme = erreurEcheance(e.licence, fin)
   return (
-    <Modal title={`Prolonger · ${c.nom}`} onClose={onFermer}>
+    <Modal title={`Prolonger sans paiement · ${c.nom}`} onClose={onFermer}>
       <form
         className="stack"
         onSubmit={(ev) => {
           ev.preventDefault()
-          envoyer(() => appeler('renouveler_licence', { p_licence_id: e.licence.id, p_nouvelle_echeance: fin, p_montant: 0, p_reference: 'Prolongation CRM', p_note: 'Délai accordé depuis le CRM' }), `Licence prolongée jusqu’au ${date(fin)}`)
+          if (probleme || motif.trim().length < 3) return
+          envoyer(async () => {
+            await appeler('renouveler_licence', { p_licence_id: e.licence.id, p_nouvelle_echeance: fin, p_montant: 0, p_reference: 'Prolongation CRM', p_note: `Sans paiement : ${motif.trim()}` })
+            noterGeste(journalOperations(), { type: 'prolonger', client: c, etablissement: e, motif: motif.trim(), detail: `${e.licence.echeance || '—'} → ${fin}` })
+          }, `Licence prolongée jusqu’au ${date(fin)}`)
         }}
       >
-        <ChoixEtablissement c={c} value={etabId} onChange={setEtabId} filtre={(x) => Boolean(x.licence)} />
-        <p className="small muted">Échéance actuelle : {date(e.licence.echeance)}. Aucun paiement n’est noté.</p>
+        <ChoixEtablissement
+          c={c}
+          value={etabId}
+          onChange={(id) => {
+            setEtabId(id)
+            const x = avecLicence.find((y) => y.id === id)
+            setFin(plusJoursIso(baseRenouvellement(x?.licence), DUREES[jours]))
+          }}
+          filtre={(x) => Boolean(x.licence)}
+        />
+        <p className="small muted">Aucun paiement n’est noté. Pour un paiement reçu, utilise « Encaisser ».</p>
         <Chips
           options={Object.keys(DUREES)}
           value={jours}
           allowEmpty={false}
           onChange={(v) => {
             setJours(v)
-            setFin(plusJours(base, DUREES[v]))
+            setFin(plusJoursIso(base, DUREES[v]))
           }}
         />
-        <Field label="Nouvelle échéance">
-          <input type="date" value={fin} min={aujourdhui()} onChange={(ev) => setFin(ev.target.value)} required />
+        <Field label="Nouvelle échéance" hint={`Actuelle : ${date(e.licence.echeance)}`}>
+          <input type="date" value={fin} min={echeanceMinimum(e.licence)} onChange={(ev) => setFin(ev.target.value)} required aria-invalid={probleme ? true : undefined} />
         </Field>
+        <Field label="Motif (obligatoire)">
+          <input value={motif} onChange={(ev) => setMotif(ev.target.value)} required minLength={3} placeholder="Ex. geste commercial, panne côté client" />
+        </Field>
+        <p className="small">
+          Récapitulatif : échéance {date(e.licence.echeance)} → <strong>{date(fin)}</strong>, sans paiement.
+        </p>
+        {probleme && (
+          <p className="pf-erreur" role="alert">
+            {probleme}
+          </p>
+        )}
         <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok="Prolonger" />
       </form>
     </Modal>
   )
 }
 
+// Opérations à réconcilier : encaissements coupés en route. « Reprendre » finit seulement ce qui manque.
+export function OperationsAReconcilier({ clientId, onFait }) {
+  const deps = useDepsOperations()
+  const [liste, setListe] = useState(() => deps.journal.aReprendre())
+  const [occupe, setOccupe] = useState('')
+  const [erreur, setErreur] = useState('')
+  useEffect(() => deps.journal.abonner(() => setListe(deps.journal.aReprendre())), [deps.journal])
+  const ops = liste.filter((o) => o.type === 'encaisser' && (!clientId || o.client?.id === clientId))
+  if (!ops.length) return null
+  const reprendre = async (op) => {
+    if (occupe) return
+    setOccupe(op.id)
+    setErreur('')
+    try {
+      await executer(op, deps)
+      await onFait?.('Opération terminée')
+    } catch (x) {
+      setErreur(x.message)
+    } finally {
+      setOccupe('')
+    }
+  }
+  const regler = async (op) => {
+    const r = await confirmer('L’opération sort de la liste sans rien envoyer. Fais-le seulement si tu as réglé la situation à la main (paiement noté, licence vérifiée).', { titre: 'Marquer comme réglée ?', objet: `${op.client.nom} · ${fcfa(op.montant)}`, ok: 'Marquer comme réglée', motif: true })
+    if (r) marquerReglee(deps.journal, op, r.motif)
+  }
+  return (
+    <section className="card pf-reconcilier" aria-labelledby="titre-reconcilier">
+      <h2 id="titre-reconcilier" className="section">
+        <Icon n="alert" size={16} /> Opérations à réconcilier <span className="count">{ops.length}</span>
+      </h2>
+      <p className="small muted">Un encaissement a été coupé en route. « Reprendre » vérifie ce qui est déjà fait et ne fait jamais rien deux fois.</p>
+      <ul className="pf-liste">
+        {ops.map((o) => (
+          <li key={o.id} className="pf-fil">
+            <span className="pf-alerte-txt">
+              <strong>
+                {o.client.nom} · {o.etablissement.nom} · {fcfa(o.montant)}
+              </strong>
+              <span className="bloc small muted">
+                {ETATS[o.etat]} · {quand(o.cree_le)} · {o.id}
+              </span>
+              {o.erreur && <span className="bloc small" style={{ color: "var(--red)" }}>{o.erreur}</span>}
+            </span>
+            <span className="row">
+              <button className="btn sm primary" disabled={!!occupe} aria-busy={occupe === o.id || undefined} onClick={() => reprendre(o)}>
+                {occupe === o.id ? 'Reprise…' : 'Reprendre'}
+              </button>
+              <button className="btn sm" disabled={!!occupe} onClick={() => regler(o)}>
+                Marquer comme réglée
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {erreur && (
+        <p className="pf-erreur" role="alert">
+          {erreur}
+        </p>
+      )}
+    </section>
+  )
+}
+
 function Bloquer({ c, bloquer, onFermer, onFait }) {
   const { erreur, occupe, envoyer } = useEnvoi(onFait)
+  const [motif, setMotif] = useState('')
   return (
     <Modal title={`${bloquer ? 'Bloquer' : 'Débloquer'} · ${c.nom}`} onClose={onFermer}>
       <form
+        className="stack"
         onSubmit={(ev) => {
           ev.preventDefault()
-          envoyer(() => appeler('definir_statut_client', { p_client_id: c.id, p_statut: bloquer ? 'suspendu' : 'actif' }), bloquer ? `${c.nom} bloqué` : `${c.nom} débloqué`)
+          if (motif.trim().length < 3) return
+          envoyer(async () => {
+            await appeler('definir_statut_client', { p_client_id: c.id, p_statut: bloquer ? 'suspendu' : 'actif' })
+            noterGeste(journalOperations(), { type: bloquer ? 'bloquer_client' : 'debloquer_client', client: c, motif: motif.trim() })
+          }, bloquer ? `${c.nom} bloqué` : `${c.nom} débloqué`)
         }}
       >
         <p>
@@ -764,6 +954,10 @@ function Bloquer({ c, bloquer, onFermer, onFait }) {
             ? `Toutes les équipes de ${c.nom} passent en consultation seule : plus de ventes ni de modifications. Leurs données restent intactes.`
             : `Les équipes de ${c.nom} retrouvent l’usage normal du logiciel.`}
         </p>
+        <p className="small muted">{bloquer ? 'Tu pourras débloquer à tout moment.' : 'Tu pourras bloquer de nouveau à tout moment.'}</p>
+        <Field label="Motif (obligatoire)">
+          <input value={motif} onChange={(ev) => setMotif(ev.target.value)} required minLength={3} placeholder={bloquer ? 'Ex. impayé depuis 15 jours' : 'Ex. paiement reçu'} />
+        </Field>
         <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok={bloquer ? 'Bloquer' : 'Débloquer'} danger={bloquer} />
       </form>
     </Modal>
@@ -906,8 +1100,19 @@ function Plus({ c, onChoisir, onFermer, onFait }) {
                 disabled={occupe}
                 onClick={async () => {
                   const bloquer = e.statut !== 'suspendu'
-                  if (!(await confirmer(bloquer ? `Bloquer seulement ${e.nom} ? Ses équipes passent en consultation seule.` : `Débloquer ${e.nom} ?`, { ok: bloquer ? 'Bloquer' : 'Débloquer', danger: bloquer }))) return
-                  const ok = await envoyer(() => appeler('definir_statut_etablissement', { p_etablissement_id: e.id, p_statut: bloquer ? 'suspendu' : 'actif' }), bloquer ? `${e.nom} bloqué` : `${e.nom} débloqué`)
+                  const r = await confirmer(bloquer ? 'Ses équipes passent en consultation seule : plus de ventes ni de modifications. Leurs données restent intactes.' : 'Ses équipes retrouvent l’usage normal du logiciel.', {
+                    titre: bloquer ? 'Bloquer cet établissement ?' : 'Débloquer cet établissement ?',
+                    objet: `${e.nom} (${c.nom})`,
+                    effet: 'Tu pourras revenir en arrière à tout moment.',
+                    ok: bloquer ? 'Bloquer' : 'Débloquer',
+                    danger: bloquer,
+                    motif: true,
+                  })
+                  if (!r) return
+                  const ok = await envoyer(async () => {
+                    await appeler('definir_statut_etablissement', { p_etablissement_id: e.id, p_statut: bloquer ? 'suspendu' : 'actif' })
+                    noterGeste(journalOperations(), { type: bloquer ? 'bloquer_etablissement' : 'debloquer_etablissement', client: c, etablissement: e, motif: r.motif })
+                  }, bloquer ? `${e.nom} bloqué` : `${e.nom} débloqué`)
                   if (ok) onFermer()
                 }}
               >
@@ -937,20 +1142,33 @@ function Modules({ e, onFermer, onFait }) {
   useEffect(() => {
     charger()
   }, [charger])
+  const [occupe, setOccupe] = useState('')
   const basculer = async (m, actif) => {
+    if (occupe) return
     setErreur('')
+    const r = await confirmer(
+      actif
+        ? `Le module ${m.nom} devient utilisable par les équipes de ${e.nom}.${m.couvert ? '' : ' Il n’est pas compris dans la licence : pense à le facturer.'}`
+        : `Les équipes de ${e.nom} n’auront plus accès à ${m.nom}. Leurs données sont gardées et reviennent si le module est réactivé.`,
+      { titre: actif ? `Activer ${m.nom} ?` : `Retirer ${m.nom} ?`, objet: e.nom, effet: 'Tu pourras revenir en arrière à tout moment.', ok: actif ? 'Activer' : 'Retirer', danger: !actif, motif: actif ? 'facultatif' : true }
+    )
+    if (!r) return
+    setOccupe(m.id)
     try {
       await appeler('definir_module_etablissement', { p_etablissement_id: e.id, p_module_id: m.id, p_actif: actif })
+      noterGeste(journalOperations(), { type: actif ? 'module_active' : 'module_retire', etablissement: e, motif: r.motif, detail: m.nom })
       await charger()
       await onFait(`${m.nom} ${actif ? 'activé' : 'retiré'}`)
     } catch (x) {
       setErreur(x.message)
+    } finally {
+      setOccupe('')
     }
   }
   const modules = (detail?.modules || []).filter((m) => m.nature !== 'socle')
   return (
     <Modal title={`Modules · ${e.nom}`} onClose={onFermer}>
-      {erreur && <p className="pf-erreur">{erreur}</p>}
+      {erreur && <p className="pf-erreur" role="alert">{erreur}</p>}
       {!detail ? (
         <p className="small muted">Chargement…</p>
       ) : (
@@ -962,7 +1180,7 @@ function Modules({ e, onFermer, onFait }) {
                 <span className="bloc small muted">{m.couvert ? 'compris dans la licence' : 'hors licence'}</span>
               </span>
               <label className="pf-interrupteur">
-                <input type="checkbox" checked={m.actif} onChange={(x) => basculer(m, x.target.checked)} aria-label={`${m.nom} ${m.actif ? 'activé' : 'désactivé'}`} />
+                <input type="checkbox" checked={m.actif} disabled={!!occupe} onChange={(x) => basculer(m, x.target.checked)} aria-label={`${m.nom} ${m.actif ? 'activé' : 'désactivé'}`} />
                 <span />
               </label>
             </li>
@@ -983,7 +1201,10 @@ function StatutLicence({ e, onFermer, onFait }) {
         className="stack"
         onSubmit={async (ev) => {
           ev.preventDefault()
-          const ok = await envoyer(() => appeler('definir_statut_licence', { p_licence_id: e.licence.id, p_statut: suspendre ? 'suspendue' : 'active', p_motif: motif }), suspendre ? 'Licence suspendue' : 'Licence réactivée')
+          const ok = await envoyer(async () => {
+            await appeler('definir_statut_licence', { p_licence_id: e.licence.id, p_statut: suspendre ? 'suspendue' : 'active', p_motif: motif })
+            noterGeste(journalOperations(), { type: suspendre ? 'suspendre_licence' : 'reactiver_licence', etablissement: e, motif })
+          }, suspendre ? 'Licence suspendue' : 'Licence réactivée')
           if (ok) onFermer()
         }}
       >
@@ -1013,19 +1234,26 @@ function MotDePasse({ u, onFermer, onFait }) {
         <div className="stack">
           <p>Mot de passe temporaire, valable 7 jours. Donne-le à la personne : elle en choisira un nouveau à la connexion.</p>
           <p className="pf-mdp">{mdp}</p>
-          <button className="btn primary" onClick={onFermer}>
-            Terminé
-          </button>
+          <div className="row">
+            <BoutonCopier texte={mdp} />
+            <button className="btn primary" onClick={onFermer}>
+              Terminé
+            </button>
+          </div>
         </div>
       ) : (
         <form
           onSubmit={async (ev) => {
             ev.preventDefault()
-            const ok = await envoyer(() => appeler('reinitialiser_mot_de_passe_temporaire', { p_user_id: u.id, p_mot_de_passe_temporaire: mdp, p_expire_jours: 7 }), 'Mot de passe réinitialisé')
+            const ok = await envoyer(async () => {
+              await appeler('reinitialiser_mot_de_passe_temporaire', { p_user_id: u.id, p_mot_de_passe_temporaire: mdp, p_expire_jours: 7 })
+              noterGeste(journalOperations(), { type: 'mot_de_passe', detail: u.identifiant || u.email || u.id })
+            }, 'Mot de passe réinitialisé')
             if (ok) setFait(true)
           }}
         >
           <p>Un mot de passe temporaire va remplacer l’actuel. La personne devra en choisir un nouveau.</p>
+          <p className="small muted">L’ancien mot de passe cessera de fonctionner tout de suite.</p>
           <Pied occupe={occupe} erreur={erreur} onFermer={onFermer} ok="Réinitialiser" />
         </form>
       )}

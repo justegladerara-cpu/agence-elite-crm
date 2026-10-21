@@ -51,3 +51,44 @@ La production (`claude/project-thread-j6wx9s`) n'est jamais touchée sans accord
 
 ### Prochaine étape
 Lot 1 : sécurité SEC-01 à SEC-15, composant unique de zone danger.
+
+---
+
+## Lot 1 — Sécurité (2026-10-21)
+
+### Fait
+- SEC-01 à SEC-15 corrigés côté CRM, un test de non-régression par point : `tests/securite.test.js` (21 tests) et
+  `e2e/securite.spec.js` (8 parcours × 2 formats, plateforme fictive). Détail : `07_SECURITY_REGISTER.md`.
+- Composant unique de zone danger (`confirmer` / `DangerAction`, `src/ui.jsx`) ; pile unique des fenêtres
+  (`src/lib/couches.js`) : Échap ne ferme que la fenêtre du dessus, dans le CRM et les écrans éditeur.
+- Encaissement suivi pas à pas (`modules/plateforme/operations.js`), écran « Opérations à réconcilier » sur la Tour de
+  contrôle et la fiche client, journal des gestes avec motif.
+- Import « Remplacer » sans état vide, restauration d'une sauvegarde, exports CSV neutralisés et réservés
+  propriétaire/admin, avertissement données personnelles.
+- `no-undef` en erreur. Bouton éditeur : `disabled` passé par l'appelant n'annule plus le blocage pendant l'envoi.
+- Vérification SQL des deux dépôts (`scripts/audit-sql/fonctions-ecriture.py`) : aucune fonction d'écriture exposée sans
+  contrôle ; `*_pages_auth` contrôlées via `cible_pages_auth`.
+- Résultats : oxlint 0 erreur, vitest 152/152, build OK (index 416 ko < 700 ko), Playwright 49 réussis + 1 sauté
+  (raccourcis clavier sur téléphone, déjà le cas sur `ef4ac25`).
+- Un e2e a attrapé une erreur introduite pendant le lot (variable lue avant sa déclaration dans `Factures.jsx`),
+  corrigée avant le commit.
+
+### Décisions (option la plus sûre)
+- **D1-1** Idempotence de l'encaissement sans nouvelle fonction SQL : la référence `OP-…` est cherchée dans
+  `editeur_etablissement.historique_licences` avant de renouveler. Limite connue : deux onglets au même instant.
+  Clé unique côté base à proposer en PR plateforme non appliquée (lot 5).
+- **D1-2** Le motif des gestes sans paramètre motif côté base (statut client/établissement, modules) est gardé dans le
+  journal des gestes du CRM (sur l'appareil). Pas de SQL plateforme au lot 1.
+- **D1-3** Écran éditeur « Renouveler » : le montant est retiré plutôt que doublé d'une écriture CRM, pour qu'il n'existe
+  qu'un chemin d'encaissement (la fiche client).
+- **D1-4** SEC-14 : SQL proposé, non appliqué. Conséquence à valider : les comptes Elite Emploi devront confirmer leur
+  e-mail.
+- **D1-5** L'audit du 2026-10-19 (seul audit présent) utilise une autre numérotation : correspondances notées dans le
+  registre, sans renuméroter.
+
+### Bloqué / en attente d'accord écrit
+- Index unique des numéros de documents (`20260930180000_pareto_v1_documents_uniques.sql`) : migration CRM de production.
+- SEC-14 (`docs/superadmin-v2/migrations-proposees/SEC-14_inscriptions_emploi.sql`) : migration CRM de production.
+
+### Prochaine étape
+Lot 2 : navigation en 6 espaces (une seule liste pour menu, Ctrl K et titres mobiles), redirections des anciennes routes.

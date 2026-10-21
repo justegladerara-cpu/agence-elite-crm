@@ -4,7 +4,7 @@
 // elle-même que la personne connectée est super admin. La session est gardée sur cet appareil seulement,
 // sous une clé à part (elle ne se mélange pas avec la connexion du CRM).
 import { createClient } from '@supabase/supabase-js'
-import { PLATEFORME_BRANCHEE, PLATEFORME_CLE, PLATEFORME_URL } from '../../lib/porte'
+import { PLATEFORME_BRANCHEE, PLATEFORME_CLE, PLATEFORME_URL, fermerPorte } from '../../lib/porte'
 
 export const CLE_SESSION = 'aecrm-plateforme'
 let client = null
@@ -72,10 +72,18 @@ export async function sessionValide() {
   }
 }
 
+// Ferme la session plateforme ET la porte du CRM : plus rien ne reste ouvert sur cet appareil (SEC-06)
 export async function deconnecter() {
+  fermerPorte()
   try {
     await clientPlateforme().auth.signOut()
   } catch {
-    /* déjà déconnecté */
+    /* déjà déconnecté ou plateforme non branchée */
   }
+}
+
+// « Se déconnecter » du CRM : session plateforme, porte, puis session du CRM
+export async function quitter(deconnecterCrm) {
+  await deconnecter()
+  if (deconnecterCrm) await deconnecterCrm()
 }

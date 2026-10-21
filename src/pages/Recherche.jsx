@@ -1,7 +1,7 @@
 // Recherche globale (Ctrl/⌘ + K ou « / ») : potentiels, clients, perdus, factures et devis, pages et actions rapides
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { go, eur, StageBadge } from '../ui'
+import { go, eur, StageBadge, useCouche } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 import { Icon } from '../icons'
 import { totals, statutDe, STATUT_TONE } from '../modules/facturation'
@@ -23,10 +23,8 @@ export default function Recherche({ onClose, pages = [] }) {
   const input = useRef(null)
   useEffect(() => {
     input.current?.focus()
-    const k = (e) => e.key === 'Escape' && onClose()
-    window.addEventListener('keydown', k)
-    return () => window.removeEventListener('keydown', k)
-  }, [onClose])
+  }, [])
+  useCouche(true, onClose)
 
   const res = useMemo(() => {
     const s = norm(q.trim()).replace(/^@/, '')

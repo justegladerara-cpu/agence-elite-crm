@@ -4,7 +4,8 @@ import { Field, Kpi, Empty, Modal, go, eur, nb, deviseCode, Tabs, useTab, LienPr
 import { useDonnees, useNoyau } from '../core/contexte'
 import { ProspectPicker } from '../core/ui/ProspectPicker'
 import { PaiementForm } from './Finances'
-import { num, TYPES, nextNumero, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../modules/facturation/invoice'
+import { num, TYPES, nextNumero, numerosDejaPris, totals, statutDe, paiementsDe, nouveauDoc, montantEnLettres, STATUT_TONE } from '../modules/facturation/invoice'
+import { corbeille } from '../lib/corbeille'
 import { fmtDate, addDays, today, nowTime } from '../lib/dates'
 import { remplirDoc, ouvrirWhatsApp, telClient } from '../modules/facturation/whatsapp'
 
@@ -65,7 +66,7 @@ export default function Factures({ type = 'facture', filtre: filtreDemande }) {
           </div>
         </div>
         <div className="row">
-          <button className="btn gold" onClick={() => go(`/facture/new?type=${type}`)}>
+          <button className="ecriture btn gold" onClick={() => go(`/facture/new?type=${type}`)}>
             + {type === 'devis' ? 'Nouveau devis' : 'Nouvelle facture'}
           </button>
         </div>
@@ -173,7 +174,7 @@ export function DocEditor({ id, query }) {
       : p
         ? { client: { nom: p.name, adresse: p.fiche?.adresse_facturation || [p.fiche?.contact, p.fiche?.ville].filter(Boolean).join('\n') } }
         : {}
-    return { type, numero: nextNumero(documents, type, fact), prospect_id: pid, data: nouveauDoc(type, fact, extra) }
+    return { type, numero: nextNumero(documents, type, fact, undefined, numerosDejaPris(actions, corbeille.liste())), prospect_id: pid, data: nouveauDoc(type, fact, extra) }
   }
   const [doc, setDoc] = useState(init)
   const [newName, setNewName] = useState(null)
@@ -199,6 +200,8 @@ export function DocEditor({ id, query }) {
   const paye = saved ? paiementsDe(existing, actions).reduce((m, a) => m + num(a.montant), 0) : 0
   const p = doc.prospect_id ? data.byId[doc.prospect_id] : null
   const isFact = doc.type === 'facture'
+  // Numéro figé dès qu'un paiement cite la facture (SEC-08)
+  const numeroVerrouille = saved && isFact && paiementsDe(existing, actions).length > 0
 
   const setD = (patch) => {
     setDoc((x) => ({ ...x, data: { ...x.data, ...patch } }))
@@ -355,9 +358,25 @@ export function DocEditor({ id, query }) {
     setDoc((x) => ({ ...x, data: nd }))
     toast('Facture annulée')
   }
+  // Supprimer : une seule fenêtre, et « Annuler » (ou Échap) ne supprime jamais rien (SEC-01).
+  // Une facture qui a reçu des paiements ne se supprime pas : on l'annule, son numéro et ses paiements restent (SEC-08).
   const supprimer = async () => {
+    const lies = isFact ? paiementsDe(existing, actions) : []
+    if (lies.length) {
+      await confirmer(`${lies.length} paiement${lies.length > 1 ? 's sont liés' : ' est lié'} à cette facture (${eur(paye)}). Elle ne peut pas être supprimée : annule-la, son numéro reste réservé et les paiements gardent leur trace.`, { titre: `Supprimer ${doc.numero} ?`, ok: 'Compris', non: 'Fermer' })
+      return
+    }
     const linked = existing.data.actionId && actions.find((a) => a.id === existing.data.actionId)
-    if (linked && (await confirmer('Supprimer aussi la ligne correspondante dans le suivi client ?', { titre: `Supprimer ${doc.numero}`, ok: 'Oui, aussi', non: 'Non, garder la ligne' }))) await api.deleteAction(linked.id, { silencieux: true })
+    const r = await confirmer('Le document part dans la corbeille de cet appareil pendant 30 jours.', {
+      titre: `Supprimer ${TYPES[doc.type].label.toLowerCase()} ${doc.numero} ?`,
+      objet: `${TYPES[doc.type].label} ${doc.numero} · ${d.client?.nom || 'sans client'} · ${eur(t.total)}`,
+      effet: 'annulable',
+      ok: 'Supprimer',
+      danger: true,
+      cases: linked ? [{ id: 'ligne', label: 'Supprimer aussi la ligne correspondante du suivi client', defaut: false }] : [],
+    })
+    if (!r) return
+    if (linked && r.cases?.ligne) await api.deleteAction(linked.id, { silencieux: true })
     await api.deleteDoc(existing.id)
     await libererDevis()
     go(doc.type === 'devis' ? '/devis' : '/factures')
@@ -450,7 +469,7 @@ export function DocEditor({ id, query }) {
               Annuler la facture
             </button>
           )}
-          <button className="btn ghost sm danger" onClick={supprimer}>
+          <button className="ecriture btn ghost sm danger" onClick={supprimer}>
             <Icon n="trash" size={14} /> Supprimer
           </button>
         </div>
@@ -499,11 +518,18 @@ export function DocEditor({ id, query }) {
             <Field label="Numéro">
               <input
                 value={doc.numero}
+                readOnly={numeroVerrouille}
+                aria-describedby={numeroVerrouille ? 'numero-verrou' : undefined}
                 onChange={(e) => {
                   setDoc((x) => ({ ...x, numero: e.target.value }))
                   setDirty(true)
                 }}
               />
+              {numeroVerrouille && (
+                <span id="numero-verrou" className="small muted">
+                  Numéro figé : des paiements citent cette facture.
+                </span>
+              )}
             </Field>
             <Field label="Date">
               <input
