@@ -333,6 +333,96 @@ export function Controle() {
   )
 }
 
+// Résumé du logiciel pour le tableau de bord principal : licences payées sur l'objectif, ventes cumulées des
+// clients (30 j), client le plus et le moins actif, alertes. Démos et archives jamais comptées.
+export function ResumeLogiciel({ objectif = 10 }) {
+  const p = usePlateforme()
+  const pf = etatPlateforme(p)
+  if (pf.etat !== 'donnees' && pf.etat !== 'vide')
+    return (
+      <div className="pl-vide">
+        <p className="small muted">{pf.raison || 'Chargement des clients du logiciel…'}</p>
+        {pf.etat === 'refuse' && (
+          <button type="button" className="btn sm" onClick={() => go('/controle')}>
+            Se connecter à la plateforme
+          </button>
+        )}
+      </div>
+    )
+  const clients = clientsReels(p.etat.clients)
+  const actifs = clientsActifs(clients)
+  const payants = actifs.filter((c) => c.etablissements.some((e) => e.statut === 'actif' && e.licence?.valide && ['mensuel', 'annuel'].includes(e.licence.formule)))
+  const essais = actifs.filter((c) => !payants.includes(c) && c.etablissements.some((e) => e.licence?.valide && e.licence.formule === 'essai'))
+  const lic = licencesARenouveler(clients)
+  const ventes = afficherSommes(sommesVentes(actifs))
+  const classes = [...actifs].sort((a, b) => b.ventes30j - a.ventes30j)
+  const liste = alertes(clients).slice(0, 4)
+  return (
+    <div className="pl-logiciel">
+      <div className="pl-objectif">
+        <Anneau valeur={payants.length} max={objectif} />
+        <div>
+          <div className="pl-gros">
+            {payants.length} <small>/ {objectif} licences payées</small>
+          </div>
+          <div className="small muted">
+            {essais.length} essai(s) en cours · {lic.bientot.length} licence(s) à renouveler sous 7 j{lic.echues.length ? ` · ${lic.echues.length} échue(s)` : ''}
+          </div>
+        </div>
+      </div>
+      <div className="pl-ligne">
+        <span className="muted small">Ventes de tous les clients (30 j)</span>
+        <strong>{ventes}</strong>
+      </div>
+      {classes.length > 0 && (
+        <div className="pl-classement">
+          {classes.slice(0, 5).map((c, i) => (
+            <button key={c.id} type="button" className="pl-client" onClick={() => go(`/plateforme-client/${c.id}`)}>
+              <span className="pl-rang">{i + 1}</span>
+              <span className="pl-nom">{c.nom}</span>
+              <span className={`pf-point ${c.sante.ton}`} title={c.sante.raisons.map((r) => r.texte).join(' · ') || 'Tout va bien'} />
+              <span className="pl-val">{argent(c.ventes30j, c.devise)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {liste.length > 0 && (
+        <ul className="pl-alertes">
+          {liste.map((a, i) => (
+            <li key={i} className={a.ton}>
+              <span className="pf-point" />
+              <button type="button" className="lien" onClick={() => go(`/plateforme-client/${a.clientId}${a.action === 'encaisser' ? '?faire=encaisser' : ''}`)}>
+                <strong>{a.client}</strong> · {a.titre}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+const sommesVentes = (clients) => {
+  const m = {}
+  for (const c of clients) m[c.devise || ''] = (m[c.devise || ''] || 0) + Number(c.ventes30j || 0)
+  return Object.entries(m).filter(([, v]) => v).map(([devise, total]) => ({ devise, total }))
+}
+
+export function Anneau({ valeur, max, taille = 64 }) {
+  const r = taille / 2 - 6
+  const c = 2 * Math.PI * r
+  const part = max > 0 ? Math.min(1, valeur / max) : 0
+  return (
+    <svg className="anneau" width={taille} height={taille} viewBox={`0 0 ${taille} ${taille}`} role="img" aria-label={`${valeur} sur ${max}`}>
+      <circle cx={taille / 2} cy={taille / 2} r={r} className="anneau-fond" />
+      <circle cx={taille / 2} cy={taille / 2} r={r} className="anneau-val" strokeDasharray={`${c * part} ${c}`} transform={`rotate(-90 ${taille / 2} ${taille / 2})`} />
+      <text x="50%" y="54%" textAnchor="middle" dominantBaseline="middle">
+        {Math.round(part * 100)}%
+      </text>
+    </svg>
+  )
+}
+
 function BoutonsRapides() {
   return (
     <div className="pf-rapides">

@@ -13,10 +13,11 @@ import { siteLink, instaLink, doublonInsta } from '../lib/logic'
 import { categorie } from '../modules/commercial'
 import { statutDe, totals, STATUT_TONE } from '../modules/facturation'
 import Chronologie from '../core/ui/Chronologie'
+import { BilanClient } from './Activites'
 
 export default function Fiche({ id }) {
   const { data, documents } = useDonnees()
-  const { api, openAction, toast, saisirArgent } = useNoyau()
+  const { api, openAction, toast, saisirArgent, ouvrir } = useNoyau()
   const p = data.byId[id]
   const [editing, setEditing] = useState(false)
   const [fiche, setFiche] = useState(null)
@@ -219,6 +220,7 @@ export default function Fiche({ id }) {
       {tab === 'apercu' && (
         <div className="rec-grid">
           <div className="stack">
+            <BilanClient pid={p.id} />
             {!client && <ProchaineEtape p={p} />}
             {client && (
               <div className="card">
@@ -237,7 +239,10 @@ export default function Fiche({ id }) {
                   ]}
                 />
                 <div className="row" style={{ gap: 6, marginTop: 12 }}>
-                  <button className="btn sm gold" onClick={() => openAction({ prospect_id: p.id, action: 'Intervention', canal: 'Appel' })}>
+                  <button className="btn sm gold" onClick={() => ouvrir('vente', { prospect_id: p.id })}>
+                    + Vente
+                  </button>
+                  <button className="btn sm" onClick={() => openAction({ prospect_id: p.id, action: 'Intervention', canal: 'Appel' })}>
                     + Intervention
                   </button>
                   <button className="btn sm" onClick={() => openAction({ prospect_id: p.id, action: 'Paiement reçu' })}>

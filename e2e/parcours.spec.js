@@ -74,7 +74,11 @@ test('raccourcis clavier et tableau de bord sur 7 jours', async ({ page, isMobil
   await page.keyboard.press('Escape')
   await page.keyboard.press('g')
   await page.keyboard.press('d')
-  await expect(page).toHaveURL(/#\/dashboard/)
+  await expect(page).toHaveURL(/#\/pilotage/)
+  await page.keyboard.press('v')
+  await expect(page.getByRole('dialog', { name: 'Nouvelle vente' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.goto('/#/dashboard')
   await expect(page.locator('#dash-periode')).toHaveValue('7 derniers jours')
 })
 
@@ -169,7 +173,7 @@ test('toutes les routes s’ouvrent sans erreur ni requête vers une base de pro
   await avecExemples(page)
   const routes = [
     'dashboard', 'dashboard/acquisition', 'dashboard/conversion', 'dashboard/finances', 'journee', 'calendrier',
-    'acquisition', 'clients', 'session', 'scripts', 'saisie', 'apps',
+    'pilotage', 'activites', 'ventes-clients', 'relances', 'acquisition', 'clients', 'scripts', 'saisie', 'apps',
     'devis', 'factures', 'facture/new?type=facture', 'paiements', 'charges', 'depenses', 'abonnements',
     'site', 'site-demandes', 'site-pages', 'site-photos', 'boutique', 'documents', 'controle', 'plateforme', 'plateforme-outils',
     ...['identite', 'facturation', 'objectifs', 'listes', 'scripts', 'rappels', 'excel', 'modules', 'membres', 'securite', 'compte'].map((s) => `parametres/${s}`),

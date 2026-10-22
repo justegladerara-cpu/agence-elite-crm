@@ -21,7 +21,12 @@ const ARGENT = { 'Paiement reçu': 'paiement', Dépense: 'depense' }
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AdminSaaS = lazy(() => import('./pages/AdminSaaS'))
 const Parametres = lazy(() => import('./pages/Parametres'))
-const Session = lazy(() => import('./pages/Session'))
+const Pilotage = lazy(() => import('./pages/Pilotage'))
+const Activites = lazy(() => import('./pages/Activites'))
+const ClientsVentes = lazy(() => import('./pages/Activites').then((m) => ({ default: m.ClientsVentes })))
+const Relances = lazy(() => import('./pages/Activites').then((m) => ({ default: m.Relances })))
+const VenteRapide = lazy(() => import('./pages/VenteRapide'))
+const NoterDM = lazy(() => import('./pages/NoterDM'))
 import { statutDe, pastillesFacturation } from './modules/facturation'
 const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
@@ -216,6 +221,8 @@ function Crm() {
   const [recherche, setRecherche] = useState(false)
   const [aide, setAide] = useState(false)
   const [appel, setAppel] = useState(null)
+  // Saisies rapides ouvertes de partout : « vente » (Nouvelle vente) ou « dm » (Noter mes DM)
+  const [rapide, setRapide] = useState(null)
   // Retour dans l'application après un appel lancé depuis le CRM : feuille « Comment s'est passé l'appel ? »
   useEffect(() => {
     let parti = false
@@ -267,7 +274,7 @@ function Crm() {
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action, ? pour l'aide, G puis une lettre pour naviguer
   useEffect(() => {
     let g = 0
-    const ALLER = { j: 'journee', p: 'acquisition', c: 'clients', f: 'factures', d: 'dashboard', a: 'espace', s: 'session', t: 'controle' }
+    const ALLER = { j: 'journee', p: 'acquisition', c: 'ventes-clients', f: 'factures', d: 'pilotage', a: 'espace', v: 'activites', t: 'controle', r: 'relances' }
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -293,15 +300,18 @@ function Crm() {
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault()
         setActionModal({})
+      } else if (touche === 'v') {
+        e.preventDefault()
+        setRapide({ quoi: 'vente' })
+      } else if (touche === 'd') {
+        e.preventDefault()
+        setRapide({ quoi: 'dm' })
       }
     }
     window.addEventListener('keydown', k)
     return () => window.removeEventListener('keydown', k)
   }, [])
   const [toast, toastNode] = useToast()
-  // Rubriques dépliées à la main dans la barre de gauche (celle de la page affichée l'est toujours)
-  // { id: true | false } : choix fait à la main ; sans choix, seule la rubrique de la page affichée est ouverte
-  const [ouverts, setOuverts] = useState({})
   const [sync, setSync] = useState(syncStatus.get())
   // Tableau de bord en direct : heure du dernier chargement et abonnement aux changements Supabase
   const [majLe, setMajLe] = useState(null)
@@ -574,6 +584,12 @@ function Crm() {
       if (refus) return toast(refus, true)
       setArgent(modal)
     },
+    // Nouvelle vente ou Noter mes DM, depuis n'importe quel écran
+    ouvrir: (quoi, prefill) => {
+      const refus = refusDe(roleActif(), 'ecrire')
+      if (refus) return toast(refus, true)
+      setRapide({ quoi, prefill })
+    },
     live: { direct, majLe, sync, reload },
     role: roleActif(),
   }
@@ -597,7 +613,6 @@ function Crm() {
   const etatPastilles = { data, documents: state.documents || [], actions: state.actions }
   const badges = Object.assign({}, ...Object.entries(PASTILLES).filter(([m]) => estActif(m, state.settings)).map(([, f]) => f(etatPastilles)))
   // Espace ouvert (un des 6) : son menu et sa couleur. Modules désactivés : leurs pages sortent de la navigation.
-  const basculerRubrique = (id, ouvert) => setOuverts((m) => ({ ...m, [id]: !ouvert }))
   const accessible = accessibleAvec(state.settings)
   const espaces = espacesActifs(accessible)
   const espaceBrut = page === 'espace' ? (arg ? { id: arg } : null) : espaceDe(cle)
@@ -619,7 +634,6 @@ function Crm() {
   else if (page === 'journee') content = <Journee key={route} onglet={q.get('onglet')} />
   else if (page === 'clients' || page === 'acquisition') content = <Hub key={route} espace={current === 'acquisition' ? 'acquisition' : 'clients'} onglet={q.get('onglet')} etape={q.get('etape')} vue={q.get('vue')} filtre={q.get('filtre')} nouveau={q.get('nouveau')} compte={q.get('compte')} />
   else if (page === 'parametres') content = <Parametres section={arg} />
-  else if (page === 'session') content = <Session />
   else if (page === 'scripts') content = <Scripts />
   else if (page === 'documents') content = <Documents />
   else if (page === 'calendrier') content = <Calendrier />
@@ -635,6 +649,10 @@ function Crm() {
   else if (page === 'site-photos') content = <SitePhotos />
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'controle') content = <Controle />
+  else if (page === 'pilotage') content = <Pilotage />
+  else if (page === 'activites') content = <Activites key={route} id={arg} />
+  else if (page === 'ventes-clients') content = <ClientsVentes />
+  else if (page === 'relances') content = <Relances />
   else if (page === 'operations') content = <Operations />
   else if (page === 'plateforme-echeances') content = <EcheancesPlateforme key={route} onglet={q.get('onglet')} />
   else if (page === 'plateforme') content = <ClientsPlateforme key={route} filtre={q.get('filtre')} />
@@ -667,33 +685,33 @@ function Crm() {
           <button className="nav-search" onClick={() => setRecherche(true)} aria-keyshortcuts="Control+K Meta+K /">
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
-          <button className="nav-new" onClick={() => setActionModal({})} aria-keyshortcuts="N">
-            <Icon n="plus" size={17} /> Nouvelle action <kbd>N</kbd>
-          </button>
-          <nav className="nav-scroll nav-arbre" aria-label="Menu principal">
-            {/* Comme Zoho Books : chaque rubrique et ses pages, jamais les filtres (ils restent dans la page) */}
+          <div className="nav-rapides">
+            <button className="nav-new" onClick={() => noyau.ouvrir('vente')} aria-keyshortcuts="V">
+              <Icon n="plus" size={17} /> Nouvelle vente <kbd>V</kbd>
+            </button>
+            <div className="nav-rapides-2">
+              <button className="nav-mini" onClick={() => noyau.ouvrir('dm')} aria-keyshortcuts="D" title="Noter mes DM (D)">
+                <Icon n="message" size={15} /> DM
+              </button>
+              <button className="nav-mini" onClick={() => setActionModal({})} aria-keyshortcuts="N" title="Nouvelle action (N)">
+                <Icon n="phone" size={15} /> Action
+              </button>
+              <button className="nav-mini" onClick={() => go('/calendrier')} title="Calendrier">
+                <Icon n="calendar" size={15} /> Agenda
+              </button>
+            </div>
+          </div>
+          <nav className="nav-scroll nav-centres" aria-label="Menu principal">
+            {/* Un centre par ligne, rien à dérouler : un clic ouvre le centre, ses pages sont des onglets en haut */}
             {espaces.map((a) => {
               const actif = appli?.id === a.id
-              const ouvert = ouverts[a.id] ?? actif
+              const badge = a.entrees.map((e) => e.route).find((x) => badges[x]?.[0])
               return (
-                <div key={a.id} className={`nav-rubrique ${ouvert ? 'open' : ''}`}>
-                  <button className={`nav-item nav-parent ${actif ? 'dans' : ''}`} aria-expanded={ouvert} onClick={() => basculerRubrique(a.id, ouvert)}>
-                    <span className="ico"><Icon n={a.ico} size={17} /></span>
-                    {a.nom}
-                    {!ouvert && pastille(a.entrees.map((e) => e.route).find((x) => badges[x]?.[0]))}
-                    <span className="nav-chev" aria-hidden="true"><Icon n="chevron" size={12} /></span>
-                  </button>
-                  {ouvert && (
-                    <div className="nav-enfants">
-                      {a.entrees.map((e) => (
-                        <button key={e.route} className={`nav-item nav-enfant ${cle === e.route || entreeDe(cle)?.route === e.route ? 'active' : ''}`} aria-current={cle === e.route || entreeDe(cle)?.route === e.route ? 'page' : undefined} onClick={() => go(`/${e.route}`)}>
-                          {e.label}
-                          {pastille(e.route)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button key={a.id} className={`nav-item nav-centre ${actif ? 'active' : ''}`} style={{ '--c': a.couleur }} aria-current={actif ? 'page' : undefined} title={a.desc} onClick={() => go(`/${a.entrees[0].route}`)}>
+                  <span className="ico"><Icon n={a.ico} size={17} /></span>
+                  <span className="nav-centre-nom">{a.nom}</span>
+                  {badge && pastille(badge)}
+                </button>
               )
             })}
           </nav>
@@ -726,7 +744,7 @@ function Crm() {
               {!sync.online && <span className="muted"> · tes saisies partiront dès le retour d'internet</span>}
             </div>
           )}
-          {isLocal && (route === '' || route.startsWith('controle') || route.startsWith('dashboard')) && (
+          {isLocal && (route === '' || route.startsWith('pilotage') || route.startsWith('controle') || route.startsWith('dashboard')) && (
             <div className="banner">Mode démo : les données restent dans ce navigateur. La version en ligne se branche sur Supabase.</div>
           )}
           {appli && page !== 'espace' && appli.entrees.length > 1 && (
@@ -748,7 +766,7 @@ function Crm() {
             const actif = n.route === 'espace' ? page === 'espace' || (appli && !BAS.some((b) => b.espace === appli.id)) : appli?.id === n.espace && page !== 'espace'
             const cible = n.espace ? espaces.find((e) => e.id === n.espace).entrees[0].route : n.route
             return (
-              <button key={n.short} className={`${n.cta ? 'cta' : ''} ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => (n.cta ? noyau.openAction() : go(`/${n.espace && accessible(n.route) ? n.route : cible}`))}>
+              <button key={n.short} className={`${n.cta ? 'cta' : ''} ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => (n.cta ? noyau.ouvrir('vente') : go(`/${n.espace && accessible(n.route) ? n.route : cible}`))}>
                 <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
                 {n.short}
               </button>
@@ -771,6 +789,11 @@ function Crm() {
             <ActionForm prefill={actionModal} onDone={() => setActionModal(null)} />
           </Modal>
         )
+      )}
+      {rapide && (
+        <Suspense fallback={null}>
+          {rapide.quoi === 'vente' ? <VenteRapide prefill={rapide.prefill} onClose={() => setRapide(null)} /> : <NoterDM onClose={() => setRapide(null)} />}
+        </Suspense>
       )}
       {appel && !actionModal && (
         <Modal title="Comment s'est passé l'appel ?" onClose={() => setAppel(null)}>
