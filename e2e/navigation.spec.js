@@ -1,26 +1,29 @@
-// Navigation en 6 espaces (lot 2) : une seule liste pour le menu, la recherche, la barre du bas et les titres
+// Navigation CRM 3.0 en 8 centres : une seule liste pour le menu, les onglets, la recherche, la barre du bas et les titres
 import { test, expect } from '@playwright/test'
 import { avecExemples, avecPlateforme } from './aides'
 
-const ESPACES = ['Vue d’ensemble', 'Clients logiciel', 'Commercial', 'Finances', 'Analyses', 'Administration']
+const ESPACES = ['Tableau de bord', 'Ventes et activités', 'Prospection', 'Logiciel de caisse', 'Elite Partners', 'Finances', 'Site et marque', 'Administration']
 
-test('le menu de gauche montre les 6 espaces ; la page ouverte est allumée dans son espace', async ({ page }) => {
+test('le menu de gauche montre les 8 centres ; la page ouverte allume son centre et son onglet', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 860 })
   await avecExemples(page)
   await page.goto('/#/factures?filtre=impayees')
   const menu = page.getByRole('navigation', { name: 'Menu principal' })
   for (const nom of ESPACES) await expect(menu.getByRole('button', { name: new RegExp(`^${nom}`) })).toBeVisible()
-  await expect(menu.getByRole('button', { name: /^Finances/ })).toHaveAttribute('aria-expanded', 'true')
-  await expect(menu.locator('[aria-current="page"]')).toHaveText(/Factures/)
+  await expect(menu.locator('[aria-current="page"]')).toHaveText(/Finances/)
+  await expect(page.getByRole('navigation', { name: 'Menu Finances' }).locator('[aria-current="page"]')).toHaveText(/Factures/)
+  await menu.getByRole('button', { name: /^Tableau de bord/ }).click()
+  await expect(page).toHaveURL(/#\/pilotage$/)
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
 })
 
 test('téléphone : la barre du bas mène aux espaces, et « Espaces » les montre tous', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await avecExemples(page)
   const bas = page.getByRole('navigation', { name: 'Navigation principale' })
-  await bas.getByRole('button', { name: 'Finances' }).click()
-  await expect(page).toHaveURL(/#\/factures$/)
-  await expect(page.locator('.mobile-top .brand-sub')).toHaveText('Finances · Factures')
+  await bas.getByRole('button', { name: 'Ventes' }).click()
+  await expect(page).toHaveURL(/#\/activites$/)
+  await expect(page.locator('.mobile-top .brand-sub')).toHaveText('Ventes et activités · Activités')
   await bas.getByRole('button', { name: 'Espaces' }).click()
   const lanceur = page.locator('.lanceur')
   for (const nom of ESPACES) await expect(lanceur.getByRole('button', { name: new RegExp(nom) })).toBeVisible()
@@ -32,8 +35,9 @@ test('téléphone : la barre du bas mène aux espaces, et « Espaces » les mont
 test('anciennes adresses : boîte à outils et applications mènent aux espaces', async ({ page }) => {
   await avecExemples(page)
   await page.goto('/#/plateforme-outils')
-  await expect(page).toHaveURL(/#\/espace\/administration$/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Administration' })).toBeVisible()
+  await expect(page).toHaveURL(/#\/espace\/logiciel$/)
+  await page.goto('/#/session')
+  await expect(page).toHaveURL(/#\/journee$/)
   await page.goto('/#/apps')
   await expect(page).toHaveURL(/#\/espace$/)
   await page.goto('/#/parametres')
@@ -41,7 +45,7 @@ test('anciennes adresses : boîte à outils et applications mènent aux espaces'
   await expect(page.getByRole('heading', { level: 1, name: 'Identité' })).toBeVisible()
 })
 
-test('recherche Ctrl K : la Tour de contrôle et les pages autrefois orphelines sont proposées', async ({ page }) => {
+test('recherche Ctrl K : le suivi du logiciel, les saisies rapides et les pages hors menu sont proposés', async ({ page }) => {
   await avecExemples(page)
   const ouvrir = async (texte) => {
     await page.keyboard.press('Control+k')
@@ -49,11 +53,11 @@ test('recherche Ctrl K : la Tour de contrôle et les pages autrefois orphelines 
     await champ.fill(texte)
     return champ
   }
-  await ouvrir('tour de')
-  await expect(page.getByRole('option', { name: /Tour de contrôle/ }).first()).toBeVisible()
+  await ouvrir('suivi du log')
+  await expect(page.getByRole('option', { name: /Suivi du logiciel/ }).first()).toBeVisible()
   await page.keyboard.press('Escape')
-  await ouvrir('session')
-  await expect(page.getByRole('option', { name: /Session d’appels/ }).first()).toBeVisible()
+  await ouvrir('noter mes')
+  await expect(page.getByRole('option', { name: /Noter mes DM/ }).first()).toBeVisible()
   await page.keyboard.press('Escape')
   await ouvrir('nouvelle action (page')
   await page.keyboard.press('Enter')
@@ -67,8 +71,7 @@ test('écrans éditeur : rangés dans les espaces, plus de barre d’onglets à 
   await page.goto('/#/editeur/comptes')
   await expect(page.getByRole('heading', { name: 'Comptes' }).first()).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Administration de la plateforme' })).toHaveCount(0)
-  const menu = page.getByRole('navigation', { name: 'Menu principal' })
-  await expect(menu.getByRole('button', { name: 'Comptes et accès' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('navigation', { name: 'Menu principal' }).locator('[aria-current="page"]')).toHaveText(/Logiciel de caisse/)
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.getByRole('navigation', { name: 'Menu Clients logiciel' }).getByRole('button', { name: 'Comptes et accès' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('navigation', { name: 'Menu Logiciel de caisse' }).getByRole('button', { name: 'Comptes et accès' })).toHaveAttribute('aria-current', 'page')
 })

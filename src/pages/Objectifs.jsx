@@ -1,7 +1,7 @@
 // Ma journée « Rule of 100 » : objectifs du jour, compteurs rapides, score, to-do et historique
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../icons'
-import { Bar, Modal, Field, go, nb } from '../ui'
+import { Bar, Modal, Field, nb } from '../ui'
 import { useDonnees, useNoyau } from '../core/contexte'
 import { today, fmtDate } from '../lib/dates'
 import { QuickInsta } from './Insta'
@@ -72,7 +72,7 @@ function ScoreRing({ score }) {
 // ---------- Bloc principal (dans le bandeau) ----------
 export function ObjectifsJour({ jour, update }) {
   const { data, documents } = useDonnees()
-  const { settings } = useNoyau()
+  const { settings, ouvrir } = useNoyau()
   const t = today()
   const [edit, setEdit] = useState(false)
   const [insta, setInsta] = useState(false)
@@ -145,8 +145,8 @@ export function ObjectifsJour({ jour, update }) {
         <button className="btn ghost-light" onClick={() => setInsta(true)}>
           <Icon n="instagram" size={14} /> + Prospect Instagram
         </button>
-        <button className="btn ghost-light" onClick={() => go('/session')}>
-          <Icon n="play" size={14} /> Session d'appels
+        <button className="btn ghost-light" onClick={() => ouvrir('dm')}>
+          <Icon n="message" size={14} /> Noter mes DM
         </button>
       </div>
       {insta && <QuickInsta onClose={() => setInsta(false)} />}

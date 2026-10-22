@@ -26,9 +26,10 @@ const graphe = Object.fromEntries(
   }),
 )
 
-// Module de chaque page (les pages du noyau sont communes)
+// Module de chaque page (les pages du noyau sont communes ; le tableau de bord, les ventes par activité et les
+// saisies rapides sont le socle commun à toutes les activités)
 const PAGES = {
-  commercial: ['Journee', 'Objectifs', 'Bilan', 'Hub', 'Prospects', 'Clients', 'Fiche', 'FicheForm', 'Insta', 'Session', 'Scripts', 'Saisie', 'Rapide'],
+  commercial: ['Journee', 'Objectifs', 'Bilan', 'Hub', 'Prospects', 'Clients', 'Fiche', 'FicheForm', 'Insta', 'Scripts', 'Saisie', 'Rapide'],
   facturation: ['Factures', 'Finances'],
   charges: ['Charges'],
   dashboard: ['Dashboard', 'Cockpit', 'DashPlus', 'Drill', 'Tresorerie'],
@@ -36,7 +37,7 @@ const PAGES = {
   site: ['SiteWeb'],
   store: ['Boutique'],
   plateforme: ['Plateforme', 'AdminSaaS'],
-  coeur: ['Documents', 'Parametres', 'Modules', 'Membres', 'Securite', 'Applications', 'Recherche', 'Raccourcis', 'Login'],
+  coeur: ['Documents', 'Parametres', 'Modules', 'Membres', 'Securite', 'Applications', 'Recherche', 'Raccourcis', 'Login', 'Pilotage', 'Activites', 'VenteRapide', 'NoterDM'],
 }
 const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.map((p) => [`pages/${p}.jsx`, m])))
 

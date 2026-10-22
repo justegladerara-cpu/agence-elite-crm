@@ -1,4 +1,4 @@
-// Navigation SUPERADMIN 2.0 : une seule liste (6 espaces), aucune page orpheline, anciennes adresses redirigées
+// Navigation CRM 3.0 : 8 centres, aucune page orpheline, anciennes adresses redirigées
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { ESPACES_NAV, PAGES_SANS_MENU, LIBELLES, REDIRECTIONS, cleDePage, entreeDe, espaceDe, espacesActifs, pagesRecherche, redirection, BAS } from '../src/navigation'
@@ -10,9 +10,9 @@ const routes = new Set([...ESPACES_NAV.flatMap((e) => e.entrees.flatMap((x) => [
 // Pages de détail ouvertes depuis une liste (jamais orphelines : on y arrive par une ligne de la liste)
 const DETAIL = ['prospect', 'facture', 'plateforme-client', 'espace', 'prospects']
 
-describe('navigation en 6 espaces', () => {
-  it('six espaces, dans l’ordre de la mission', () => {
-    expect(ESPACES_NAV.map((e) => e.nom)).toEqual(['Vue d’ensemble', 'Clients logiciel', 'Commercial', 'Finances', 'Analyses', 'Administration'])
+describe('navigation en 8 centres', () => {
+  it('huit centres, le tableau de bord en premier', () => {
+    expect(ESPACES_NAV.map((e) => e.id)).toEqual(['pilotage', 'ventes', 'prospection', 'logiciel', 'partners', 'finances', 'site', 'administration'])
   })
   it('chaque page routée par App a une place (menu, recherche ou détail)', () => {
     const pages = [...app.matchAll(/page === '([a-z-]+)'\) content/g)].map((m) => m[1])
@@ -20,27 +20,30 @@ describe('navigation en 6 espaces', () => {
     const orphelines = pages.filter((p) => !routes.has(p) && !DETAIL.includes(p) && ![...routes].some((r) => r.startsWith(`${p}/`)))
     expect(orphelines).toEqual([])
   })
-  it('session, scripts et saisie ne sont plus orphelines ; la Tour de contrôle est dans la recherche', () => {
+  it('scripts, saisie, tableau de bord et relances sont dans la recherche ; plus de session d’appels', () => {
     const r = pagesRecherche().map((x) => x.path)
-    for (const p of ['session', 'scripts', 'saisie', 'controle']) expect(r).toContain(p)
+    for (const p of ['scripts', 'saisie', 'controle', 'pilotage', 'relances', 'activites']) expect(r).toContain(p)
+    expect(r).not.toContain('session')
   })
   it('chaque écran éditeur est dans un espace (plus de barre d’onglets à part)', () => {
     for (const m of MENU_EDITEUR) if (m.id !== 'editeur/clients') expect(routes.has(m.id), m.id).toBe(true)
     expect(entreeDe('editeur/clients').route).toBe('plateforme')
     expect(app).not.toMatch(/saas-onglets/)
   })
-  it('chaque section de Paramètres est dans Administration', () => {
+  it('chaque section de Paramètres a sa place : la prospection garde ses réglages, le reste en Administration', () => {
     const sections = [...parametres.matchAll(/^\s+\['([a-z]+)', '[^']+', ["'`]/gm)].map((m) => m[1])
     expect(sections.length).toBe(11)
-    for (const s of sections) expect(espaceDe(`parametres/${s}`)?.id, s).toBe('administration')
+    const prospection = ['objectifs', 'listes', 'scripts', 'rappels']
+    for (const s of sections) expect(espaceDe(`parametres/${s}`)?.id, s).toBe(prospection.includes(s) ? 'prospection' : 'administration')
   })
   it('un seul libellé par page, jamais deux fois le même dans le menu', () => {
     const libelles = ESPACES_NAV.flatMap((e) => e.entrees.map((x) => x.label))
     expect(new Set(libelles).size).toBe(libelles.length)
-    expect(LIBELLES.controle).toBe('Tour de contrôle')
+    expect(LIBELLES.pilotage).toBe('Vue globale')
   })
   it('anciennes adresses : boîte à outils, applications, éditeur sans page', () => {
-    expect(redirection('plateforme-outils')).toBe('espace/administration')
+    expect(redirection('plateforme-outils')).toBe('espace/logiciel')
+    expect(redirection('session')).toBe('journee')
     expect(redirection('apps')).toBe('espace')
     expect(redirection('editeur')).toBe('editeur/tableau')
     expect(redirection('parametres?x=1')).toBe('parametres/identite?x=1')
@@ -48,7 +51,7 @@ describe('navigation en 6 espaces', () => {
     // Lot 5 : la page client de l'éditeur mène à la fiche client unique ; la liste des clients reste
     expect(redirection('editeur/clients/abc')).toBe('plateforme-client/abc?onglet=avance')
     expect(redirection('editeur/clients')).toBe(null)
-    expect(redirection('')).toBe('controle')
+    expect(redirection('')).toBe('pilotage')
     for (const cible of Object.values(REDIRECTIONS)) expect(redirection(cible)).toBe(null)
   })
   it('clé et espace de la page affichée', () => {
@@ -57,11 +60,14 @@ describe('navigation en 6 espaces', () => {
     expect(cleDePage('editeur', 'etablissements/abc')).toBe('editeur/etablissements')
     expect(espaceDe('editeur/etablissements').id).toBe('logiciel')
     expect(espaceDe('facture').id).toBe('finances')
-    expect(espaceDe('controle').id).toBe('ensemble')
+    expect(espaceDe('controle').id).toBe('logiciel')
+    expect(espaceDe('pilotage').id).toBe('pilotage')
+    expect(espaceDe('editeur/partenaires').id).toBe('partners')
+    expect(espaceDe('site-demandes').id).toBe('site')
   })
   it('un module désactivé retire ses entrées ; la barre du bas pointe vers des espaces existants', () => {
     const sansFactu = espacesActifs((route) => !['factures', 'devis', 'paiements'].includes(route))
-    expect(sansFactu.find((e) => e.id === 'finances').entrees.map((x) => x.route)).toEqual(['charges', 'depenses', 'abonnements'])
+    expect(sansFactu.find((e) => e.id === 'finances').entrees.map((x) => x.route)).toEqual(['dashboard/finances', 'charges', 'depenses', 'abonnements', 'operations'])
     for (const b of BAS.filter((x) => x.espace)) expect(ESPACES_NAV.some((e) => e.id === b.espace)).toBe(true)
   })
 })

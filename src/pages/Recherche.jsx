@@ -17,7 +17,7 @@ const norm = (v) =>
 
 export default function Recherche({ onClose, pages = [] }) {
   const { data, documents, actions } = useDonnees()
-  const { openAction } = useNoyau()
+  const { openAction, ouvrir: ouvrirSaisie } = useNoyau()
   const [q, setQ] = useState('')
   const [sel, setSel] = useState(0)
   const input = useRef(null)
@@ -33,7 +33,9 @@ export default function Recherche({ onClose, pages = [] }) {
       { key: 'a-action', groupe: 'Actions rapides', titre: 'Nouvelle action', sous: 'Appel, DM, relance, RDV, signature… (touche N)', ico: 'plus', run: () => openAction() },
       { key: 'a-client', groupe: 'Actions rapides', titre: 'Nouveau client', sous: 'Ajouter un client existant', ico: 'user-plus', path: '/clients?onglet=nouveaux&nouveau=client' },
       { key: 'a-insta', groupe: 'Actions rapides', titre: 'Prospect Instagram', sous: 'Ajout express depuis un @', ico: 'instagram', path: '/acquisition?onglet=potentiels&nouveau=insta' },
-      { key: 'a-session', groupe: 'Actions rapides', titre: "Lancer une session d'appels", sous: 'Enchaîner les appels du jour', ico: 'phone', path: '/session' },
+      { key: 'a-vente', groupe: 'Actions rapides', titre: 'Nouvelle vente', sous: 'Client, ce que tu as fait, montant, payé ? (touche V)', ico: 'coins', run: () => ouvrirSaisie('vente') },
+      { key: 'a-dm', groupe: 'Actions rapides', titre: 'Noter mes DM', sous: 'Plusieurs comptes d’un coup (touche D)', ico: 'message', run: () => ouvrirSaisie('dm') },
+      { key: 'a-relance', groupe: 'Actions rapides', titre: 'Mode relance', sous: 'Anciens clients à recontacter, messages prêts', ico: 'repeat', path: '/relances' },
     ]
     const pagesRes = pages.flatMap((n) => [
       { key: `p-${n.path}`, groupe: 'Pages', titre: n.label, sous: n.espace || '', ico: n.ico, path: `/${n.path}` },
@@ -79,7 +81,7 @@ export default function Recherche({ onClose, pages = [] }) {
     const parGroupe = (g) => fiches.filter((r) => r.groupe === g)
     const texte = (r) => norm(`${r.titre} ${r.sous}`).includes(s)
     return [...parGroupe('Potentiels'), ...parGroupe('Clients'), ...parGroupe('Perdus'), ...docs, ...rapides.filter(texte), ...pagesRes.filter(texte).slice(0, 6)]
-  }, [q, data, documents, actions, pages, openAction])
+  }, [q, data, documents, actions, pages, openAction, ouvrirSaisie])
 
   // Le résultat choisi au clavier reste visible dans la liste
   useEffect(() => {

@@ -77,7 +77,7 @@ function ProspectRow({ p, children, overdue, relance }) {
 
 export default function Journee({ onglet: ongletDemande }) {
   const { data, prospects, documents, actions } = useDonnees()
-  const { settings, api, toast } = useNoyau()
+  const { settings, api, toast, ouvrir } = useNoyau()
   const impayees = useMemo(() => facturesImpayees(documents, actions), [documents, actions])
   const t = today()
   const { jour, update } = useJournee(t)
@@ -183,8 +183,8 @@ export default function Journee({ onglet: ongletDemande }) {
               {data.aRelancer.length === 0 && prospects.length > 0 && (
                 <div className="journee-vide">
                   <strong>Journée à jour.</strong> C'est le moment de prospecter : 10 nouveaux contacts rapprochent de ton objectif.
-                  <button className="btn sm primary" onClick={() => go('/session')}>
-                    Lancer une session d'appels
+                  <button className="btn sm primary" onClick={() => ouvrir('dm')}>
+                    Noter mes DM
                   </button>
                 </div>
               )}
