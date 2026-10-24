@@ -14,6 +14,7 @@ import { pageAccessible } from '../core/modules'
 import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
 import { A_REPRENDRE, ETATS, GESTES, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
+import { codesDuClient, dureeTexte, lienFacture, lienWhatsApp, messageCode, modeleParDefaut, modelesPour } from '../modules/plateforme/codes'
 import { ETATS_DEMANDE, ETATS_ECHEANCE, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
@@ -537,7 +538,7 @@ export const ONGLETS_FICHE = [
   ['assistance', 'Assistance'],
   ['avance', 'Réglages avancés'],
 ]
-const FAIRE = ['encaisser', 'prolonger', 'renouveler', 'bloquer', 'debloquer', 'message', 'assister']
+const FAIRE = ['code', 'encaisser', 'prolonger', 'renouveler', 'bloquer', 'debloquer', 'message', 'assister']
 
 export function FichePlateforme({ id, faire, onglet, mdp }) {
   const p = usePlateforme()
@@ -637,20 +638,13 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
             Message affiché au client : « {c.message.texte} »
           </p>
         )}
-        {/* Densité : 1 action principale, 3 secondaires au plus, le reste dans « Plus » */}
-        <div className="pf-boutons">
-          <button className="btn primary" onClick={() => setModale('encaisser')}>
-            <Icon n="coins" size={15} /> Encaisser
-          </button>
-          <button className="btn" onClick={() => setModale('prolonger')}>
-            <Icon n="clock" size={15} /> Prolonger
-          </button>
-          <button className="btn" onClick={() => go(`/facture/new?type=facture${fiche ? `&p=${fiche.id}` : ''}`)}>
-            <Icon n="file" size={15} /> Facturer
-          </button>
-          <button className="btn" onClick={() => setModale('plus')}>
-            <Icon n="more" size={15} /> Plus
-          </button>
+        {/* Les gestes du client en tuiles : le code de licence d'abord, puis encaisser, facturer, prolonger, le reste */}
+        <div className="pf-tuiles" role="group" aria-label="Actions sur le client">
+          <Tuile icone="lock" titre="Générer une licence" sous="Code d’activation à entrer dans le logiciel" principal onClick={() => setModale('code')} />
+          <Tuile icone="coins" titre="Encaisser" sous="Paiement reçu + licence prolongée" onClick={() => setModale('encaisser')} />
+          <Tuile icone="file" titre="Facturer" sous="Nouvelle facture" onClick={() => go(`/facture/new?type=facture${fiche ? `&p=${fiche.id}` : `&client=${encodeURIComponent(c.nom)}`}`)} />
+          <Tuile icone="clock" titre="Prolonger" sous="Délai gratuit, avec motif" onClick={() => setModale('prolonger')} />
+          <Tuile icone="more" titre="Plus" sous="Modules, bloquer, message…" onClick={() => setModale('plus')} />
         </div>
       </section>
       <OperationsAReconcilier clientId={c.id} onFait={(m) => apres(m, true)} />
@@ -744,7 +738,10 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
                       ]}
                     />
                     <div className="pf-boutons">
-                      <button className="btn sm primary" onClick={() => setModale({ encaisser: e.id })}>
+                      <button className="btn sm primary" onClick={() => setModale({ code: e.id })}>
+                        <Icon n="lock" size={14} /> Générer un code de licence
+                      </button>
+                      <button className="btn sm" onClick={() => setModale({ encaisser: e.id })}>
                         Encaisser et renouveler
                       </button>
                       <button className="btn sm" onClick={() => setModale({ renouveler: e.id })}>
@@ -895,6 +892,7 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
         </div>
       )}
 
+      {(modale === 'code' || modale?.code) && <GenererLicence c={c} fiche={fiche} etablissementId={modale?.code} onFermer={fermer} onFait={apres} />}
       {(modale === 'encaisser' || modale?.encaisser) && <Encaisser c={c} fiche={fiche} etablissementId={modale?.encaisser} onFermer={fermer} onFait={apres} />}
       {(modale === 'prolonger' || modale?.prolonger) && <Prolonger c={c} etablissementId={modale?.prolonger} onFermer={fermer} onFait={apres} />}
       {(modale === 'renouveler' || modale?.renouveler) && <RenouvelerSansEncaissement c={c} etablissementId={modale?.renouveler} onFermer={fermer} onFait={apres} />}
@@ -1218,6 +1216,157 @@ function Encaisser({ c, fiche, etablissementId, onFermer, onFait }) {
           </div>
         </form>
       )}
+    </Modal>
+  )
+}
+
+function Tuile({ icone, titre, sous, onClick, principal }) {
+  return (
+    <button type="button" className={`pf-tuile${principal ? ' principal' : ''}`} onClick={onClick} aria-label={titre} title={sous || undefined}>
+      <span className="pf-tuile-icone" aria-hidden="true">
+        <Icon n={icone} size={20} />
+      </span>
+      <span className="pf-tuile-titre">{titre}</span>
+      {sous && <span className="pf-tuile-sous">{sous}</span>}
+    </button>
+  )
+}
+
+// Générer une licence : un code ELITE-XXX-XXXX-XXXX pour le modèle choisi (annuel par défaut = 1 an).
+// Le client l'entre dans son logiciel (écran « Licence expirée » ou Mon abonnement) et la licence est posée tout de suite.
+// Ensuite : copier, envoyer par WhatsApp, et créer la facture préremplie.
+function GenererLicence({ c, fiche, etablissementId, onFermer, onFait }) {
+  const etabs = c.etablissements.filter((e) => e.statut !== 'archive')
+  const [etabId, setEtabId] = useState(etabs.some((x) => x.id === etablissementId) ? etablissementId : etabs[0]?.id || '')
+  const e = etabs.find((x) => x.id === etabId)
+  const [vue, setVue] = useState(null)
+  const [modeleId, setModeleId] = useState('')
+  const [note, setNote] = useState('')
+  const [code, setCode] = useState('')
+  const [erreur, setErreur] = useState('')
+  const [occupe, setOccupe] = useState(false)
+  useEffect(() => {
+    appeler('partenaires_editeur').then(setVue, (x) => setVue({ erreur: x.message }))
+  }, [])
+  const liste = modelesPour(vue?.modeles || [], e)
+  const modele = liste.find((m) => m.id === modeleId) || modeleParDefaut(liste)
+  const anciens = codesDuClient(vue?.cles || [], c).slice(0, 5)
+  const generer = async (ev) => {
+    ev.preventDefault()
+    if (!modele || occupe) return
+    setOccupe(true)
+    setErreur('')
+    try {
+      const cles = await appeler('generer_cles_licence', {
+        p_modele_id: modele.id,
+        p_nombre: 1,
+        p_partenaire_id: null,
+        p_client_nom: c.nom,
+        p_client_telephone: c.contact?.telephone || null,
+        p_note: [e ? `Pour ${e.nom}` : '', note.trim()].filter(Boolean).join(' · ').slice(0, 300) || null,
+      })
+      setCode(Array.isArray(cles) ? cles[0] : '')
+    } catch (x) {
+      setErreur(x.message)
+    } finally {
+      setOccupe(false)
+    }
+  }
+  if (code) {
+    const texte = messageCode({ cle: code, modele, etablissement: e })
+    return (
+      <Modal title={`Code de licence · ${c.nom}`} onClose={() => onFait('Code de licence généré')}>
+        <div className="stack">
+          <p className="small muted">
+            {modele?.nom} · {dureeTexte(modele)} · {enDevise(modele?.montant, modele?.devise)}. Le code sert une seule fois. La licence démarre quand le client l’entre.
+          </p>
+          <div className="pf-code" aria-label="Code de licence">
+            {code}
+          </div>
+          <div className="pf-tuiles">
+            <BoutonCopier texte={code} libelle="Copier le code" className="btn primary" />
+            <BoutonCopier texte={texte} libelle="Copier le message" />
+            {c.contact?.telephone && (
+              <a className="btn" href={lienWhatsApp(c.contact.telephone, texte)} target="_blank" rel="noreferrer">
+                <Icon n="message" size={14} /> Envoyer par WhatsApp
+              </a>
+            )}
+            <button className="btn" onClick={() => go(lienFacture({ fiche, client: c, etablissement: e, modele, cle: code }))}>
+              <Icon n="file" size={14} /> Créer la facture
+            </button>
+          </div>
+          <p className="small muted">Après le paiement, pense à le noter (Encaisser ou paiement sur la facture).</p>
+          <div className="row" style={{ justifyContent: 'flex-end' }}>
+            <button className="btn" onClick={() => onFait('Code de licence généré')}>
+              Terminé
+            </button>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
+  return (
+    <Modal title={`Générer une licence · ${c.nom}`} onClose={onFermer}>
+      <form className="stack" onSubmit={generer}>
+        <ChoixEtablissement c={c} value={etabId} onChange={setEtabId} />
+        {vue === null && <p className="small muted">Chargement des formules…</p>}
+        {vue?.erreur && (
+          <p className="pf-erreur" role="alert">
+            {vue.erreur}
+          </p>
+        )}
+        {liste.length > 0 && (
+          <div>
+            <div className="small muted">Formule</div>
+            <div className="pf-tuiles" role="radiogroup" aria-label="Formule">
+              {liste.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={modele?.id === m.id}
+                  className={`pf-tuile choix${modele?.id === m.id ? ' actif' : ''}`}
+                  onClick={() => setModeleId(m.id)}
+                >
+                  <span className="pf-tuile-titre">{m.nom}</span>
+                  <span className="pf-tuile-sous">
+                    {dureeTexte(m)} · {enDevise(m.montant, m.devise)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {vue && !vue.erreur && liste.length === 0 && <p className="small">Aucune formule active pour cette solution. Crée-la dans Elite Partners › Modèles de licence.</p>}
+        <Field label="Note (facultatif)">
+          <input value={note} onChange={(ev) => setNote(ev.target.value)} maxLength={200} placeholder="Ex. paiement Mobile Money du 24/10" />
+        </Field>
+        {anciens.length > 0 && (
+          <div className="small muted">
+            Codes déjà générés pour ce client :
+            <ul className="pf-liste">
+              {anciens.map((k) => (
+                <li key={k.id}>
+                  <code>{k.cle}</code> · {k.modele} · {k.statut === 'activee' ? `activé le ${date(k.activee_le)}` : k.statut === 'bloquee' ? 'bloqué' : 'pas encore entré'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {erreur && (
+          <p className="pf-erreur" role="alert">
+            {erreur}
+          </p>
+        )}
+        <div className="row" style={{ justifyContent: 'flex-end', marginTop: 14 }}>
+          <button type="button" className="btn" onClick={onFermer}>
+            Annuler
+          </button>
+          <button className="btn primary" disabled={!modele || occupe}>
+            {occupe ? 'Génération…' : 'Générer le code'}
+          </button>
+        </div>
+      </form>
     </Modal>
   )
 }

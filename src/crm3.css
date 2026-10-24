@@ -184,3 +184,17 @@ td.rouge, span.rouge, strong.rouge, div.rouge { color: var(--red); }
   .act-reglage > :nth-child(n + 3) { grid-column: 1 / -1; }
   .pl-grille { grid-template-columns: 1fr; }
 }
+
+/* Fiche client du logiciel : gestes en tuiles (Générer une licence, Encaisser, Facturer…) */
+.pf-tuiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.pf-tuile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px; border-radius: var(--radius, 10px); border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; cursor: pointer; transition: border-color .15s, transform .15s, box-shadow .15s; }
+.pf-tuile:hover { border-color: var(--blue); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+.pf-tuile:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pf-tuile-icone { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: var(--line-2, rgba(0,0,0,.05)); color: var(--blue); margin-bottom: 4px; }
+.pf-tuile-titre { font-weight: 700; font-size: 14.5px; }
+.pf-tuile-sous { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.pf-tuile.principal { border-color: var(--gold, #c9a227); background: linear-gradient(180deg, rgba(201, 162, 39, .12), transparent); }
+.pf-tuile.principal .pf-tuile-icone { background: var(--gold, #c9a227); color: #fff; }
+.pf-tuile.choix.actif { border: 2px solid var(--blue); background: rgba(37, 99, 235, .07); }
+.pf-code { font: 700 clamp(20px, 5vw, 30px)/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; text-align: center; padding: 18px 12px; border-radius: 12px; border: 2px dashed var(--gold, #c9a227); background: var(--card); color: var(--text); user-select: all; word-break: break-all; }
+@media (max-width: 520px) { .pf-tuiles { grid-template-columns: 1fr 1fr; } }

@@ -11,6 +11,7 @@ import { remplirDoc, ouvrirWhatsApp, telClient } from '../modules/facturation/wh
 
 
 import { RelanceFactureBtn } from '../modules/facturation/ui'
+import { lignePreremplie } from '../modules/plateforme'
 
 // ---------- Liste ----------
 export default function Factures({ type = 'facture', filtre: filtreDemande }) {
@@ -173,7 +174,15 @@ export function DocEditor({ id, query }) {
         }
       : p
         ? { client: { nom: p.name, adresse: p.fiche?.adresse_facturation || [p.fiche?.contact, p.fiche?.ville].filter(Boolean).join('\n') } }
-        : {}
+        : params.get('client')
+          ? { client: { nom: params.get('client').slice(0, 120), adresse: '' } }
+          : {}
+    // Facture préremplie venue d'ailleurs (ex. « Générer une licence » : ligne de licence avec son code)
+    const ligne = base ? null : lignePreremplie(params)
+    if (ligne) {
+      extra.lignes = [ligne]
+      if (params.get('objet')) extra.objet = params.get('objet').slice(0, 200)
+    }
     return { type, numero: nextNumero(documents, type, fact, undefined, numerosDejaPris(actions, corbeille.liste())), prospect_id: pid, data: nouveauDoc(type, fact, extra) }
   }
   const [doc, setDoc] = useState(init)

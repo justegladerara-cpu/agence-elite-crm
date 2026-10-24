@@ -5,3 +5,4 @@ export { ETATS_BLOC, clientsActifs, encaisseDuMois, etatCrm, etatPlateforme, lic
 export { aujourdhuiIso, baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours } from './licence'
 export { A_REPRENDRE, ETATS, GESTES, creerJournal, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from './operations'
 export { ETATS_ECHEANCE, ETATS_DEMANDE, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from './echeances'
+export { LIBELLE_FORMULE, codesDuClient, dureeTexte, lienFacture, lienWhatsApp, lignePreremplie, messageCode, modeleParDefaut, modelesPour } from './codes'
