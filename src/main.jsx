@@ -6,6 +6,7 @@ import './palantir.css'
 import './palantir-base.css'
 import './saas-premium.css'
 import './crm3.css'
+import './crm-lot2.css'
 import App from './App.jsx'
 import { initBrand } from './lib/theme'
 

@@ -15,7 +15,7 @@ import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
 import { A_REPRENDRE, ETATS, GESTES, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
 import { codesDuClient, dureeTexte, lienFacture, lienWhatsApp, messageCode, modeleParDefaut, modelesPour } from '../modules/plateforme/codes'
-import { ETATS_DEMANDE, ETATS_ECHEANCE, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
+import { ETATS_DEMANDE, ETATS_ECHEANCE, etatAffiche, enTranches, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
 // Montant dans sa vraie devise ; sans devise connue (paiement du CRM), celle réglée dans Paramètres
@@ -352,7 +352,7 @@ export function ResumeLogiciel({ objectif = 10 }) {
     )
   const clients = clientsReels(p.etat.clients)
   const actifs = clientsActifs(clients)
-  const payants = actifs.filter((c) => c.etablissements.some((e) => e.statut === 'actif' && e.licence?.valide && ['mensuel', 'annuel'].includes(e.licence.formule)))
+  const payants = actifs.filter((c) => c.etablissements.some((e) => e.statut === 'actif' && e.licence?.valide && (['mensuel', 'annuel'].includes(e.licence.formule) || enTranches(e.licence))))
   const essais = actifs.filter((c) => !payants.includes(c) && c.etablissements.some((e) => e.licence?.valide && e.licence.formule === 'essai'))
   const lic = licencesARenouveler(clients)
   const ventes = afficherSommes(sommesVentes(actifs))
@@ -395,6 +395,7 @@ export function ResumeLogiciel({ objectif = 10 }) {
               <button type="button" className="lien" onClick={() => go(`/plateforme-client/${a.clientId}${a.action === 'encaisser' ? '?faire=encaisser' : ''}`)}>
                 <strong>{a.client}</strong> · {a.titre}
               </button>
+              {a.conseil && <span className="bloc tiny muted">Conseil : {a.conseil}</span>}
             </li>
           ))}
         </ul>
@@ -2251,7 +2252,7 @@ function TableEcheances({ liste }) {
                 {date(l.echeance)} <span className="bloc tiny muted">{joursTexte(l.jours)}</span>
               </td>
               <td>
-                <span className={`badge ${ETATS_ECHEANCE[l.etat]?.[1] || 'b-navy'}`}>{ETATS_ECHEANCE[l.etat]?.[0] || l.etat}</span>
+                <span className={`badge ${etatAffiche(l)[1]}`}>{etatAffiche(l)[0]}</span>
               </td>
               <td>
                 {l.statut === 'active' && l.formule !== 'acquisition' && (

@@ -25,11 +25,11 @@ export const TOUS_CHAMPS = [...FICHE_FIELDS, ...EXTRA]
 const META = {
   contact: { ico: 'users', ph: 'Prénom Nom' },
   fonction: { ph: 'Gérant, fondatrice…' },
-  telephone: { ico: 'phone', ph: '+225 07 00 00 00 00' },
+  telephone: { ico: 'phone', ph: '06 123 45 67' },
   whatsapp: { ico: 'message', ph: 'Si différent du téléphone' },
   instagram: { ico: 'instagram', ph: '@compte ou lien du profil' },
   site: { ico: 'globe', ph: 'www.exemple.com' },
-  ville: { ph: 'Abidjan, Lyon…' },
+  ville: { ph: 'Brazzaville, Pointe-Noire…' },
   produit: { ph: 'ex. vos bouquets, vos coupes' },
   concurrent: { ph: 'Agence ou freelance en place' },
   standard: { ph: 'Qui répond au téléphone' },

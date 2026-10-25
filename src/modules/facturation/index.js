@@ -6,3 +6,4 @@ export { statutDe, totals, paiementsDe, num, nouveauDoc, nextNumero, numerosDeja
 // Chargés à la demande : le PDF (jsPDF) et l'import Zoho restent hors du chargement initial
 export const chargerPdf = () => import('./invoicePdf')
 export const chargerZoho = () => import('./zoho')
+export const chargerRecu = () => import('./recuPdf')

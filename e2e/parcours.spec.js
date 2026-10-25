@@ -78,14 +78,17 @@ test('raccourcis clavier et tableau de bord sur 7 jours', async ({ page, isMobil
   await page.keyboard.press('v')
   await expect(page.getByRole('dialog', { name: 'Nouvelle vente' })).toBeVisible()
   await page.keyboard.press('Escape')
+  await page.keyboard.press('e')
+  await expect(page.getByRole('dialog', { name: 'Encaisser' })).toBeVisible()
+  await page.keyboard.press('Escape')
   await page.goto('/#/dashboard')
   await expect(page.locator('#dash-periode')).toHaveValue('7 derniers jours')
 })
 
 test('accessibilité : aucune violation grave sur les écrans principaux', async ({ page }) => {
-  test.setTimeout(60000) // 10 écrans analysés, chacun après la fin de ses animations d'arrivée
+  test.setTimeout(90000) // 15 écrans analysés, chacun après la fin de ses animations d'arrivée
   await avecExemples(page)
-  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres/listes', 'parametres/securite', 'saisie']) {
+  for (const route of ['pilotage', 'reseau', 'moi', 'equipe', 'signature', 'journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres/listes', 'parametres/securite', 'saisie']) {
     await page.goto(`/#/${route}`)
     await page.waitForTimeout(400)
     // Contrastes mesurés une fois les animations d'arrivée terminées (pas pendant un fondu)
@@ -98,7 +101,7 @@ test('accessibilité : aucune violation grave sur les écrans principaux', async
 
 test('pas de défilement horizontal', async ({ page }) => {
   await avecExemples(page)
-  for (const route of ['journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres']) {
+  for (const route of ['pilotage', 'reseau', 'moi', 'equipe', 'signature', 'journee', 'acquisition', 'clients', 'factures', 'dashboard', 'charges', 'abonnements', 'parametres']) {
     await page.goto(`/#/${route}`)
     await page.waitForTimeout(300)
     const deborde = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
@@ -314,4 +317,19 @@ test('plateforme : tour de contrôle, fiche client et encaissement (données fic
   await page.getByRole('dialog').getByRole('textbox', { name: /Motif/ }).fill('Impayé fictif')
   await page.getByRole('dialog').getByRole('button', { name: 'Bloquer' }).click()
   await expect.poll(() => appels.find((a) => a.nom === 'definir_statut_client')?.corps).toEqual({ p_client_id: 'c1', p_statut: 'suspendu' })
+})
+
+test('encaisser en un geste : nouveau client créé tout seul, puis son numéro demandé', async ({ page }) => {
+  await avecExemples(page)
+  await page.goto('/#/pilotage')
+  await page.locator('.tb-tete').getByRole('button', { name: 'Encaisser' }).click()
+  const d = page.getByRole('dialog', { name: 'Encaisser' })
+  await d.locator('input').first().fill('Boutique Test Mpila')
+  await d.locator('.combo-item.new').click()
+  await d.getByPlaceholder('100 000').fill('25000')
+  await d.getByPlaceholder(/Licence logiciel/).fill('affiche')
+  await d.getByRole('button', { name: 'Encaisser' }).click()
+  await expect(d.getByText(/reçus/).first()).toBeVisible()
+  await expect(d.getByText('Son numéro de téléphone ?')).toBeVisible()
+  await expect(d.getByRole('button', { name: /Télécharger le reçu/ })).toBeVisible()
 })

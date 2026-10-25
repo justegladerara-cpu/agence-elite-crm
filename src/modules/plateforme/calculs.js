@@ -39,6 +39,7 @@ export function santeEtablissement(e, act = {}, maintenant = Date.now()) {
   if (!l) retire(50, 'rouge', 'Aucune licence')
   else if (!l.valide) retire(50, 'rouge', l.statut === 'suspendue' ? 'Licence suspendue' : 'Licence expirée')
   else if (l.jours_restants != null && l.jours_restants < 0) retire(40, 'rouge', `Licence échue depuis ${-l.jours_restants} j (délai de grâce)`)
+  else if (l.jours_restants != null && l.jours_restants <= 7 && /semaine|tranche/i.test(`${l.offre || ''} ${l.formule || ''} ${l.modele || ''}`)) retire(5, 'orange', `Tranche payée : prochaine tranche dans ${l.jours_restants} j`)
   else if (l.jours_restants != null && l.jours_restants <= 7) retire(20, 'orange', `${l.formule === 'essai' ? 'Essai' : 'Licence'} : fin dans ${l.jours_restants} j`)
   if (!e.mis_en_service_le) retire(10, 'orange', 'Pas encore mis en service')
   else {
@@ -102,6 +103,18 @@ export const clientsReels = (clients, tout = false) => clients.filter((c) => tou
 const RANG = { rouge: 0, orange: 1, gris: 2, vert: 3 }
 
 // Alertes de la tour de contrôle : une par problème, avec l'action proposée
+// Quoi faire pour chaque alerte, en mots simples
+export function conseilAlerte(texte) {
+  const t = norm(texte)
+  if (/tranche/.test(t)) return 'Tout va bien : la tranche est payée. Encaisse la suivante avant la date et donne le code suivant au gérant.'
+  if (/suspendu|bloque|expire|echu/.test(t)) return 'Appelle le client et propose-lui un mois d’essai gratuit pour qu’il reprenne.'
+  if (/essai/.test(t)) return 'L’essai se termine : montre-lui ses chiffres et propose la licence payante.'
+  if (/licence|regler|paiement/.test(t)) return 'Rappelle-lui le paiement et encaisse dès qu’il paie.'
+  if (/activite|aucune vente|inactif|baisse/.test(t)) return 'Personne n’utilise la caisse ? Appelle le gérant, cherche qui tient la boutique et propose une tablette sur place.'
+  if (/service|caisse ouverte|cloture/.test(t)) return 'Vérifie avec le gérant que la journée est bien fermée chaque soir.'
+  return 'Appelle le client pour comprendre ce qui bloque.'
+}
+
 export function alertes(clients) {
   const liste = []
   for (const c of clients) {
@@ -110,7 +123,7 @@ export function alertes(clients) {
       for (const r of e.sante.raisons) {
         if (r.ton === 'vert') continue
         const action = /licence|essai/i.test(r.texte) ? 'encaisser' : /activité|baisse/i.test(r.texte) ? 'appeler' : /service/i.test(r.texte) ? 'ouvrir' : 'ouvrir'
-        liste.push({ ton: r.ton, titre: r.texte, client: c.nom, clientId: c.id, etablissement: e.nom, etablissementId: e.id, action })
+        liste.push({ ton: r.ton, titre: r.texte, client: c.nom, clientId: c.id, etablissement: e.nom, etablissementId: e.id, action, conseil: conseilAlerte(r.texte) })
       }
     }
   }

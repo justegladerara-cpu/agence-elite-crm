@@ -27,6 +27,12 @@ const ClientsVentes = lazy(() => import('./pages/Activites').then((m) => ({ defa
 const Relances = lazy(() => import('./pages/Activites').then((m) => ({ default: m.Relances })))
 const VenteRapide = lazy(() => import('./pages/VenteRapide'))
 const NoterDM = lazy(() => import('./pages/NoterDM'))
+const Encaisser = lazy(() => import('./pages/Encaisser'))
+const DepenseRapide = lazy(() => import('./pages/Moi').then((m) => ({ default: m.DepenseRapide })))
+const Moi = lazy(() => import('./pages/Moi'))
+const Reseau = lazy(() => import('./pages/Reseau'))
+const Signature = lazy(() => import('./pages/Signature'))
+const Equipe = lazy(() => import('./pages/Equipe'))
 import { statutDe, pastillesFacturation } from './modules/facturation'
 const Factures = lazy(() => import('./pages/Factures'))
 const DocEditor = lazy(() => import('./pages/Factures').then((m) => ({ default: m.DocEditor })))
@@ -274,7 +280,7 @@ function Crm() {
   // Raccourcis : Ctrl/⌘ + K ou « / » pour la recherche, N pour une nouvelle action, ? pour l'aide, G puis une lettre pour naviguer
   useEffect(() => {
     let g = 0
-    const ALLER = { j: 'journee', p: 'acquisition', c: 'ventes-clients', f: 'factures', d: 'pilotage', a: 'espace', v: 'activites', t: 'controle', r: 'relances' }
+    const ALLER = { m: 'moi', e: 'equipe', s: 'reseau', j: 'journee', p: 'acquisition', c: 'ventes-clients', f: 'factures', d: 'pilotage', a: 'espace', v: 'activites', t: 'controle', r: 'relances' }
     const k = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
@@ -306,6 +312,9 @@ function Crm() {
       } else if (touche === 'd') {
         e.preventDefault()
         setRapide({ quoi: 'dm' })
+      } else if (touche === 'e') {
+        e.preventDefault()
+        setRapide({ quoi: 'encaisser' })
       }
     }
     window.addEventListener('keydown', k)
@@ -650,6 +659,10 @@ function Crm() {
   else if (page === 'facture') content = <DocEditor key={route} id={arg} query={query} />
   else if (page === 'controle') content = <Controle />
   else if (page === 'pilotage') content = <Pilotage />
+  else if (page === 'moi') content = <Moi />
+  else if (page === 'reseau') content = <Reseau />
+  else if (page === 'signature') content = <Signature />
+  else if (page === 'equipe') content = <Equipe key={route} vue={q.get('vue')} />
   else if (page === 'activites') content = <Activites key={route} id={arg} />
   else if (page === 'ventes-clients') content = <ClientsVentes />
   else if (page === 'relances') content = <Relances />
@@ -686,18 +699,18 @@ function Crm() {
             <Icon n="search" size={15} /> Rechercher… <kbd>{MAC ? '⌘' : 'Ctrl'} K</kbd>
           </button>
           <div className="nav-rapides">
-            <button className="nav-new" onClick={() => noyau.ouvrir('vente')} aria-keyshortcuts="V">
-              <Icon n="plus" size={17} /> Nouvelle vente <kbd>V</kbd>
+            <button className="nav-new" onClick={() => noyau.ouvrir('encaisser')} aria-keyshortcuts="E">
+              <Icon n="coins" size={17} /> Encaisser <kbd>E</kbd>
             </button>
             <div className="nav-rapides-2">
+              <button className="nav-mini" onClick={() => noyau.ouvrir('vente')} aria-keyshortcuts="V" title="Nouvelle vente (V)">
+                <Icon n="plus" size={15} /> Vente
+              </button>
+              <button className="nav-mini" onClick={() => noyau.ouvrir('depense')} title="Noter une dépense">
+                <Icon n="wallet" size={15} /> Dépense
+              </button>
               <button className="nav-mini" onClick={() => noyau.ouvrir('dm')} aria-keyshortcuts="D" title="Noter mes DM (D)">
                 <Icon n="message" size={15} /> DM
-              </button>
-              <button className="nav-mini" onClick={() => setActionModal({})} aria-keyshortcuts="N" title="Nouvelle action (N)">
-                <Icon n="phone" size={15} /> Action
-              </button>
-              <button className="nav-mini" onClick={() => go('/calendrier')} title="Calendrier">
-                <Icon n="calendar" size={15} /> Agenda
               </button>
             </div>
           </div>
@@ -766,7 +779,7 @@ function Crm() {
             const actif = n.route === 'espace' ? page === 'espace' || (appli && !BAS.some((b) => b.espace === appli.id)) : appli?.id === n.espace && page !== 'espace'
             const cible = n.espace ? espaces.find((e) => e.id === n.espace).entrees[0].route : n.route
             return (
-              <button key={n.short} className={`${n.cta ? 'cta' : ''} ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => (n.cta ? noyau.ouvrir('vente') : go(`/${n.espace && accessible(n.route) ? n.route : cible}`))}>
+              <button key={n.short} className={`${n.cta ? 'cta' : ''} ${actif ? 'active' : ''}`} aria-current={actif ? 'page' : undefined} onClick={() => (n.cta ? noyau.ouvrir('encaisser') : go(`/${n.espace && accessible(n.route) ? n.route : cible}`))}>
                 <span className="ico"><Icon n={n.ico} size={n.cta ? 22 : 20} /></span>
                 {n.short}
               </button>
@@ -792,7 +805,15 @@ function Crm() {
       )}
       {rapide && (
         <Suspense fallback={null}>
-          {rapide.quoi === 'vente' ? <VenteRapide prefill={rapide.prefill} onClose={() => setRapide(null)} /> : <NoterDM onClose={() => setRapide(null)} />}
+          {rapide.quoi === 'vente' ? (
+            <VenteRapide prefill={rapide.prefill} onClose={() => setRapide(null)} />
+          ) : rapide.quoi === 'encaisser' ? (
+            <Encaisser prefill={rapide.prefill} onClose={() => setRapide(null)} />
+          ) : rapide.quoi === 'depense' ? (
+            <DepenseRapide prefill={rapide.prefill} onClose={() => setRapide(null)} />
+          ) : (
+            <NoterDM onClose={() => setRapide(null)} />
+          )}
         </Suspense>
       )}
       {appel && !actionModal && (

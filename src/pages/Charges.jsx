@@ -4,10 +4,17 @@ import { Icon } from '../icons'
 import { Field, Kpi, Empty, Modal, Chips, Repartition, eur, nb, pct, lbl, go, confirmer } from '../ui'
 import { useNoyau, useDonnees } from '../core/contexte'
 
-import { PERIODICITES, estActif, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
+import { PERIODICITES, estActif, estExemple, mensuel, chargesFixesMois, prochaineEcheance, echeancesEntre } from '../lib/tresorerie'
 import { num } from '../modules/facturation'
 import { encaisse as encaisseDe, depenses, depensesDans } from '../lib/finances'
 import { today, fmtDate, fmtMonth, monthKey, prevMonth, addDays, diffDays } from '../lib/dates'
+
+// Abonnements courants proposés en un tap (prix par mois, payés depuis le compte Apple)
+const SUGGESTIONS = [
+  ['Claude', 13000, 'Apple (App Store)', 'Abonnements / logiciels'],
+  ['ChatGPT Plus', 12000, 'Apple (App Store)', 'Abonnements / logiciels'],
+  ['Canal Box', 25000, 'Canal Box', 'Téléphone / internet'],
+]
 
 const PERIODE_NOM = Object.fromEntries(PERIODICITES.map(([k, l]) => [k, l.replace('Par ', '/ ')]))
 
@@ -170,13 +177,33 @@ export function Abonnements({ nouveau }) {
     <div className="stack">
       <div className="page-head">
         <div>
-          <h1>Abonnements et charges fixes</h1>
-          <div className="sub">Loyer, internet, logiciels… comptés automatiquement chaque mois dans ton tableau de bord.</div>
+          <h1>Abonnements</h1>
+          <div className="sub">Ce que tu paies chaque mois (Claude, ChatGPT, Canal Box, loyer…), avec la date de paiement.</div>
         </div>
         <button className="btn gold" onClick={() => setModal({ i: -1 })}>
           <Icon n="plus" size={14} /> Abonnement
         </button>
       </div>
+
+      {SUGGESTIONS.some(([nom]) => !liste.some((d) => d.nom === nom)) && (
+        <div className="card abo-sugg">
+          <div className="small">
+            <strong>Ajoute tes abonnements en un tap.</strong> Le montant est déjà rempli, il te reste la date de paiement.
+          </div>
+          <div className="chips">
+            {SUGGESTIONS.filter(([nom]) => !liste.some((d) => d.nom === nom)).map(([nom, montant, fournisseur, categorie]) => (
+              <button key={nom} type="button" className="chip" onClick={() => setModal({ i: -1, modele: { nom, montant, fournisseur, categorie, periodicite: 'mois' } })}>
+                <Icon n="plus" size={13} /> {nom} · {eur(montant)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {liste.some(estExemple) && (
+        <div className="card abo-exemple small">
+          <Icon n="info" size={15} /> Les lignes marquées « Exemple » ne sont pas comptées. Ouvre-les pour mettre ton vrai montant et la date de paiement, ou supprime-les.
+        </div>
+      )}
 
       <div className="grid grid-3">
         <Kpi label="Par mois" value={eur(mois)} navy />
@@ -195,7 +222,7 @@ export function Abonnements({ nouveau }) {
                 <div className="li-main">
                   <div className="li-title">
                     {d.nom || 'Sans nom'}
-                    {!actif && <span className="tag">En pause</span>}
+                    {estExemple(d) ? <span className="tag">Exemple à confirmer</span> : !actif && <span className="tag">En pause</span>}
                   </div>
                   <div className="li-sub">
                     {[d.categorie, d.fournisseur, e && `prochain paiement le ${fmtDate(e)}`].filter(Boolean).join(' · ') || 'Aucune date de paiement'}
@@ -216,7 +243,7 @@ export function Abonnements({ nouveau }) {
       {modal && (
         <Modal title={modal.i >= 0 ? "Modifier l'abonnement" : 'Nouvel abonnement'} onClose={() => setModal(null)}>
           <AbonnementForm
-            poste={modal.i >= 0 ? liste[modal.i] : null}
+            poste={modal.i >= 0 ? liste[modal.i] : modal.modele || null}
             onSave={async (p) => {
               await enregistrer(modal.i >= 0 ? liste.map((x, j) => (j === modal.i ? p : x)) : [...liste, p], 'Abonnement enregistré ✓')
               setModal(null)
@@ -240,7 +267,7 @@ export function Abonnements({ nouveau }) {
 function AbonnementForm({ poste, onSave, onDelete }) {
   const { settings } = useNoyau()
   const cats = settings.categoriesDepenses || []
-  const [f, setF] = useState({ nom: '', montant: '', periodicite: 'mois', echeance: '', categorie: '', fournisseur: '', ...(poste || {}), actif: estActif(poste || {}) })
+  const [f, setF] = useState({ nom: '', montant: '', periodicite: 'mois', echeance: '', categorie: '', fournisseur: '', ...(poste || {}), actif: (poste || {}).actif !== false })
   const set = (x) => setF((v) => ({ ...v, ...x }))
   const [busy, setBusy] = useState(false)
   const ok = f.nom.trim() && num(f.montant) > 0
@@ -248,7 +275,7 @@ function AbonnementForm({ poste, onSave, onDelete }) {
     if (!ok) return
     setBusy(true)
     try {
-      await onSave({ ...f, nom: f.nom.trim(), montant: num(f.montant), fournisseur: (f.fournisseur || '').trim() })
+      await onSave({ ...f, nom: f.nom.trim(), montant: num(f.montant), fournisseur: (f.fournisseur || '').trim(), confirme: true })
     } catch {
       setBusy(false)
     }

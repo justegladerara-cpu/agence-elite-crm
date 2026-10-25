@@ -37,7 +37,7 @@ const PAGES = {
   site: ['SiteWeb'],
   store: ['Boutique'],
   plateforme: ['Plateforme', 'AdminSaaS'],
-  coeur: ['Documents', 'Parametres', 'Modules', 'Membres', 'Securite', 'Applications', 'Recherche', 'Raccourcis', 'Login', 'Pilotage', 'Activites', 'VenteRapide', 'NoterDM'],
+  coeur: ['Documents', 'Parametres', 'Modules', 'Membres', 'Securite', 'Applications', 'Recherche', 'Raccourcis', 'Login', 'Pilotage', 'Activites', 'VenteRapide', 'NoterDM', 'Encaisser', 'Moi', 'Reseau', 'Signature', 'Equipe'],
 }
 const MODULE = Object.fromEntries(Object.entries(PAGES).flatMap(([m, l]) => l.map((p) => [`pages/${p}.jsx`, m])))
 
