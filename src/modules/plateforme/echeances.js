@@ -12,6 +12,14 @@ export const ETATS_ECHEANCE = {
   terminee: ['Terminée', 'b-navy'],
 }
 
+// Paiement en tranches (ex. The Dream : 3 × 100 000, code d'une semaine) : la fin proche est normale,
+// ce n'est pas « à renouveler » tant que la tranche est payée.
+export const enTranches = (l) => /semaine|tranche/i.test(`${l?.offre || ''} ${l?.formule || ''} ${l?.modele || ''} ${l?.note || ''}`)
+export function etatAffiche(l) {
+  if (enTranches(l) && ['bientot', 'urgent', 'a_jour'].includes(l?.etat)) return ['Tranche payée', 'b-green']
+  return ETATS_ECHEANCE[l?.etat] || [l?.etat, 'b-navy']
+}
+
 export const ETATS_DEMANDE = { nouvelle: 'Nouvelle', en_cours: 'En cours', traitee: 'Traitée', abandonnee: 'Abandonnée' }
 
 // Ordre d'urgence : expirée d'abord, puis grâce, aujourd'hui, urgent… (la suspension est une décision, à part)

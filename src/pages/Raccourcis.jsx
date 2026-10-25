@@ -5,6 +5,7 @@ const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator
 const LIGNES = [
   [[MAC ? '⌘' : 'Ctrl', 'K'], 'Chercher une fiche, une page ou une action'],
   [['/'], 'Chercher (même chose)'],
+  [['E'], 'Encaisser (argent reçu)'],
   [['V'], 'Nouvelle vente'],
   [['D'], 'Noter mes DM'],
   [['N'], 'Nouvelle action'],

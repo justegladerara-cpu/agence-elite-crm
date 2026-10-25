@@ -163,13 +163,8 @@ export const DEFAULT_SETTINGS = {
     'Autre',
   ],
   zones: ['Centre-ville', 'Périphérie', 'Autre ville', 'À distance'],
-  depensesFixes: [
-    { nom: 'Outils (Loom, Canva, domaine…)', montant: 60 },
-    { nom: 'Téléphone / internet', montant: 25 },
-    { nom: 'Publicité agence', montant: 0 },
-    { nom: 'Autre', montant: 0 },
-  ],
-  categoriesDepenses: ['Transport', 'Impression', 'Matériel', 'Publicité', 'Abonnements / logiciels', 'Téléphone / internet', 'Sous-traitance', 'Repas', 'Autre'],
+  depensesFixes: [],
+  categoriesDepenses: ['Spiritualité', 'Transport', 'Impression', 'Matériel', 'Publicité', 'Abonnements / logiciels', 'Téléphone / internet', 'Sous-traitance', 'Repas', 'Autre'],
   modesPaiement: ['Espèces', 'Mobile Money', 'Virement', 'Chèque', 'Carte'],
   // Prospection Instagram express : signaux repérés sur la pub et messages prêts à copier
   signaux: [

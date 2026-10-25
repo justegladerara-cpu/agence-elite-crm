@@ -822,11 +822,11 @@ export default function Parametres({ section }) {
             </button>
           </div>
           <ImagePick
-            label="Cachet / signature (facultatif)"
+            label="Signature (facultatif)"
             value={s.facturation?.signature || ''}
             max={500}
             onChange={(signature) => setFact({ signature })}
-            hint="Photo ou scan de ton cachet ou de ta signature, ajouté au bas des factures et devis."
+            hint="Ta signature, ajoutée au bas des factures, devis et reçus. Le cachet se met dans Administration › Signature et cachet."
           />
         </div>
       </div>
@@ -1003,7 +1003,7 @@ export default function Parametres({ section }) {
           )}
           <button
             className="btn ghost sm"
-            onClick={async () => (await confirmer('Ton logo, tes couleurs et ton cachet sont gardés.', { titre: 'Remettre les paramètres par défaut ?', ok: 'Remettre par défaut', danger: true })) && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '' } })}
+            onClick={async () => (await confirmer('Ton logo, tes couleurs et ton cachet sont gardés.', { titre: 'Remettre les paramètres par défaut ?', ok: 'Remettre par défaut', danger: true })) && change({ ...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), apparence: s.apparence, facturation: { ...DEFAULT_SETTINGS.facturation, signature: s.facturation?.signature || '', cachet: s.facturation?.cachet || '' } })}
           >
             Paramètres par défaut
           </button>

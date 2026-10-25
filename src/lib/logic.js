@@ -43,7 +43,9 @@ export function montantRetenu(a, prospect, L) {
 export function waLink(phone, indicatif = '33') {
   if (!phone) return ''
   let n = String(phone).replace(/[\s.+\-()]/g, '')
-  if (n.startsWith('0')) n = indicatif + n.slice(1)
+  // Congo (242) : le 0 fait partie du numéro (06…, 05…) ; ailleurs, il est remplacé par l'indicatif
+  if (indicatif === '242' && !n.startsWith('242')) n = `242${n}`
+  else if (n.startsWith('0')) n = indicatif + n.slice(1)
   return `https://wa.me/${n}`
 }
 // Nom du compte Instagram tiré d'un @, d'un nom ou d'un lien partagé (« ?igsh=… » retiré). Vide si ce n'est pas un compte.

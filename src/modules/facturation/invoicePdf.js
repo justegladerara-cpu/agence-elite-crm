@@ -22,7 +22,7 @@ const n0 = nd
 
 // Images (logo, cachet) : chargées une fois par adresse
 const imgCache = {}
-async function loadImg(src) {
+export async function loadImg(src) {
   if (!src) return null
   if (imgCache[src]) return imgCache[src]
   try {
@@ -50,7 +50,7 @@ async function loadImg(src) {
 }
 
 // Cachet « PAYÉ » incliné, posé sur les totaux d'une facture entièrement réglée
-function cachetPaye(pdf, cx, cy, date) {
+export function cachetPaye(pdf, cx, cy, date) {
   const VERT = [29, 138, 97]
   const a = (14 * Math.PI) / 180
   const c = Math.cos(a)
@@ -266,6 +266,12 @@ export async function buildPdf(doc, { fact, code, statut, paye = 0, datePaiement
   text(fact.nom || '', M + 3, y)
   text(fact.signataire ? `Signature / Cachet — ${fact.signataire}` : 'Signature / Cachet', M + 3, y + 5, { size: 8.5 })
   if (sig) pdf.addImage(sig.url, 'PNG', M + 3, y + 7, sw, sh)
+  // Cachet de l'agence à côté de la signature
+  const cachet = await loadImg(fact.cachet)
+  if (cachet) {
+    const cw = Math.min(34, 30 / cachet.ratio)
+    pdf.addImage(cachet.url, 'PNG', M + 3 + (sig ? sw + 6 : 0), y + 6, cw, cw * cachet.ratio)
+  }
   if (fact.slogan) text(fact.slogan, R - 3, y, { size: 8.5, color: GREY, align: 'right' })
 
   // Mentions (CGV) en bas de chaque page

@@ -74,7 +74,10 @@ export const PERIODICITES = [
   ['an', 'Par an', 12],
 ]
 const nbMois = (p) => (PERIODICITES.find((x) => x[0] === p) || PERIODICITES[0])[2]
-export const estActif = (d) => d && d.actif !== false
+// Lignes d'exemple livrées avec le CRM, jamais confirmées (aucune date de paiement) : pas comptées tant que tu ne les valides pas
+export const NOMS_EXEMPLES = ['Outils (Loom, Canva, domaine…)', 'Téléphone / internet', 'Publicité agence', 'Autre']
+export const estExemple = (d) => !!d && !d.echeance && !d.confirme && NOMS_EXEMPLES.includes(d.nom)
+export const estActif = (d) => d && d.actif !== false && !estExemple(d)
 // Coût ramené au mois (un abonnement annuel de 120 000 compte 10 000 par mois)
 export const mensuel = (d) => (estActif(d) ? num(d.montant) / nbMois(d.periodicite) : 0)
 export const chargesFixesMois = (liste) => (liste || []).reduce((m, d) => m + mensuel(d), 0)

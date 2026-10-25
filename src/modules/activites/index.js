@@ -1,2 +1,3 @@
 // Contrat public du module Activités (socle des ventes) : seul point d'entrée pour les autres modules et pages
 export { ACTIVITES_DEFAUT, MODELES, activitesDe, activiteParId, devinerActivite, lignesVentes, periodes, statsActivites, statsClients, meilleursServices, dependance, prixHabituel, clientsARelancer, recommandations, dansPeriode, norm } from './calculs'
+export { PERIODES_TB, periodeTB, paiementsDetailles, recuParService, classementClients, courbe, objectifMois, POCHES, pocheDe, poches, origineDepenses, POUR_MOI, estPourMoi, CATEGORIES_MOI, depensesMoi, prospection, VILLES, CONTOUR_CONGO, villeDe, parVille, aCompleter } from './tableau'

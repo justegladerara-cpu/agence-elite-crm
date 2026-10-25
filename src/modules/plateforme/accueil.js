@@ -34,7 +34,7 @@ export function licencesARenouveler(clients = [], jours = 7) {
   const etabs = clients.filter((c) => c.statut === 'actif').flatMap((c) => c.etablissements.filter((e) => e.statut === 'actif' && e.licence).map((e) => ({ c, e })))
   const j = (x) => x.e.licence.jours_restants
   return {
-    bientot: etabs.filter((x) => j(x) != null && j(x) >= 0 && j(x) <= jours),
+    bientot: etabs.filter((x) => j(x) != null && j(x) >= 0 && j(x) <= jours && !/semaine|tranche/i.test(`${x.e.licence.offre || ''} ${x.e.licence.formule || ''} ${x.e.licence.modele || ''}`)),
     echues: etabs.filter((x) => j(x) != null && j(x) < 0),
   }
 }

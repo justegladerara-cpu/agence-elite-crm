@@ -10,9 +10,9 @@ const routes = new Set([...ESPACES_NAV.flatMap((e) => e.entrees.flatMap((x) => [
 // Pages de détail ouvertes depuis une liste (jamais orphelines : on y arrive par une ligne de la liste)
 const DETAIL = ['prospect', 'facture', 'plateforme-client', 'espace', 'prospects']
 
-describe('navigation en 8 centres', () => {
-  it('huit centres, le tableau de bord en premier', () => {
-    expect(ESPACES_NAV.map((e) => e.id)).toEqual(['pilotage', 'ventes', 'prospection', 'logiciel', 'partners', 'finances', 'site', 'administration'])
+describe('navigation en 9 centres', () => {
+  it('neuf centres, le tableau de bord en premier', () => {
+    expect(ESPACES_NAV.map((e) => e.id)).toEqual(['pilotage', 'reseau', 'services', 'finances', 'moi', 'equipe', 'partners', 'site', 'administration'])
   })
   it('chaque page routée par App a une place (menu, recherche ou détail)', () => {
     const pages = [...app.matchAll(/page === '([a-z-]+)'\) content/g)].map((m) => m[1])
@@ -22,7 +22,7 @@ describe('navigation en 8 centres', () => {
   })
   it('scripts, saisie, tableau de bord et relances sont dans la recherche ; plus de session d’appels', () => {
     const r = pagesRecherche().map((x) => x.path)
-    for (const p of ['scripts', 'saisie', 'controle', 'pilotage', 'relances', 'activites']) expect(r).toContain(p)
+    for (const p of ['scripts', 'saisie', 'controle', 'pilotage', 'relances', 'activites', 'moi', 'reseau', 'equipe', 'signature']) expect(r).toContain(p)
     expect(r).not.toContain('session')
   })
   it('chaque écran éditeur est dans un espace (plus de barre d’onglets à part)', () => {
@@ -34,7 +34,7 @@ describe('navigation en 8 centres', () => {
     const sections = [...parametres.matchAll(/^\s+\['([a-z]+)', '[^']+', ["'`]/gm)].map((m) => m[1])
     expect(sections.length).toBe(11)
     const prospection = ['objectifs', 'listes', 'scripts', 'rappels']
-    for (const s of sections) expect(espaceDe(`parametres/${s}`)?.id, s).toBe(prospection.includes(s) ? 'prospection' : 'administration')
+    for (const s of sections) expect(espaceDe(`parametres/${s}`)?.id, s).toBe(prospection.includes(s) ? 'reseau' : s === 'membres' ? 'equipe' : 'administration')
   })
   it('un seul libellé par page, jamais deux fois le même dans le menu', () => {
     const libelles = ESPACES_NAV.flatMap((e) => e.entrees.map((x) => x.label))
@@ -42,7 +42,7 @@ describe('navigation en 8 centres', () => {
     expect(LIBELLES.pilotage).toBe('Vue globale')
   })
   it('anciennes adresses : boîte à outils, applications, éditeur sans page', () => {
-    expect(redirection('plateforme-outils')).toBe('espace/logiciel')
+    expect(redirection('plateforme-outils')).toBe('espace/services')
     expect(redirection('session')).toBe('journee')
     expect(redirection('apps')).toBe('espace')
     expect(redirection('editeur')).toBe('editeur/tableau')
@@ -58,16 +58,16 @@ describe('navigation en 8 centres', () => {
     expect(cleDePage('dashboard', '', new URLSearchParams('onglet=ventes'))).toBe('dashboard/finances')
     expect(cleDePage('parametres')).toBe('parametres/identite')
     expect(cleDePage('editeur', 'etablissements/abc')).toBe('editeur/etablissements')
-    expect(espaceDe('editeur/etablissements').id).toBe('logiciel')
+    expect(espaceDe('editeur/etablissements').id).toBe('services')
     expect(espaceDe('facture').id).toBe('finances')
-    expect(espaceDe('controle').id).toBe('logiciel')
+    expect(espaceDe('controle').id).toBe('services')
     expect(espaceDe('pilotage').id).toBe('pilotage')
     expect(espaceDe('editeur/partenaires').id).toBe('partners')
     expect(espaceDe('site-demandes').id).toBe('site')
   })
   it('un module désactivé retire ses entrées ; la barre du bas pointe vers des espaces existants', () => {
     const sansFactu = espacesActifs((route) => !['factures', 'devis', 'paiements'].includes(route))
-    expect(sansFactu.find((e) => e.id === 'finances').entrees.map((x) => x.route)).toEqual(['dashboard/finances', 'charges', 'depenses', 'abonnements', 'operations'])
+    expect(sansFactu.find((e) => e.id === 'finances').entrees.map((x) => x.route)).toEqual(['depenses', 'abonnements', 'charges', 'operations', 'dashboard/finances'])
     for (const b of BAS.filter((x) => x.espace)) expect(ESPACES_NAV.some((e) => e.id === b.espace)).toBe(true)
   })
 })
