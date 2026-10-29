@@ -32,3 +32,14 @@ describe('échéances des licences', () => {
     expect(baseEnRetard('Permission refusée')).toBe(false)
   })
 })
+
+describe('licence à vie', () => {
+  it('affiche « À vie » pour une acquisition sans échéance', async () => {
+    const { aVie, etatAffiche } = await import('../src/modules/plateforme/echeances.js')
+    const l = { formule: 'acquisition', echeance: null, etat: 'sans_echeance' }
+    expect(aVie(l)).toBe(true)
+    expect(etatAffiche(l)).toEqual(['À vie', 'b-green'])
+    expect(aVie({ formule: 'annuel', echeance: '2027-10-29' })).toBe(false)
+    expect(etatAffiche({ ...l, etat: 'suspendue' })[0]).toBe('Suspendue')
+  })
+})

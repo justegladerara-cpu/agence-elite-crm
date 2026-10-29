@@ -15,7 +15,7 @@ import { statutDe } from '../modules/facturation'
 import { baseRenouvellement, echeanceMinimum, echeanceProposee, erreurEcheance, plusJours as plusJoursIso } from '../modules/plateforme/licence'
 import { A_REPRENDRE, ETATS, GESTES, executer, journalOperations, marquerReglee, noterGeste, preparerEncaissement } from '../modules/plateforme/operations'
 import { codesDuClient, dureeTexte, lienFacture, lienWhatsApp, messageCode, modeleParDefaut, modelesPour } from '../modules/plateforme/codes'
-import { ETATS_DEMANDE, ETATS_ECHEANCE, etatAffiche, enTranches, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
+import { ETATS_DEMANDE, ETATS_ECHEANCE, aVie, etatAffiche, enTranches, aTraiter, baseEnRetard, joursTexte, libellePalier, lirePaliers, nomMois, parMois } from '../modules/plateforme/echeances'
 
 export const ADRESSE_SAAS = 'https://saas.agence-elite.fr'
 // Montant dans sa vraie devise ; sans devise connue (paiement du CRM), celle réglée dans Paramètres
@@ -352,7 +352,7 @@ export function ResumeLogiciel({ objectif = 10 }) {
     )
   const clients = clientsReels(p.etat.clients)
   const actifs = clientsActifs(clients)
-  const payants = actifs.filter((c) => c.etablissements.some((e) => e.statut === 'actif' && e.licence?.valide && (['mensuel', 'annuel'].includes(e.licence.formule) || enTranches(e.licence))))
+  const payants = actifs.filter((c) => c.etablissements.some((e) => e.statut === 'actif' && e.licence?.valide && (['mensuel', 'annuel', 'acquisition'].includes(e.licence.formule) || enTranches(e.licence))))
   const essais = actifs.filter((c) => !payants.includes(c) && c.etablissements.some((e) => e.licence?.valide && e.licence.formule === 'essai'))
   const lic = licencesARenouveler(clients)
   const ventes = afficherSommes(sommesVentes(actifs))
@@ -611,6 +611,8 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
     window.history.replaceState(null, '', `#/plateforme-client/${id}${o !== 'resume' ? `?onglet=${o}` : ''}`)
   }
   const bloque = c.statut === 'suspendu'
+  // Tous les établissements actifs en licence à vie : rien à renouveler, plus de code ni de prolongation
+  const toutAVie = etabs.length > 0 && etabs.filter((e) => e.statut === 'actif').every((e) => aVie(e.licence) && e.licence.statut === 'active')
   const compte = (o) => (o === 'etablissements' ? etabs.length : o === 'comptes' && Array.isArray(comptes) ? sesComptes.length : undefined)
   return (
     <div className="stack pf">
@@ -623,6 +625,7 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
           <div className="row small muted">
             <Sante s={c.sante} />
             {bloque && <span className="badge b-red">Client bloqué</span>}
+            {toutAVie && <span className="badge b-green">Licence à vie</span>}
             {c.pays && <span>{c.pays}</span>}
             {c.contact?.telephone && <a href={`tel:${c.contact.telephone}`}>{c.contact.telephone}</a>}
             {fiche ? (
@@ -641,10 +644,14 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
         )}
         {/* Les gestes du client en tuiles : le code de licence d'abord, puis encaisser, facturer, prolonger, le reste */}
         <div className="pf-tuiles" role="group" aria-label="Actions sur le client">
-          <Tuile icone="lock" titre="Générer une licence" sous="Code d’activation à entrer dans le logiciel" principal onClick={() => setModale('code')} />
-          <Tuile icone="coins" titre="Encaisser" sous="Paiement reçu + licence prolongée" onClick={() => setModale('encaisser')} />
+          {toutAVie ? (
+            <Tuile icone="lock" titre="Licence à vie" sous="Aucune échéance, jamais coupée" principal onClick={() => changerOnglet('licences')} />
+          ) : (
+            <Tuile icone="lock" titre="Générer une licence" sous="Code d’activation à entrer dans le logiciel" principal onClick={() => setModale('code')} />
+          )}
+          {!toutAVie && <Tuile icone="coins" titre="Encaisser" sous="Paiement reçu + licence prolongée" onClick={() => setModale('encaisser')} />}
           <Tuile icone="file" titre="Facturer" sous="Nouvelle facture" onClick={() => go(`/facture/new?type=facture${fiche ? `&p=${fiche.id}` : `&client=${encodeURIComponent(c.nom)}`}`)} />
-          <Tuile icone="clock" titre="Prolonger" sous="Délai gratuit, avec motif" onClick={() => setModale('prolonger')} />
+          {!toutAVie && <Tuile icone="clock" titre="Prolonger" sous="Délai gratuit, avec motif" onClick={() => setModale('prolonger')} />}
           <Tuile icone="more" titre="Plus" sous="Modules, bloquer, message…" onClick={() => setModale('plus')} />
         </div>
       </section>
@@ -727,30 +734,34 @@ function Fiche360({ p, id, faire, ongletDemande, mdpDemande }) {
               <section key={e.id} className="card">
                 <div className="pf-carte-tete">
                   <h2 className="section">{e.nom}</h2>
-                  {e.licence ? <span className={`badge ${e.licence.statut === 'suspendue' ? 'b-red' : e.licence.valide ? 'b-green' : 'b-orange'}`}>{e.licence.statut === 'suspendue' ? 'Suspendue' : e.licence.valide ? 'Valide' : 'Expirée'}</span> : <span className="badge b-orange">Aucune licence</span>}
+                  {e.licence ? <span className={`badge ${e.licence.statut === 'suspendue' ? 'b-red' : e.licence.valide ? 'b-green' : 'b-orange'}`}>{e.licence.statut === 'suspendue' ? 'Suspendue' : e.licence.valide ? (aVie(e.licence) ? 'À vie' : 'Valide') : 'Expirée'}</span> : <span className="badge b-orange">Aucune licence</span>}
                 </div>
                 {e.licence ? (
                   <>
                     <KV
                       rows={[
-                        ['Offre', `${e.licence.offre || '—'} · ${e.licence.formule || '—'}`],
-                        ['Échéance', `${date(e.licence.echeance)}${e.licence.jours_restants != null ? ` (${e.licence.jours_restants < 0 ? `échue depuis ${-e.licence.jours_restants} j` : `dans ${e.licence.jours_restants} j`})` : ''}`],
+                        ['Offre', `${e.licence.offre || '—'} · ${aVie(e.licence) ? 'à vie' : e.licence.formule || '—'}`],
+                        ['Échéance', aVie(e.licence) ? 'Aucune : licence à vie, jamais coupée' : `${date(e.licence.echeance)}${e.licence.jours_restants != null ? ` (${e.licence.jours_restants < 0 ? `échue depuis ${-e.licence.jours_restants} j` : `dans ${e.licence.jours_restants} j`})` : ''}`],
                         ['Montant', enDevise(e.licence.montant, e.devise)],
                       ]}
                     />
                     <div className="pf-boutons">
-                      <button className="btn sm primary" onClick={() => setModale({ code: e.id })}>
-                        <Icon n="lock" size={14} /> Générer un code de licence
-                      </button>
-                      <button className="btn sm" onClick={() => setModale({ encaisser: e.id })}>
-                        Encaisser et renouveler
-                      </button>
-                      <button className="btn sm" onClick={() => setModale({ renouveler: e.id })}>
-                        Renouveler sans encaissement
-                      </button>
-                      <button className="btn sm" onClick={() => setModale({ prolonger: e.id })}>
-                        Prolongation gratuite
-                      </button>
+                      {!aVie(e.licence) && (
+                        <>
+                          <button className="btn sm primary" onClick={() => setModale({ code: e.id })}>
+                            <Icon n="lock" size={14} /> Générer un code de licence
+                          </button>
+                          <button className="btn sm" onClick={() => setModale({ encaisser: e.id })}>
+                            Encaisser et renouveler
+                          </button>
+                          <button className="btn sm" onClick={() => setModale({ renouveler: e.id })}>
+                            Renouveler sans encaissement
+                          </button>
+                          <button className="btn sm" onClick={() => setModale({ prolonger: e.id })}>
+                            Prolongation gratuite
+                          </button>
+                        </>
+                      )}
                       <button className={`btn sm ${e.licence.statut === 'suspendue' ? '' : 'danger'}`} onClick={() => setModale({ licence: e })}>
                         {e.licence.statut === 'suspendue' ? 'Réactiver la licence' : 'Suspendre la licence'}
                       </button>
@@ -2249,7 +2260,7 @@ function TableEcheances({ liste }) {
                 </span>
               </td>
               <td className="nowrap">
-                {date(l.echeance)} <span className="bloc tiny muted">{joursTexte(l.jours)}</span>
+                {aVie(l) ? 'À vie' : <>{date(l.echeance)} <span className="bloc tiny muted">{joursTexte(l.jours)}</span></>}
               </td>
               <td>
                 <span className={`badge ${etatAffiche(l)[1]}`}>{etatAffiche(l)[0]}</span>
