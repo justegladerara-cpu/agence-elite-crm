@@ -15,7 +15,10 @@ export const ETATS_ECHEANCE = {
 // Paiement en tranches (ex. The Dream : 3 × 100 000, code d'une semaine) : la fin proche est normale,
 // ce n'est pas « à renouveler » tant que la tranche est payée.
 export const enTranches = (l) => /semaine|tranche/i.test(`${l?.offre || ''} ${l?.formule || ''} ${l?.modele || ''} ${l?.note || ''}`)
+// Licence à vie (formule « acquisition », sans échéance) : jamais à renouveler, jamais coupée.
+export const aVie = (l) => l?.formule === 'acquisition' && !l?.echeance
 export function etatAffiche(l) {
+  if (aVie(l) && l?.etat !== 'terminee' && l?.etat !== 'suspendue') return ['À vie', 'b-green']
   if (enTranches(l) && ['bientot', 'urgent', 'a_jour'].includes(l?.etat)) return ['Tranche payée', 'b-green']
   return ETATS_ECHEANCE[l?.etat] || [l?.etat, 'b-navy']
 }
